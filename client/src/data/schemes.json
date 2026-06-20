@@ -1,0 +1,42 @@
+[
+  {
+    "name": "PM-Kisan",
+    "category": "Income Support",
+    "state": "All India",
+    "detail": "Income support for eligible farmer families through direct benefit transfer.",
+    "eligibility": "Small and marginal farmers with valid land and identity records.",
+    "link": "https://pmkisan.gov.in/"
+  },
+  {
+    "name": "PM Fasal Bima Yojana",
+    "category": "Insurance",
+    "state": "All India",
+    "detail": "Crop insurance support against yield loss from weather, pests, and calamities.",
+    "eligibility": "Farmers growing notified crops in notified areas.",
+    "link": "https://pmfby.gov.in/"
+  },
+  {
+    "name": "Soil Health Card",
+    "category": "Soil",
+    "state": "All India",
+    "detail": "Soil nutrient testing and crop-wise fertilizer recommendations.",
+    "eligibility": "Farmers with cultivable land and sample collection access.",
+    "link": "https://soilhealth.dac.gov.in/"
+  },
+  {
+    "name": "Sub-Mission on Agricultural Mechanization",
+    "category": "Equipment",
+    "state": "All India",
+    "detail": "Support for farm machinery, custom hiring centers, and mechanized operations.",
+    "eligibility": "Farmers, groups, cooperatives, and eligible institutions.",
+    "link": "https://agrimachinery.nic.in/"
+  },
+  {
+    "name": "Rythu Bandhu",
+    "category": "Investment Support",
+    "state": "Telangana",
+    "detail": "Seasonal investment support for eligible farmers in Telangana.",
+    "eligibility": "Eligible land-owning farmers as per state records.",
+    "link": "https://rythubandhu.telangana.gov.in/"
+  }
+]

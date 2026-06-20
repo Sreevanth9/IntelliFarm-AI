@@ -1,0 +1,47 @@
+[
+  {
+    "crop": "Tomato",
+    "disease": "Leaf Curl",
+    "type": "Viral",
+    "season": "Summer",
+    "symptoms": "Curling leaves, stunted growth, yellowing leaf edges.",
+    "prevention": "Use resistant varieties, control whiteflies, remove infected plants.",
+    "treatment": "Apply recommended insect control and avoid moving infected seedlings."
+  },
+  {
+    "crop": "Paddy",
+    "disease": "Blast",
+    "type": "Fungal",
+    "season": "Kharif",
+    "symptoms": "Diamond-shaped leaf spots and neck infection.",
+    "prevention": "Balanced nitrogen, clean seed, proper spacing.",
+    "treatment": "Use approved fungicide and avoid excessive nitrogen application."
+  },
+  {
+    "crop": "Cotton",
+    "disease": "Wilt",
+    "type": "Fungal",
+    "season": "Kharif",
+    "symptoms": "Drooping leaves, brown vascular tissue, poor boll formation.",
+    "prevention": "Crop rotation, resistant varieties, field sanitation.",
+    "treatment": "Improve drainage and remove severely infected plants."
+  },
+  {
+    "crop": "Chilli",
+    "disease": "Powdery Mildew",
+    "type": "Fungal",
+    "season": "Rabi",
+    "symptoms": "White powdery patches on leaves and leaf drop.",
+    "prevention": "Avoid dense planting and improve airflow.",
+    "treatment": "Use sulphur-based or recommended fungicide as per local guidance."
+  },
+  {
+    "crop": "Maize",
+    "disease": "Fall Armyworm",
+    "type": "Pest",
+    "season": "Kharif",
+    "symptoms": "Window-pane leaf damage, central whorl feeding, frass deposits.",
+    "prevention": "Monitor weekly, use pheromone traps, avoid late sowing.",
+    "treatment": "Use locally recommended biological or chemical control at early stage."
+  }
+]
