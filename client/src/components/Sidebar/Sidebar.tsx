@@ -24,13 +24,10 @@ const Sidebar: React.FC = () => {
     ["My Farms", "/farms"],
     ["AI Assistant", "/assistant"],
     ["Weather", "/weather"],
-    ["Crop Advisor", "/crop-advisor"],
     ["Fertilizer", "/fertilizer"],
-    ["Market Prices", "/market-prices"],
     ["Schemes", "/schemes"],
     ["Disease Info", "/disease-info"],
     ["Disease Detection", "/disease-detection"],
-    ["Community", "/community"],
     ["Profile", "/profile"],
   ];
 

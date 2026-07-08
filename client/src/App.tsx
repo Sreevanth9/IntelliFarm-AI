@@ -11,14 +11,11 @@ import { getRecentChat } from "./store/chat-action";
 import UserDetails from "./components/UserDetails/UserDetails";
 import { refreshToken } from "./store/auth-action";
 import { loginHandler } from "./store/auth-action";
-import CropAdvisor from "./pages/CropAdvisor";
 import Dashboard from "./pages/Dashboard";
 import DiseaseInfo from "./pages/DiseaseInfo";
 import DiseaseDetection from "./pages/DiseaseDetection";
-import Community from "./pages/Community";
 import Fertilizer from "./pages/Fertilizer";
 import Irrigation from "./pages/Irrigation";
-import MarketPrices from "./pages/MarketPrices";
 import Profile from "./pages/Profile";
 import Schemes from "./pages/Schemes";
 import Weather from "./pages/Weather";
@@ -27,7 +24,6 @@ import ProtectedRoute from "./routes/ProtectedRoute";
 import Farms from "./pages/Farms";
 import Login from "./pages/Login";
 import AuthCallback from "./pages/AuthCallback";
-import Alerts from "./pages/Alerts";
 import Settings from "./pages/Settings";
 import FloatingChat from "./components/FloatingChat";
 
@@ -73,7 +69,7 @@ const App: React.FC = () => {
 
   useEffect(() => {
     const getLocalTheme = localStorage.getItem("theme");
-    const theme = getLocalTheme || "dark";
+    const theme = getLocalTheme || "light";
     document.documentElement.setAttribute("data-theme", theme);
   }, [isDark]);
 
@@ -170,18 +166,14 @@ const App: React.FC = () => {
         <Route path="/app/:historyId" element={<LegacyChatRedirect />} />
         <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
         <Route path="/weather" element={<Weather />} />
-        <Route path="/crop-advisor" element={<CropAdvisor />} />
         <Route path="/fertilizer" element={<Fertilizer />} />
-        <Route path="/market-prices" element={<MarketPrices />} />
         <Route path="/schemes" element={<Schemes />} />
         <Route path="/irrigation" element={<Irrigation />} />
         <Route path="/disease-info" element={<DiseaseInfo />} />
         <Route path="/disease-detection" element={<DiseaseDetection />} />
         <Route path="/farms" element={<ProtectedRoute><Farms /></ProtectedRoute>} />
-        <Route path="/community" element={<ProtectedRoute><Community /></ProtectedRoute>} />
         <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
         <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
-        <Route path="/alerts" element={<ProtectedRoute><Alerts /></ProtectedRoute>} />
         <Route path="*" element={<NotFound />} />
       </Routes>
       {isLogin && <FloatingChat />}

@@ -7,13 +7,11 @@ import helmet from "helmet";
 
 import assistantRoutes from "./routes/assistant.js";
 import authRoutes from "./routes/auth.js";
-import communityRoutes from "./routes/community.js";
 import cropRoutes from "./routes/cropRoutes.js";
 import farmRoutes from "./routes/farmRoutes.js";
 import profileRoutes from "./routes/profile.js";
 import publicRoutes from "./routes/public.js";
 import weatherRoutes from "./routes/weatherRoutes.js";
-import alertRoutes from "./routes/alertRoutes.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 import { sanitizeBody } from "./middleware/sanitizeInput.js";
 
@@ -40,12 +38,10 @@ app.get("/api/health", (req, res) => {
 
 app.use("/api/auth", authRoutes);
 app.use("/api/assistant", assistantRoutes);
-app.use("/api/community", communityRoutes);
 app.use("/api/profile", profileRoutes);
 app.use("/api/weather", weatherRoutes);
 app.use("/api/crops", cropRoutes);
 app.use("/api/farms", farmRoutes);
-app.use("/api/alerts", alertRoutes);
 
 app.use("/gemini", publicRoutes);
 

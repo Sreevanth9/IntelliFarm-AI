@@ -1,137 +1,129 @@
 import { NavLink, useNavigate } from "react-router-dom";
 import { ROUTES } from "../utils/constants";
 import farmLogo from "../assets/intellifarm-icon.png";
+
 import { useAuth } from "../context/AuthContext";
 import toast from "react-hot-toast";
+import {
+  LayoutDashboard,
+  Tractor,
+  Microscope,
+  CloudSun,
+  Bot,
+  User,
+  Settings,
+  LogOut,
+  ChevronRight
+} from "lucide-react";
 
 const Sidebar = () => {
   const { logout } = useAuth();
   const navigate = useNavigate();
 
-  const mainItems = [
-    { label: "Dashboard", href: ROUTES.dashboard, icon: "📊" },
-    { label: "My Farms", href: ROUTES.farms, icon: "🌾" },
-    { label: "Disease Detection", href: ROUTES.diseaseDetection, icon: "🔬" },
-    { label: "Market Intelligence", href: ROUTES.marketPrices, icon: "📈" },
-    { label: "Weather", href: ROUTES.weather, icon: "☁️" },
-    { label: "Alerts", href: ROUTES.alerts, icon: "🔔" },
-    { label: "AI Assistant", href: ROUTES.assistant, icon: "🤖" },
-    { label: "Community", href: ROUTES.community, icon: "🤝" },
+  const group1 = [
+    { label: "Dashboard", href: ROUTES.dashboard, icon: LayoutDashboard },
+    { label: "AI Assistant", href: ROUTES.assistant, icon: Bot },
+    { label: "Disease Detection", href: ROUTES.diseaseDetection, icon: Microscope },
   ];
 
-  const bottomItems = [
-    { label: "Profile", href: ROUTES.profile, icon: "👤" },
-    { label: "Settings", href: ROUTES.settings, icon: "⚙️" },
+  const group2 = [
+    { label: "My Farms", href: ROUTES.farms, icon: Tractor },
+    { label: "Weather", href: ROUTES.weather, icon: CloudSun },
   ];
 
-  const handleLogoutClick = async () => {
-    try {
-      await logout();
-      toast.success("Logged out successfully");
-      navigate("/login");
-    } catch (err) {
-      console.error("Logout failed:", err);
-    }
+
+
+  const group4 = [
+    { label: "Profile", href: ROUTES.profile, icon: User },
+    { label: "Settings", href: ROUTES.settings, icon: Settings },
+  ];
+
+  const handleLogout = () => {
+    logout()
+      .then(() => {
+        toast.success("Logged out successfully");
+        navigate("/login");
+      })
+      .catch((err: any) => {
+        console.error("Logout failed:", err);
+      });
+  };
+
+  const renderMenuItems = (items: typeof group1) => {
+    return items.map((item) => {
+      const IconComponent = item.icon;
+      return (
+        <NavLink
+          key={item.href}
+          to={item.href}
+          className={({ isActive }) =>
+            isActive ? "sidebar-item sidebar-item-active" : "sidebar-item"
+          }
+        >
+          <span className="sidebar-icon">
+            <IconComponent size={22} strokeWidth={2} />
+          </span>
+          <span className="sidebar-text">{item.label}</span>
+          {item.badgeCount && (
+            <span className="sidebar-badge">
+              {item.badgeCount}
+            </span>
+          )}
+          <ChevronRight size={16} className="sidebar-chevron" />
+        </NavLink>
+      );
+    });
   };
 
   return (
-    <aside className="ag-sidebar" style={{
-      padding: "20px 16px",
-      display: "flex",
-      flexDirection: "column",
-      minWidth: "260px",
-      width: "260px",
-      borderTop: "none",
-      borderBottom: "none",
-      borderLeft: "none",
-      height: "100vh",
-      position: "sticky",
-      top: "0",
-      zIndex: 10,
-    }}>
-      {/* Brand header */}
-      <div className="sidebar-brand" style={{ display: "flex", alignItems: "center", gap: "10px", padding: "8px 10px", marginBottom: "24px" }}>
-        <img src={farmLogo} alt="IntelliFarm AI" style={{ width: "38px", height: "38px", objectFit: "contain", borderRadius: "10px", boxShadow: "0 0 15px rgba(82, 183, 136, 0.2)" }} />
-        <div style={{ display: "flex", flexDirection: "column" }}>
-          <span style={{ fontWeight: 800, fontSize: "16px", color: "var(--sidebar-active-color, #52b788)", letterSpacing: "-0.5px" }}>IntelliFarm AI</span>
-          <small style={{ fontSize: "9px", opacity: 0.6, color: "var(--body-color)" }}>SaaS Farming Ecosystem</small>
-        </div>
-      </div>
-
-      {/* Main navigation list */}
-      <div style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", gap: "2px", paddingRight: "4px" }}>
-        {mainItems.map((item) => (
-          <NavLink
-            key={item.href}
-            to={item.href}
-            className={({ isActive }) =>
-              isActive ? "sidebar-link-custom active" : "sidebar-link-custom"
-            }
-          >
-            <span style={{ fontSize: "16px" }}>{item.icon}</span>
-            <span>{item.label}</span>
-          </NavLink>
-        ))}
-      </div>
-
-      {/* Bottom section (Pro Card + Profile + Settings + Logout) */}
-      <div style={{ borderTop: "1px solid rgba(255, 255, 255, 0.08)", paddingTop: "16px", marginTop: "12px", display: "flex", flexDirection: "column", gap: "2px" }}>
-        {/* Upgrade to Pro Card */}
-        <div className="upgrade-pro-card" style={{
-          padding: "14px",
-          borderRadius: "12px",
-          background: "linear-gradient(135deg, rgba(82, 183, 136, 0.1) 0%, rgba(15, 118, 110, 0.04) 100%)",
-          border: "1px solid rgba(82, 183, 136, 0.2)",
-          marginBottom: "16px",
-          textAlign: "left",
-          boxShadow: "0 4px 15px rgba(0, 0, 0, 0.15)"
-        }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "6px" }}>
-            <span style={{ fontSize: "12px" }}>⭐</span>
-            <span style={{ fontSize: "10px", fontWeight: "bold", color: "#52b788", letterSpacing: "1px" }}>UPGRADE TO PRO</span>
+    <aside className="sidebar">
+      {/* 1. Fixed Header Area (Logo Only) */}
+      <div className="sidebar-header-fixed" style={{ marginBottom: "16px" }}>
+        <div className="sidebar-header" style={{ marginBottom: "16px" }}>
+          <img src={farmLogo} alt="IntelliFarm AI Logo" className="sidebar-logo-img" />
+          <div className="sidebar-brand">
+            <span className="sidebar-brand-title">IntelliFarm AI</span>
+            <span className="sidebar-brand-subtitle">Smart Farming.<br />Better Decisions.</span>
           </div>
-          <p style={{ fontSize: "10px", margin: "0 0 10px 0", opacity: 0.7, color: "var(--body-color)", lineHeight: "1.3" }}>
-            Premium crop analysis & weather telemetry triggers.
-          </p>
-          <button className="glass-btn-primary" style={{ width: "100%", padding: "6px", fontSize: "10px", borderRadius: "6px" }}>
-            Get 7 Days Free
-          </button>
+        </div>
+        <hr className="sidebar-divider" style={{ margin: 0 }} />
+      </div>
+
+      {/* 2. Scrollable Content Area */}
+      <nav className="sidebar-nav">
+
+        {/* Group 1: Dashboard & AI Services */}
+        <div className="sidebar-menu-group">
+          {renderMenuItems(group1)}
         </div>
 
-        {bottomItems.map((item) => (
-          <NavLink
-            key={item.href}
-            to={item.href}
-            className={({ isActive }) =>
-              isActive ? "sidebar-link-custom active" : "sidebar-link-custom"
-            }
-          >
-            <span style={{ fontSize: "16px" }}>{item.icon}</span>
-            <span>{item.label}</span>
-          </NavLink>
-        ))}
+        <hr className="sidebar-divider" />
 
-        {/* Logout Button */}
-        <button
-          onClick={handleLogoutClick}
-          className="sidebar-link-custom"
-          style={{
-            background: "transparent",
-            border: "1px solid transparent",
-            width: "100%",
-            textAlign: "left",
-            cursor: "pointer",
-            outline: "none",
-            display: "flex",
-            alignItems: "center",
-            gap: "12px",
-            marginTop: "2px"
-          }}
-        >
-          <span style={{ fontSize: "16px" }}>🚪</span>
-          <span>Logout</span>
+        {/* Group 2: Farm Ops */}
+        <div className="sidebar-menu-group">
+          {renderMenuItems(group2)}
+        </div>
+
+
+
+        <hr className="sidebar-divider" />
+
+        {/* Group 4: Account / Config */}
+        <div className="sidebar-menu-group">
+          {renderMenuItems(group4)}
+        </div>
+
+        <hr className="sidebar-divider" />
+
+        {/* Section 5: Logout Action */}
+        <button onClick={handleLogout} className="sidebar-logout">
+          <span className="sidebar-icon" style={{ color: "#FF4D4D" }}>
+            <LogOut size={18} strokeWidth={2} />
+          </span>
+          <span className="sidebar-text">Logout</span>
+          <ChevronRight size={16} className="sidebar-chevron" style={{ color: "#FF4D4D" }} />
         </button>
-      </div>
+      </nav>
     </aside>
   );
 };

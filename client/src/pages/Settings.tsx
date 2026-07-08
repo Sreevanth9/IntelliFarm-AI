@@ -10,7 +10,7 @@ const Settings: React.FC = () => {
   const dispatch = useDispatch();
   const isDarkRedux = useSelector((state: any) => state.ui.isDark);
   
-  const [theme, setTheme] = useState<string>(() => localStorage.getItem("theme") || "dark");
+  const [theme, setTheme] = useState<string>(() => localStorage.getItem("theme") || "light");
   const [notifyWeather, setNotifyWeather] = useState(true);
   const [notifyDisease, setNotifyDisease] = useState(true);
   const [notifyMarket, setNotifyMarket] = useState(true);

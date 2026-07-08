@@ -11,8 +11,9 @@ const MainLayout = ({ children, eyebrow, title, subtitle, actions = null }) => {
       <div className="ag-main-container">
         <Navbar />
         <main className="ag-page" style={{ flex: 1, display: "flex", flexDirection: "column", background: "transparent", minHeight: "auto" }}>
-          <section className="ag-content app-main-content" style={{ flex: 1, width: "100%", maxWidth: "1280px", margin: "0 auto", padding: "24px 24px 60px 24px" }}>
-            <div className="ag-breadcrumb" style={{ color: "var(--text-main, #5b6b62)" }}>IntelliFarm AI / {title}</div>
+          <section className="ag-content app-main-content" style={{ flex: 1, width: "100%", maxWidth: "1600px", margin: "0 auto", padding: "24px 32px 32px 32px" }}>
+            {title && <div className="ag-breadcrumb" style={{ color: "var(--text-main, #5b6b62)" }}>IntelliFarm AI / {title}</div>}
+            {title && (
             <div className="ag-page-head" style={{ marginBottom: "20px" }}>
               <div>
                 {eyebrow && <p className="ag-eyebrow" style={{ color: "var(--sidebar-active-color, #2e7d32)", fontWeight: "bold" }}>{eyebrow}</p>}
@@ -21,6 +22,7 @@ const MainLayout = ({ children, eyebrow, title, subtitle, actions = null }) => {
               </div>
               {actions && <div className="ag-page-actions">{actions}</div>}
             </div>
+            )}
             {children}
           </section>
           <Footer />

@@ -9,17 +9,13 @@ export const ROUTES = {
   dashboard: "/dashboard",
   farms: "/farms",
   weather: "/weather",
-  cropAdvisor: "/crop-advisor",
   fertilizer: "/fertilizer",
-  marketPrices: "/market-prices",
   schemes: "/schemes",
   irrigation: "/irrigation",
   diseaseInfo: "/disease-info",
   diseaseDetection: "/disease-detection",
-  community: "/community",
   profile: "/profile",
   assistant: "/assistant",
-  alerts: "/alerts",
   settings: "/settings",
 };
 
@@ -27,11 +23,8 @@ export const SIDEBAR_ITEMS = [
   ["Dashboard", ROUTES.dashboard, "📊"],
   ["My Farms", ROUTES.farms, "🚜"],
   ["Disease Detection", ROUTES.diseaseDetection, "🍃"],
-  ["Market", ROUTES.marketPrices, "📈"],
-  ["Alerts", ROUTES.alerts, "🔔"],
   ["Profile", ROUTES.profile, "👤"],
   ["Settings", ROUTES.settings, "⚙️"],
-  ["Community", ROUTES.community, "🤝"],
 ];
 
 export const SERVICE_CARDS = [
@@ -42,22 +35,10 @@ export const SERVICE_CARDS = [
     icon: weatherIcon,
   },
   {
-    title: "Crop Recommendation",
-    description: "Crop selection based on soil, water, climate, season, and farmer goals.",
-    route: ROUTES.cropAdvisor,
-    icon: cropImage,
-  },
-  {
     title: "Fertilizer Guide",
     description: "Nutrient plans with organic options, timing, dosage reminders, and safety notes.",
     route: ROUTES.fertilizer,
     icon: cropImage,
-  },
-  {
-    title: "Market Prices",
-    description: "Price direction, mandi trend summaries, and selling decision support.",
-    route: ROUTES.marketPrices,
-    icon: weatherIcon,
   },
   {
     title: "AI Farming Assistant",
