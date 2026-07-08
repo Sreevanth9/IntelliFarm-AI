@@ -7,6 +7,24 @@ import { ROUTES } from "../utils/constants";
 import { uiAction } from "../store/ui-gemini";
 import { Search as SearchIcon, Sun, Moon, ChevronDown } from "lucide-react";
 
+interface SearchableItem {
+  title: string;
+  category: string;
+  description: string;
+  route: string;
+}
+
+const SEARCHABLE_ITEMS: SearchableItem[] = [
+  { title: "Sreevanth Farm", category: "Farms", description: "Hyderabad, Telangana • Active", route: "/farms" },
+  { title: "Nalgonda Field", category: "Farms", description: "Paddy crop • Healthy Area", route: "/farms" },
+  { title: "Bacterial Leaf Blight", category: "Diseases", description: "Paddy disease information & organic cures", route: "/disease-info" },
+  { title: "Powdery Mildew", category: "Diseases", description: "Wheat & vegetable crop disease guidelines", route: "/disease-info" },
+  { title: "Weather Forecast", category: "Services", description: "Check rain chances, humidity & temperatures", route: "/weather" },
+  { title: "AI Farming Assistant", category: "AI Services", description: "Chat about soil health, crops, & pest solutions", route: "/assistant" },
+  { title: "Fertilizer Guide", category: "Services", description: "Dosage calculation and schedule recommendations", route: "/fertilizer" },
+  { title: "Government Schemes", category: "Services", description: "Subsidies, insurance policies & crop support", route: "/schemes" }
+];
+
 const Navbar: React.FC = () => {
   const { farmer, isAuthenticated, logout } = useAuth() as any;
   const navigate = useNavigate();
@@ -14,8 +32,10 @@ const Navbar: React.FC = () => {
   const isDarkRedux = useSelector((state: any) => state.ui.isDark);
 
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const searchInputRef = useRef<HTMLInputElement>(null);
+  const popupInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -31,12 +51,24 @@ const Navbar: React.FC = () => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key?.toLowerCase() === "k") {
         e.preventDefault();
-        searchInputRef.current?.focus();
+        setIsSearchOpen(true);
+      } else if (e.key === "Escape") {
+        setIsSearchOpen(false);
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
+
+  useEffect(() => {
+    if (isSearchOpen) {
+      setTimeout(() => {
+        popupInputRef.current?.focus();
+      }, 80);
+    } else {
+      setSearchQuery("");
+    }
+  }, [isSearchOpen]);
 
   const authClickHandler = async () => {
     if (isAuthenticated) {
@@ -56,23 +88,44 @@ const Navbar: React.FC = () => {
     toast.success(`Switched to ${nextTheme} mode`);
   };
 
-
+  const filteredItems = SEARCHABLE_ITEMS.filter((item) =>
+    item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    item.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    item.description.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   return (
     <>
       <nav className="top-navbar">
         
-        {/* Left Section: Search (Width 650px, height 56px) */}
-        <div className="search-container">
+        {/* Left Section: Search Trigger */}
+        <div 
+          className="search-container" 
+          onClick={() => setIsSearchOpen(true)}
+          style={{ cursor: "pointer" }}
+        >
           {isAuthenticated && (
             <>
               <SearchIcon className="sidebar-search-icon" size={18} />
-              <input 
-                ref={searchInputRef}
-                type="text" 
-                placeholder="Search farms, crops, scanning history..." 
-                className="search-input" 
-              />
+              <div 
+                className="search-input-placeholder"
+                style={{
+                  width: "100%",
+                  height: "100%",
+                  borderRadius: "20px",
+                  background: "var(--search-bg)",
+                  border: "1px solid var(--search-border)",
+                  padding: "0 56px 0 52px",
+                  fontSize: "14px",
+                  color: "var(--sidebar-text-color)",
+                  display: "flex",
+                  alignItems: "center",
+                  boxShadow: "0 4px 20px rgba(0, 0, 0, 0.03)",
+                  boxSizing: "border-box"
+                }}
+              >
+                Search farms, crops, scanning history...
+              </div>
               <span style={{
                 position: "absolute",
                 right: "20px",
@@ -93,13 +146,13 @@ const Navbar: React.FC = () => {
           )}
         </div>
 
-        {/* Center Spacer (Keeps search left, profile right) */}
+        {/* Center Spacer */}
         <div style={{ flex: 1 }}></div>
 
-        {/* Right Section: Actions (Notification, Theme, Profile) */}
+        {/* Right Section: Actions */}
         <div style={{ display: "flex", alignItems: "center", gap: "20px" }}>
           
-          {/* 2. Theme Toggle Button */}
+          {/* Theme Toggle Button */}
           <button 
             type="button" 
             className="theme-toggle-btn"
@@ -109,14 +162,13 @@ const Navbar: React.FC = () => {
             {isDarkRedux ? <Sun size={20} /> : <Moon size={20} />}
           </button>
 
-          {/* 3. Profile Card */}
+          {/* Profile Card */}
           {isAuthenticated && (
             <div style={{ position: "relative" }} ref={dropdownRef}>
               <div 
                 onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
                 className="profile-card"
               >
-                {/* SV Green/Mint Avatar */}
                 <div className="profile-avatar">
                   {farmer?.profileImg || farmer?.profile_img ? (
                     <img 
@@ -131,7 +183,6 @@ const Navbar: React.FC = () => {
                   )}
                 </div>
                 
-                {/* Name & Role */}
                 <div className="profile-info">
                   <span className="profile-name">
                     {farmer?.name || "Sreevanth Vadlamudi"}
@@ -141,11 +192,9 @@ const Navbar: React.FC = () => {
                   </span>
                 </div>
                 
-                {/* Caret */}
                 <ChevronDown className="profile-chevron" size={16} />
               </div>
 
-              {/* Profile Dropdown Overlay */}
               {profileDropdownOpen && (
                 <div className="profile-dropdown">
                   <div 
@@ -159,7 +208,7 @@ const Navbar: React.FC = () => {
                       gap: "8px",
                       padding: "10px 12px",
                       borderRadius: "10px",
-                      color: "#1E293B",
+                      color: "var(--search-text)",
                       fontSize: "13px",
                       fontWeight: 600,
                       cursor: "pointer"
@@ -179,7 +228,7 @@ const Navbar: React.FC = () => {
                       gap: "8px",
                       padding: "10px 12px",
                       borderRadius: "10px",
-                      color: "#1E293B",
+                      color: "var(--search-text)",
                       fontSize: "13px",
                       fontWeight: 600,
                       cursor: "pointer"
@@ -199,7 +248,7 @@ const Navbar: React.FC = () => {
                       gap: "8px",
                       padding: "10px 12px",
                       borderRadius: "10px",
-                      color: "#1E293B",
+                      color: "var(--search-text)",
                       fontSize: "13px",
                       fontWeight: 600,
                       cursor: "pointer"
@@ -235,11 +284,123 @@ const Navbar: React.FC = () => {
           )}
         </div>
       </nav>
+
+      {/* Center Popup Search Modal */}
+      {isSearchOpen && (
+        <div 
+          className="search-modal-overlay" 
+          onClick={() => setIsSearchOpen(false)}
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(12, 18, 16, 0.5)",
+            backdropFilter: "blur(12px)",
+            WebkitBackdropFilter: "blur(12px)",
+            zIndex: 1000,
+            display: "flex",
+            alignItems: "flex-start",
+            justifyContent: "center",
+            paddingTop: "12vh"
+          }}
+        >
+          <div 
+            className="search-modal-content liquid-glass-panel" 
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              width: "600px",
+              maxWidth: "90%",
+              background: "var(--search-bg)",
+              border: "1px solid var(--search-border)",
+              borderRadius: "24px",
+              boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
+              padding: "20px",
+              display: "flex",
+              flexDirection: "column",
+              gap: "16px",
+              boxSizing: "border-box"
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: "12px", borderBottom: "1px solid var(--search-border)", paddingBottom: "12px" }}>
+              <SearchIcon size={20} style={{ color: "var(--sidebar-text-color)" }} />
+              <input
+                ref={popupInputRef}
+                type="text"
+                placeholder="Type to search farms, diseases, or services..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                style={{
+                  flex: 1,
+                  background: "transparent",
+                  border: "none",
+                  outline: "none",
+                  fontSize: "16px",
+                  color: "var(--search-text)"
+                }}
+              />
+              <button 
+                onClick={() => setIsSearchOpen(false)}
+                style={{
+                  background: "rgba(0, 0, 0, 0.05)",
+                  border: "none",
+                  borderRadius: "8px",
+                  padding: "4px 8px",
+                  fontSize: "12px",
+                  cursor: "pointer",
+                  color: "var(--sidebar-text-color)"
+                }}
+              >
+                ESC
+              </button>
+            </div>
+
+            <div style={{ maxHeight: "320px", overflowY: "auto", display: "flex", flexDirection: "column", gap: "8px" }}>
+              {filteredItems.length === 0 ? (
+                <div style={{ padding: "32px 0", textAlign: "center", color: "var(--sidebar-text-color)", fontSize: "14px", fontStyle: "italic" }}>
+                  No results found for "{searchQuery}"
+                </div>
+              ) : (
+                filteredItems.map((item) => (
+                  <div
+                    key={item.title}
+                    onClick={() => {
+                      setIsSearchOpen(false);
+                      navigate(item.route);
+                    }}
+                    style={{
+                      padding: "12px 16px",
+                      borderRadius: "12px",
+                      cursor: "pointer",
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "2px",
+                      transition: "all 0.2s",
+                      border: "1px solid transparent"
+                    }}
+                    className="search-result-item"
+                  >
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <span style={{ fontWeight: 600, fontSize: "14px", color: "var(--search-text)" }}>{item.title}</span>
+                      <span style={{ fontSize: "10px", padding: "2px 6px", borderRadius: "6px", background: "rgba(47, 184, 107, 0.12)", color: "#1D7A46", fontWeight: 700 }}>
+                        {item.category}
+                      </span>
+                    </div>
+                    <span style={{ fontSize: "12px", color: "var(--sidebar-text-color)" }}>{item.description}</span>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
       
       <style>{`
         .dropdown-item-hover:hover {
           background: rgba(47, 184, 107, 0.08) !important;
           color: #1D7A46 !important;
+        }
+        .search-result-item:hover {
+          background: rgba(47, 184, 107, 0.08) !important;
+          border-color: rgba(47, 184, 107, 0.15) !important;
         }
       `}</style>
     </>

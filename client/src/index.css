@@ -204,17 +204,33 @@ html {
 :root {
   --body-bg: linear-gradient(180deg, #FFFFFF 0%, #F5FAF7 30%, #EAF9F1 70%, #FFFFFF 100%);
   --body-color: #1E293B;
-  --sidebar-active-color: #2FB86B;
-  --sidebar-active-bg: #EAF9F1;
-  --sidebar-active-border: rgba(47, 184, 107, 0.2);
+  --sidebar-bg: linear-gradient(185deg, rgba(255, 255, 255, 0.95) 0%, rgba(246, 251, 248, 0.95) 50%, rgba(235, 249, 242, 0.95) 100%);
+  --sidebar-border: rgba(0, 0, 0, 0.04);
+  --sidebar-brand-color: #1E293B;
+  --sidebar-text-color: #64748B;
+  --sidebar-active-text: #1E293B;
+  --sidebar-active-bg: linear-gradient(135deg, #EAF9F1 0%, rgba(234, 249, 241, 0.6) 100%);
+  --sidebar-active-border: rgba(47, 184, 107, 0.35);
+  --top-navbar-bg: transparent;
+  --search-bg: rgba(255, 255, 255, 0.9);
+  --search-border: rgba(0, 0, 0, 0.08);
+  --search-text: #1E293B;
 }
 
 [data-theme="dark"] {
-  --body-bg: linear-gradient(180deg, #FFFFFF 0%, #F5FAF7 30%, #EAF9F1 70%, #FFFFFF 100%);
-  --body-color: #1E293B;
-  --sidebar-active-color: #2FB86B;
-  --sidebar-active-bg: #EAF9F1;
-  --sidebar-active-border: rgba(47, 184, 107, 0.2);
+  --body-bg: #000000;
+  --body-color: #FFFFFF;
+  --sidebar-bg: linear-gradient(185deg, rgba(20, 26, 23, 0.95) 0%, rgba(15, 20, 18, 0.95) 50%, rgba(10, 15, 12, 0.95) 100%);
+  --sidebar-border: rgba(255, 255, 255, 0.08);
+  --sidebar-brand-color: #FFFFFF;
+  --sidebar-text-color: #94A3B8;
+  --sidebar-active-text: #FFFFFF;
+  --sidebar-active-bg: linear-gradient(135deg, rgba(47, 184, 107, 0.15) 0%, rgba(47, 184, 107, 0.05) 100%);
+  --sidebar-active-border: rgba(47, 184, 107, 0.4);
+  --top-navbar-bg: transparent;
+  --search-bg: rgba(30, 41, 37, 0.85);
+  --search-border: rgba(255, 255, 255, 0.1);
+  --search-text: #FFFFFF;
 }
 
 body {
@@ -882,10 +898,10 @@ code {
   width: 280px;
   min-width: 280px;
   max-width: 280px;
-  background: linear-gradient(185deg, rgba(255, 255, 255, 0.95) 0%, rgba(246, 251, 248, 0.95) 50%, rgba(235, 249, 242, 0.95) 100%);
+  background: var(--sidebar-bg);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border-right: 1px solid rgba(0, 0, 0, 0.04);
+  border-right: 1px solid var(--sidebar-border);
   box-shadow: 0 8px 40px rgba(0, 0, 0, 0.03);
   height: 100vh;
   position: sticky;
@@ -937,7 +953,7 @@ code {
 .sidebar-brand-title {
   font-size: 22px;
   font-weight: 700;
-  color: #1E293B;
+  color: var(--sidebar-brand-color);
   letter-spacing: -0.5px;
   line-height: 1.2;
 }
@@ -1030,7 +1046,7 @@ code {
   border-radius: 16px;
   font-size: 16px;
   font-weight: 500;
-  color: #64748B;
+  color: var(--sidebar-text-color);
   text-decoration: none;
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   box-sizing: border-box;
@@ -1047,9 +1063,9 @@ code {
 }
 
 .sidebar-item-active {
-  color: #1E293B !important;
-  background: linear-gradient(135deg, #EAF9F1 0%, rgba(234, 249, 241, 0.6) 100%) !important;
-  border-color: rgba(47, 184, 107, 0.35) !important;
+  color: var(--sidebar-active-text) !important;
+  background: var(--sidebar-active-bg) !important;
+  border-color: var(--sidebar-active-border) !important;
   box-shadow: 0 4px 12px rgba(47, 184, 107, 0.05) !important;
 }
 
