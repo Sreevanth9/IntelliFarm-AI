@@ -6,9 +6,8 @@ import Navbar from "../components/Navbar";
 import farmHero from "../assets/intellifarm-hero.png";
 import { ROUTES } from "../utils/constants";
 import { fetchWeatherBundle } from "../services/weatherApi";
-import marketData from "../data/marketPrices.json";
 import schemes from "../data/schemes.json";
-import { MarketPriceItem, Scheme } from "../types";
+import { Scheme } from "../types";
 
 const testimonials = [
   {
@@ -22,7 +21,7 @@ const testimonials = [
     location: "Amritsar, Punjab",
   },
   {
-    quote: "Accurate market prices helped me sell my tomatoes at the best rate.",
+    quote: "The personalized crop planning and fertilizer guide helped improve my yield by 25%.",
     author: "Amrita Patil",
     location: "Nashik, Maharashtra",
   },
@@ -98,7 +97,7 @@ const Home: React.FC = () => {
             Smart Farming Solutions with <span style={{ color: "#2e7d32" }}>IntelliFarm AI</span>
           </h1>
           <p style={{ fontSize: "16px", color: "#5b6b62", margin: 0, lineHeight: 1.6, maxWidth: "520px" }}>
-            AI-powered agriculture assistance for modern farmers. Get instant recommendations on crop planning, disease diagnosis, weather risks, and mandi market prices.
+            AI-powered agriculture assistance for modern farmers. Get instant recommendations on crop planning, disease diagnosis, weather risks, and fertilizer needs.
           </p>
           <div style={{ display: "flex", gap: "12px", flexWrap: "wrap", marginTop: "10px" }}>
             <Link className="glass-btn-primary" style={{ padding: "14px 28px", textDecoration: "none", fontSize: "15px" }} to="/login">Get Started</Link>
@@ -158,9 +157,9 @@ const Home: React.FC = () => {
               desc: "Localized microclimate monitoring, humidity risk assessment, and rain watch logs."
             },
             {
-              icon: "📈",
-              title: "Market Mandi Prices",
-              desc: "Track real-time market rates and mandi price trend analysis for smarter crops marketing."
+              icon: "🤖",
+              title: "AI Farming Assistant",
+              desc: "Get instant answers to complex farming, crop, and fertilizer questions via our chat interface."
             }
           ].map((feat) => (
             <article key={feat.title} className="liquid-glass-card" style={{ padding: "28px", display: "flex", flexDirection: "column", gap: "12px" }}>
@@ -249,45 +248,7 @@ const Home: React.FC = () => {
         </div>
       </section>
 
-      {/* 4. Mandi Prices & Market Section */}
-      <section style={{ padding: "60px max(20px, calc((100% - 1200px) / 2))" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: "32px", flexWrap: "wrap", gap: "12px" }}>
-          <div>
-            <span style={{ fontSize: "12px", color: "#2e7d32", fontWeight: 800, textTransform: "uppercase" }}>MARKET INTELLIGENCE</span>
-            <h2 style={{ fontSize: "28px", color: "#183d24", fontWeight: 800, margin: "4px 0 0 0" }}>Live Mandi Price Overview</h2>
-          </div>
-          <Link className="glass-btn-secondary" style={{ padding: "8px 16px", textDecoration: "none", fontSize: "13px" }} to="/market-prices">View All Market Data</Link>
-        </div>
 
-        <div className="liquid-glass-panel" style={{ padding: 0, overflow: "hidden" }}>
-          <div style={{ overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left" }}>
-              <thead>
-                <tr style={{ background: "rgba(46, 125, 50, 0.05)", borderBottom: "1px solid rgba(46,125,50,0.1)" }}>
-                  <th style={{ padding: "16px 24px", color: "#183d24", fontWeight: 800 }}>Crop</th>
-                  <th style={{ padding: "16px 24px", color: "#183d24", fontWeight: 800 }}>Mandi (Market)</th>
-                  <th style={{ padding: "16px 24px", color: "#183d24", fontWeight: 800 }}>State</th>
-                  <th style={{ padding: "16px 24px", color: "#183d24", fontWeight: 800 }}>Price per Quintal</th>
-                  <th style={{ padding: "16px 24px", color: "#183d24", fontWeight: 800 }}>Weekly Trend</th>
-                </tr>
-              </thead>
-              <tbody>
-                {(marketData as MarketPriceItem[]).slice(0, 4).map((item, index) => (
-                  <tr key={`${item.crop}-${item.market}`} style={{ borderBottom: index === 3 ? "none" : "1px solid rgba(46,125,50,0.06)" }}>
-                    <td style={{ padding: "16px 24px", fontWeight: 700, color: "#183d24" }}>{item.crop}</td>
-                    <td style={{ padding: "16px 24px", color: "#5b6b62" }}>{item.market}</td>
-                    <td style={{ padding: "16px 24px", color: "#5b6b62" }}>{item.state}</td>
-                    <td style={{ padding: "16px 24px", color: "#2e7d32", fontWeight: 800 }}>Rs {item.price}</td>
-                    <td style={{ padding: "16px 24px", fontWeight: 700, color: item.trend >= 0 ? "#2e7d32" : "#d32f2f" }}>
-                      {item.trend >= 0 ? "+" : ""}{item.trend}%
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </section>
 
       {/* 5. Government Schemes Section */}
       <section style={{ padding: "60px max(20px, calc((100% - 1200px) / 2))" }}>
