@@ -215,6 +215,10 @@ html {
   --search-bg: rgba(255, 255, 255, 0.9);
   --search-border: rgba(0, 0, 0, 0.08);
   --search-text: #1E293B;
+  --hero-title-color: #000000;
+  --hero-greeting-color: #1D7A46;
+  --hero-desc-color: #475569;
+  --dashboard-bg: linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0.8) 100%), url('./assets/dashboard.png') no-repeat center center;
 }
 
 [data-theme="dark"] {
@@ -231,6 +235,10 @@ html {
   --search-bg: rgba(30, 41, 37, 0.85);
   --search-border: rgba(255, 255, 255, 0.1);
   --search-text: #FFFFFF;
+  --hero-title-color: #FFFFFF;
+  --hero-greeting-color: #A3E635;
+  --hero-desc-color: rgba(255, 255, 255, 0.85);
+  --dashboard-bg: linear-gradient(135deg, rgba(8, 28, 21, 0.4) 0%, rgba(5, 19, 15, 0.3) 50%, rgba(20, 60, 30, 0.4) 100%), url('./assets/dashboard.png') no-repeat center center;
 }
 
 body {
@@ -1479,7 +1487,7 @@ code {
 }
 
 .dashboard-main-container {
-  background: linear-gradient(135deg, rgba(8, 28, 21, 0.4) 0%, rgba(5, 19, 15, 0.3) 50%, rgba(20, 60, 30, 0.4) 100%), url('./assets/dashboard.png') no-repeat center center !important;
+  background: var(--dashboard-bg) !important;
   background-size: cover !important;
   background-attachment: fixed !important;
 }
@@ -1540,7 +1548,7 @@ code {
 .hero-greeting {
   font-size: 20px;
   font-weight: 600;
-  color: #A3E635;
+  color: var(--hero-greeting-color);
   margin-bottom: 8px;
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
@@ -1548,7 +1556,7 @@ code {
 .hero-title {
   font-size: 58px;
   font-weight: 800;
-  color: #FFFFFF !important;
+  color: var(--hero-title-color) !important;
   line-height: 1.1;
   margin: 0 0 16px 0;
   animation: titleSlideUp 0.4s ease-out;
@@ -1558,7 +1566,7 @@ code {
 
 .hero-description {
   font-size: 20px;
-  color: rgba(255, 255, 255, 0.85) !important;
+  color: var(--hero-desc-color) !important;
   margin: 0 0 24px 0;
   max-width: 550px;
   line-height: 1.5;
