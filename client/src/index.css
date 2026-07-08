@@ -1478,11 +1478,9 @@ code {
   min-height: calc(100vh - 220px);
   border-radius: 28px !important;
   padding: 60px 80px !important;
-  background: rgba(255, 255, 255, 0.12) !important;
-  backdrop-filter: blur(35px) !important;
-  -webkit-backdrop-filter: blur(35px) !important;
-  border: 1px solid rgba(255, 255, 255, 0.22) !important;
-  box-shadow: 0 20px 80px rgba(0, 0, 0, 0.25) !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
   position: relative;
   overflow: hidden;
   box-sizing: border-box;

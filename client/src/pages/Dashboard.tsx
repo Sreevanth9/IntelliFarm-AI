@@ -46,7 +46,7 @@ const Dashboard: React.FC = () => {
               {getGreeting()}, {farmer?.name}!
             </span>
             <h1 className="hero-title">
-              Welcome to <span style={{ color: "#2FB86B" }}>IntelliFarm AI</span>
+              Welcome to Intelli<span style={{ color: "#2FB86B" }}>Farm</span> AI
             </h1>
             <p className="hero-description" style={{ marginBottom: 0 }}>
               Access smart farming diagnostics, weather forecasting, and real-time market intelligence.
