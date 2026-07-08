@@ -1469,10 +1469,10 @@ code {
   gap: 40px;
   align-items: center;
   height: auto;
-  min-height: 480px;
+  min-height: calc(100vh - 160px);
   border-radius: 28px !important;
   padding: 60px 80px !important;
-  background: linear-gradient(135deg, rgba(8, 28, 21, 0.82) 0%, rgba(5, 19, 15, 0.75) 50%, rgba(20, 60, 30, 0.82) 100%), url('./assets/crop_field_illus.png') no-repeat center center !important;
+  background: linear-gradient(135deg, rgba(8, 28, 21, 0.55) 0%, rgba(5, 19, 15, 0.45) 50%, rgba(20, 60, 30, 0.55) 100%), url('./assets/dashboard.png') no-repeat center center !important;
   background-size: cover !important;
   border: 1px solid rgba(255, 255, 255, 0.15) !important;
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.15) !important;
