@@ -85,7 +85,6 @@ const Navbar: React.FC = () => {
     const nextTheme = isDarkRedux ? "light" : "dark";
     localStorage.setItem("theme", nextTheme);
     document.documentElement.setAttribute("data-theme", nextTheme);
-    toast.success(`Switched to ${nextTheme} mode`);
   };
 
   const filteredItems = SEARCHABLE_ITEMS.filter((item) =>

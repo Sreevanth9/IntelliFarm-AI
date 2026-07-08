@@ -215,7 +215,7 @@ html {
   --search-bg: rgba(255, 255, 255, 0.9);
   --search-border: rgba(0, 0, 0, 0.08);
   --search-text: #1E293B;
-  --hero-title-color: #000000;
+  --hero-title-color: #FFFFFF;
   --hero-greeting-color: #1D7A46;
   --hero-desc-color: #475569;
   --dashboard-bg: linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0.8) 100%), url('./assets/dashboard.png') no-repeat center center;
