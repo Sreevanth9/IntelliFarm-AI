@@ -25,6 +25,7 @@ const Dashboard: React.FC = () => {
       title=""
       subtitle=""
       actions={<Link className="glass-btn-primary" style={{ textDecoration: "none" }} to="/assistant">Ask AI Assistant</Link>}
+      isDashboard={true}
     >
       <div style={{ position: "relative", zIndex: 1, display: "flex", flexDirection: "column", gap: "24px" }}>
 

@@ -4,11 +4,11 @@ import Sidebar from "../components/Sidebar";
 import { NavLink } from "react-router-dom";
 import { SIDEBAR_ITEMS } from "../utils/constants";
 
-const MainLayout = ({ children, eyebrow, title, subtitle, actions = null }) => {
+const MainLayout = ({ children, eyebrow, title, subtitle, actions = null, isDashboard = false }) => {
   return (
     <div className="ag-layout-container">
       <Sidebar />
-      <div className="ag-main-container">
+      <div className={`ag-main-container ${isDashboard ? "dashboard-main-container" : ""}`}>
         <Navbar />
         <main className="ag-page" style={{ flex: 1, display: "flex", flexDirection: "column", background: "transparent", minHeight: "auto" }}>
           <section className="ag-content app-main-content" style={{ flex: 1, width: "100%", maxWidth: "1600px", margin: "0 auto", padding: "24px 32px 32px 32px" }}>
