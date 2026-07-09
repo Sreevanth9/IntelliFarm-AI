@@ -1,6 +1,6 @@
 import styles from "./UserDetails.module.css";
 import { themeIcon } from "../../assets";
-import { uiAction } from "../../store/ui-gemini";
+import { uiAction } from "../../store/ui-assistant";
 import { useDispatch, useSelector } from "react-redux";
 import { logoutHandler } from "../../store/auth-action";
 import { useNavigate } from "react-router-dom";

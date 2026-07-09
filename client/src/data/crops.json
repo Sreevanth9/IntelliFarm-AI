@@ -1,7 +1,0 @@
-[
-  { "name": "Paddy", "season": "Kharif", "soil": "Clayey", "waterNeed": "High", "suitability": "High" },
-  { "name": "Maize", "season": "Kharif", "soil": "Loamy", "waterNeed": "Medium", "suitability": "Medium" },
-  { "name": "Tomato", "season": "Summer", "soil": "Well drained", "waterNeed": "Medium", "suitability": "High" },
-  { "name": "Wheat", "season": "Rabi", "soil": "Loamy", "waterNeed": "Medium", "suitability": "Medium" },
-  { "name": "Cotton", "season": "Kharif", "soil": "Black soil", "waterNeed": "Medium", "suitability": "High" }
-]

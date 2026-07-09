@@ -9,7 +9,7 @@ export const userUpdateLocation = () => {
         (position) => {
           const { latitude, longitude } = position.coords;
 
-          const url = `${SERVER_ENDPOINT}/gemini/api/updatelocation`;
+          const url = `${SERVER_ENDPOINT}/assistant/api/updatelocation`;
 
           fetch(url, {
             method: "PUT",

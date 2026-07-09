@@ -1,6 +1,6 @@
 import { configureStore } from "@reduxjs/toolkit";
 
-import uiReducer from "./ui-gemini";
+import uiReducer from "./ui-assistant";
 import chatReducer from "./chat";
 import userReducer from "./user";
 import authReducer from "./auth";

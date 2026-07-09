@@ -1,35 +1,40 @@
-import React, { useState, useEffect, useRef } from "react";
-import { useSelector, useDispatch } from "react-redux";
-import { chatAction } from "../store/chat";
-import { sendChatData, getChat, getRecentChat } from "../store/chat-action";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import toast from "react-hot-toast";
+import { chatAction } from "../store/chat";
+import { deleteChatHistory, getChat, getRecentChat, sendChatData } from "../store/chat-action";
+import chatbotLogo from "../assets/chatbot-logo.png";
+
+const formatBotReply = (reply = "") =>
+  reply
+    .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
+    .replace(/\n/g, "<br/>");
+
+const getChatId = (chat: any) => chat?._id || chat?.id;
+const getChatDate = (chat: any) => chat?.createdAt || chat?.timestamp || chat?.updatedAt;
 
 const FloatingChat: React.FC = () => {
   const dispatch = useDispatch();
-  
-  // UI states
   const [isOpen, setIsOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<"chat" | "recent" | "pins">("chat");
   const [userInput, setUserInput] = useState("");
-  
-  // Redux selectors
+
   const rawChats = useSelector((state: any) => state.chat.chats);
-  const chats = React.useMemo(() => rawChats || [], [rawChats]);
+  const chats = useMemo(() => rawChats || [], [rawChats]);
   const recentChats = useSelector((state: any) => state.chat.recentChat) || [];
   const chatHistoryId = useSelector((state: any) => state.chat.chatHistoryId);
   const previousChat = useSelector((state: any) => state.chat.previousChat);
-  const isLoader = useSelector((state: any) => state.chat.isLoader) === "yes" || chats.some((c: any) => c.isLoader === "yes");
-  
+  const isLoader =
+    useSelector((state: any) => state.chat.isLoader) === "yes" ||
+    chats.some((c: any) => c.isLoader === "yes");
+
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Scroll to bottom on new messages
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [chats, isLoader]);
+  }, [chats, isLoader, isOpen]);
 
-  // Fetch recent chats on drawer open
   useEffect(() => {
     if (isOpen) {
       dispatch(getRecentChat() as any);
@@ -38,23 +43,34 @@ const FloatingChat: React.FC = () => {
 
   const startNewChat = () => {
     dispatch(chatAction.replaceChat({ chats: [] }));
-    dispatch(chatAction.newChatHandler());
+    dispatch(chatAction.replacePreviousChat({ previousChat: [] }));
     dispatch(chatAction.chatHistoryIdHandler({ chatHistoryId: "" }));
-    setActiveTab("chat");
+    dispatch(chatAction.newChatHandler());
     toast.success("Started a new conversation");
   };
 
   const handleRecentClick = (id: string) => {
+    if (!id) return;
     dispatch(chatAction.chatHistoryIdHandler({ chatHistoryId: id }));
     dispatch(getChat(id) as any);
-    setActiveTab("chat");
+  };
+
+  const handleDeleteHistory = (id: string, event: React.MouseEvent<HTMLButtonElement>) => {
+    event.stopPropagation();
+    if (!id) return;
+
+    dispatch(deleteChatHistory(id) as any)
+      .then(() => toast.success("Chat history deleted"))
+      .catch(() => toast.error("Could not delete this chat"));
   };
 
   const handleSendMessage = (textToSend: string) => {
-    if (!textToSend.trim()) return;
+    const trimmedText = textToSend.trim();
+    if (!trimmedText || isLoader) return;
+
     dispatch(
       sendChatData({
-        user: textToSend,
+        user: trimmedText,
         gemini: "",
         isLoader: "yes",
         previousChat,
@@ -62,7 +78,6 @@ const FloatingChat: React.FC = () => {
       }) as any
     );
     setUserInput("");
-    setActiveTab("chat");
   };
 
   const onSubmit = (e: React.FormEvent) => {
@@ -70,296 +85,244 @@ const FloatingChat: React.FC = () => {
     handleSendMessage(userInput);
   };
 
-  const pinnedRecommendations = [
-    {
-      title: "🌾 Paddy Disease Prevention",
-      prompt: "What are the organic prevention techniques for Paddy blast disease?",
-    },
-    {
-      title: "🍅 Tomato Blight Action Plan",
-      prompt: "What is the best immediate spray action for early tomato blight?",
-    },
-    {
-      title: "💧 Drip Irrigation Schedule",
-      prompt: "Suggest a weekly drip irrigation watering schedule for medium clay soil.",
-    },
-    {
-      title: "📈 Best Crop to Sell Now",
-      prompt: "Based on current market trends, which crops are showing the highest gain margins?",
-    }
+  const quickPrompts = [
+    "Recommend crop for my field",
+    "Will it rain tomorrow?",
+    "Best organic pest control for tomato plants",
   ];
 
   return (
     <div style={{ position: "fixed", bottom: "24px", right: "24px", zIndex: 1000, fontFamily: "inherit" }}>
-      
-      {/* Floating Action Button */}
       <button
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={() => setIsOpen((current) => !current)}
         style={{
-          width: "60px",
-          height: "60px",
+          width: "64px",
+          height: "64px",
           borderRadius: "50%",
-          background: "linear-gradient(135deg, #2e7d32 0%, #1b5e20 100%)",
-          color: "white",
-          border: "1px solid rgba(255, 255, 255, 0.15)",
+          background: "linear-gradient(135deg, #f7fff8 0%, #dff8e7 100%)",
+          border: "1px solid rgba(46, 125, 50, 0.22)",
           cursor: "pointer",
-          boxShadow: "0 8px 32px rgba(46, 125, 50, 0.3)",
+          boxShadow: "0 10px 34px rgba(46, 125, 50, 0.28)",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          fontSize: "24px",
-          transition: "all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)",
-          transform: isOpen ? "rotate(90deg)" : "none",
+          transition: "all 0.25s ease",
+          padding: isOpen ? "0" : "10px",
         }}
         title="AI Assistant"
+        aria-label={isOpen ? "Close AI Assistant" : "Open AI Assistant"}
       >
-        {isOpen ? "✕" : "💬"}
+        {isOpen ? (
+          <span style={{ color: "#1b5e20", fontSize: "28px", lineHeight: 1 }}>x</span>
+        ) : (
+          <img
+            src={chatbotLogo}
+            alt="AI Assistant"
+            style={{ width: "100%", height: "100%", objectFit: "contain" }}
+          />
+        )}
       </button>
 
-      {/* Sliding Drawer Container */}
       <div
-        className="liquid-glass-panel"
+        className="liquid-glass-panel ifarm-floating-chat-panel"
         style={{
           position: "fixed",
-          right: isOpen ? "24px" : "-450px",
-          bottom: "96px",
-          width: "380px",
-          height: "calc(100vh - 160px)",
-          maxHeight: "600px",
-          borderRadius: "20px",
-          boxShadow: "0 12px 40px rgba(0, 0, 0, 0.4)",
-          display: "flex",
-          flexDirection: "column",
+          right: isOpen ? "24px" : "-760px",
+          bottom: "100px",
+          width: "min(720px, calc(100vw - 32px))",
+          height: "min(640px, calc(100vh - 136px))",
+          borderRadius: "18px",
+          boxShadow: "0 18px 50px rgba(0, 0, 0, 0.36)",
+          display: "grid",
+          gridTemplateColumns: "220px minmax(0, 1fr)",
           overflow: "hidden",
-          transition: "all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1)",
+          transition: "all 0.35s ease",
           opacity: isOpen ? 1 : 0,
           pointerEvents: isOpen ? "auto" : "none",
           padding: 0,
-          background: "rgba(8, 28, 21, 0.95)",
-          border: "1px solid rgba(255, 255, 255, 0.08)"
+          background: "rgba(8, 28, 21, 0.97)",
+          border: "1px solid rgba(255, 255, 255, 0.08)",
         }}
       >
-        {/* Header Section */}
-        <div
+        <aside
           style={{
-            padding: "16px",
-            borderBottom: "1px solid rgba(255, 255, 255, 0.08)",
+            borderRight: "1px solid rgba(255, 255, 255, 0.08)",
+            background: "rgba(0, 0, 0, 0.16)",
             display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            background: "rgba(255, 255, 255, 0.02)"
+            flexDirection: "column",
+            minHeight: 0,
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <span style={{ fontSize: "20px" }}>🤖</span>
-            <div>
-              <h4 style={{ margin: 0, color: "#fff", fontSize: "15px", fontWeight: 700 }}>Crop Intelligence AI</h4>
-              <span style={{ fontSize: "11px", color: "#52b788" }}>Online • Powered by Gemini</span>
-            </div>
+          <div style={{ padding: "16px", borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
+            <button
+              type="button"
+              onClick={startNewChat}
+              style={{
+                width: "100%",
+                padding: "10px 12px",
+                background: "rgba(82, 183, 136, 0.15)",
+                color: "#d8ffe9",
+                border: "1px solid rgba(82, 183, 136, 0.3)",
+                borderRadius: "12px",
+                cursor: "pointer",
+                fontWeight: 700,
+                fontSize: "13px",
+              }}
+            >
+              + New Chat
+            </button>
           </div>
-          <button
-            onClick={startNewChat}
-            style={{
-              padding: "6px 12px",
-              background: "rgba(82, 183, 136, 0.15)",
-              color: "#52b788",
-              border: "1px solid rgba(82, 183, 136, 0.3)",
-              borderRadius: "12px",
-              fontSize: "12px",
-              cursor: "pointer",
-              fontWeight: 600,
-              transition: "all 0.2s"
-            }}
-          >
-            + New Chat
-          </button>
-        </div>
 
-        {/* Navigation Tabs */}
-        <div
-          style={{
-            display: "flex",
-            borderBottom: "1px solid rgba(255, 255, 255, 0.05)",
-            background: "rgba(0, 0, 0, 0.1)"
-          }}
-        >
-          <button
-            onClick={() => setActiveTab("chat")}
-            style={{
-              flex: 1,
-              padding: "10px",
-              background: "transparent",
-              color: activeTab === "chat" ? "#52b788" : "#8e918f",
-              border: "none",
-              borderBottom: activeTab === "chat" ? "2px solid #52b788" : "2px solid transparent",
-              cursor: "pointer",
-              fontSize: "13px",
-              fontWeight: 600
-            }}
-          >
-            New Chat
-          </button>
-          <button
-            onClick={() => setActiveTab("recent")}
-            style={{
-              flex: 1,
-              padding: "10px",
-              background: "transparent",
-              color: activeTab === "recent" ? "#52b788" : "#8e918f",
-              border: "none",
-              borderBottom: activeTab === "recent" ? "2px solid #52b788" : "2px solid transparent",
-              cursor: "pointer",
-              fontSize: "13px",
-              fontWeight: 600
-            }}
-          >
-            Recent Chats
-          </button>
-          <button
-            onClick={() => setActiveTab("pins")}
-            style={{
-              flex: 1,
-              padding: "10px",
-              background: "transparent",
-              color: activeTab === "pins" ? "#52b788" : "#8e918f",
-              border: "none",
-              borderBottom: activeTab === "pins" ? "2px solid #52b788" : "2px solid transparent",
-              cursor: "pointer",
-              fontSize: "13px",
-              fontWeight: 600
-            }}
-          >
-            Recommendations
-          </button>
-        </div>
-
-        {/* Tab Contents */}
-        <div style={{ flex: 1, overflowY: "auto", padding: "16px" }} ref={scrollRef}>
-          
-          {activeTab === "chat" && (
-            <div style={{ display: "flex", flexDirection: "column", gap: "14px", minHeight: "100%" }}>
-              {chats.length === 0 ? (
-                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", flex: 1, textAlign: "center", opacity: 0.6, padding: "20px" }}>
-                  <span style={{ fontSize: "36px", marginBottom: "12px" }}>🌾</span>
-                  <h5 style={{ margin: "0 0 8px 0", color: "#fff", fontSize: "14px" }}>Ask your Crop Companion</h5>
-                  <p style={{ margin: 0, fontSize: "12px", lineHeight: "1.4" }}>
-                    Inquire about soil nutrients, crop diseases, dynamic weather impact, or mandi commodity prices.
-                  </p>
-                </div>
-              ) : (
-                chats.map((c: any, index: number) => (
-                  <div key={c.id || index} style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                    {/* User message */}
-                    {c.user && (
-                      <div style={{ alignSelf: "flex-end", background: "rgba(46, 125, 50, 0.25)", color: "#fff", padding: "8px 12px", borderRadius: "14px 14px 2px 14px", maxWidth: "85%", fontSize: "13px", border: "1px solid rgba(46, 125, 50, 0.15)" }}>
-                        {c.user}
-                      </div>
-                    )}
-                    {/* Gemini response */}
-                    {c.gemini && (
-                      <div style={{ alignSelf: "flex-start", background: "rgba(255, 255, 255, 0.05)", color: "#e9f6e8", padding: "10px 12px", borderRadius: "14px 14px 14px 2px", maxWidth: "85%", fontSize: "13px", border: "1px solid rgba(255, 255, 255, 0.05)", lineHeight: "1.4" }}>
-                        <div dangerouslySetInnerHTML={{ __html: c.gemini
-                          .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
-                          .replace(/\n/g, "<br/>") }} 
-                        />
-                      </div>
-                    )}
-                  </div>
-                ))
-              )}
-
-              {/* Loader inside message list */}
-              {isLoader && (
-                <div style={{ alignSelf: "flex-start", background: "rgba(255, 255, 255, 0.05)", padding: "10px 12px", borderRadius: "14px 14px 14px 2px", border: "1px solid rgba(255, 255, 255, 0.05)", display: "flex", alignItems: "center", gap: "6px" }}>
-                  <span style={{ display: "inline-block", width: "6px", height: "6px", borderRadius: "50%", background: "#52b788", animation: "bounce 1.4s infinite ease-in-out both" }}></span>
-                  <span style={{ display: "inline-block", width: "6px", height: "6px", borderRadius: "50%", background: "#52b788", animation: "bounce 1.4s infinite ease-in-out both", animationDelay: "0.2s" }}></span>
-                  <span style={{ display: "inline-block", width: "6px", height: "6px", borderRadius: "50%", background: "#52b788", animation: "bounce 1.4s infinite ease-in-out both", animationDelay: "0.4s" }}></span>
-                </div>
-              )}
-            </div>
-          )}
-
-          {activeTab === "recent" && (
-            <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-              {recentChats.length === 0 ? (
-                <p style={{ textAlign: "center", opacity: 0.5, fontSize: "13px", padding: "20px" }}>No recent chats found.</p>
-              ) : (
-                recentChats.map((chat: any) => (
-                  <button
-                    key={chat._id}
-                    onClick={() => handleRecentClick(chat._id)}
+          <div style={{ padding: "14px 12px 8px", color: "#8dd7ad", fontSize: "11px", fontWeight: 800, letterSpacing: "0.02em", textTransform: "uppercase" }}>
+            Chat History
+          </div>
+          <div style={{ flex: 1, overflowY: "auto", padding: "0 10px 14px", display: "flex", flexDirection: "column", gap: "8px" }}>
+            {recentChats.length === 0 ? (
+              <p style={{ color: "rgba(233, 246, 232, 0.56)", fontSize: "12px", lineHeight: 1.5, margin: "6px 4px" }}>
+                Your saved conversations will appear here.
+              </p>
+            ) : (
+              recentChats.map((chat: any) => {
+                const id = getChatId(chat);
+                const isActive = chatHistoryId === id;
+                return (
+                  <div
+                    key={id}
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => handleRecentClick(id)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" || event.key === " ") {
+                        handleRecentClick(id);
+                      }
+                    }}
                     style={{
                       width: "100%",
-                      padding: "12px",
-                      background: chatHistoryId === chat._id ? "rgba(46, 125, 50, 0.15)" : "rgba(255,255,255,0.02)",
+                      boxSizing: "border-box",
+                      padding: "10px",
+                      background: isActive ? "rgba(82, 183, 136, 0.18)" : "rgba(255,255,255,0.035)",
                       color: "#fff",
                       border: "1px solid",
-                      borderColor: chatHistoryId === chat._id ? "rgba(46, 125, 50, 0.3)" : "rgba(255,255,255,0.06)",
+                      borderColor: isActive ? "rgba(82, 183, 136, 0.34)" : "rgba(255,255,255,0.06)",
                       borderRadius: "12px",
                       textAlign: "left",
                       cursor: "pointer",
-                      fontSize: "13px",
                       display: "flex",
-                      alignItems: "center",
-                      gap: "10px",
-                      transition: "all 0.2s"
+                      gap: "8px",
+                      alignItems: "flex-start",
                     }}
                   >
-                    <span>💬</span>
-                    <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                      {chat.title}
+                    <img src={chatbotLogo} alt="" style={{ width: "20px", height: "20px", objectFit: "contain", flexShrink: 0 }} />
+                    <span style={{ minWidth: 0, flex: 1 }}>
+                      <span style={{ display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: "12px", fontWeight: 700 }}>
+                        {chat.title || "Farming chat"}
+                      </span>
+                      <span style={{ display: "block", marginTop: "3px", fontSize: "10px", color: "rgba(233,246,232,0.55)" }}>
+                        {getChatDate(chat) ? new Date(getChatDate(chat)).toLocaleDateString() : "Recent"}
+                      </span>
                     </span>
-                    <span style={{ fontSize: "10px", opacity: 0.5 }}>
-                      {new Date(chat.createdAt || Date.now()).toLocaleDateString()}
-                    </span>
-                  </button>
-                ))
-              )}
+                    <button
+                      type="button"
+                      onClick={(event) => handleDeleteHistory(id, event)}
+                      title="Delete this chat"
+                      aria-label="Delete this chat"
+                      style={{
+                        width: "24px",
+                        height: "24px",
+                        border: "0",
+                        borderRadius: "7px",
+                        background: "rgba(255,255,255,0.04)",
+                        color: "rgba(233,246,232,0.62)",
+                        cursor: "pointer",
+                        lineHeight: 1,
+                        flexShrink: 0,
+                      }}
+                    >
+                      x
+                    </button>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </aside>
+
+        <section style={{ minWidth: 0, minHeight: 0, display: "flex", flexDirection: "column" }}>
+          <header
+            style={{
+              padding: "14px 16px",
+              borderBottom: "1px solid rgba(255, 255, 255, 0.08)",
+              display: "flex",
+              alignItems: "center",
+              gap: "10px",
+              background: "rgba(255, 255, 255, 0.02)",
+            }}
+          >
+            <img src={chatbotLogo} alt="Crop Intelligence AI" style={{ width: "36px", height: "36px", objectFit: "contain" }} />
+            <div>
+              <h4 style={{ margin: 0, color: "#fff", fontSize: "15px", fontWeight: 800 }}>Crop Intelligence AI</h4>
+              <span style={{ fontSize: "11px", color: "#52b788" }}>Online - Powered by IntelliFarm AI</span>
             </div>
-          )}
+          </header>
 
-          {activeTab === "pins" && (
-            <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-              <h5 style={{ margin: "0 0 4px 0", color: "#fff", fontSize: "13px" }}>Pinned Recommendations</h5>
-              {pinnedRecommendations.map((pin, index) => (
-                <button
-                  key={index}
-                  onClick={() => handleSendMessage(pin.prompt)}
-                  style={{
-                    width: "100%",
-                    padding: "12px",
-                    background: "rgba(255,255,255,0.02)",
-                    color: "#e9f6e8",
-                    border: "1px solid rgba(255, 255, 255, 0.06)",
-                    borderRadius: "12px",
-                    textAlign: "left",
-                    cursor: "pointer",
-                    fontSize: "13px",
-                    transition: "all 0.2s",
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "4px"
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = "rgba(46, 125, 50, 0.08)";
-                    e.currentTarget.style.borderColor = "rgba(46, 125, 50, 0.2)";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = "rgba(255,255,255,0.02)";
-                    e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.06)";
-                  }}
-                >
-                  <span style={{ fontWeight: 600, color: "#fff" }}>{pin.title}</span>
-                  <span style={{ fontSize: "11px", opacity: 0.7 }}>{pin.prompt}</span>
-                </button>
-              ))}
-            </div>
-          )}
+          <div ref={scrollRef} style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: "16px", display: "flex", flexDirection: "column", gap: "14px" }}>
+            {chats.length === 0 ? (
+              <div style={{ margin: "auto", maxWidth: "340px", textAlign: "center", color: "rgba(233, 246, 232, 0.72)" }}>
+                <img src={chatbotLogo} alt="AI Assistant" style={{ width: "78px", height: "78px", objectFit: "contain", marginBottom: "12px" }} />
+                <h5 style={{ margin: "0 0 8px 0", color: "#fff", fontSize: "15px" }}>Ask your Crop Companion</h5>
+                <p style={{ margin: 0, fontSize: "12px", lineHeight: 1.5 }}>
+                  Ask about soil nutrients, crop diseases, weather impact, irrigation, or market prices.
+                </p>
+                <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: "8px", marginTop: "16px" }}>
+                  {quickPrompts.map((prompt) => (
+                    <button
+                      key={prompt}
+                      type="button"
+                      onClick={() => handleSendMessage(prompt)}
+                      style={{
+                        border: "1px solid rgba(82, 183, 136, 0.22)",
+                        background: "rgba(82, 183, 136, 0.1)",
+                        color: "#d8ffe9",
+                        borderRadius: "999px",
+                        padding: "7px 10px",
+                        fontSize: "11px",
+                        cursor: "pointer",
+                      }}
+                    >
+                      {prompt}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              chats.map((c: any, index: number) => (
+                <div key={c.id || index} style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                  {c.user && (
+                    <div style={{ alignSelf: "flex-end", background: "rgba(46, 125, 50, 0.28)", color: "#fff", padding: "9px 12px", borderRadius: "14px 14px 2px 14px", maxWidth: "82%", fontSize: "13px", border: "1px solid rgba(46, 125, 50, 0.18)", lineHeight: 1.45 }}>
+                      {c.user}
+                    </div>
+                  )}
+                  {(c.gemini || c.isLoader === "yes") && (
+                    <div style={{ alignSelf: "flex-start", display: "flex", gap: "8px", maxWidth: "88%" }}>
+                      <img src={chatbotLogo} alt="AI Assistant" style={{ width: "26px", height: "26px", objectFit: "contain", flexShrink: 0, marginTop: "2px" }} />
+                      <div style={{ background: "rgba(255, 255, 255, 0.055)", color: "#e9f6e8", padding: "10px 12px", borderRadius: "14px 14px 14px 2px", fontSize: "13px", border: "1px solid rgba(255, 255, 255, 0.06)", lineHeight: 1.45 }}>
+                        {c.isLoader === "yes" ? (
+                          <span style={{ display: "inline-flex", gap: "5px", alignItems: "center" }}>
+                            <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#52b788", animation: "ifarmBounce 1.4s infinite ease-in-out both" }} />
+                            <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#52b788", animation: "ifarmBounce 1.4s infinite ease-in-out both", animationDelay: "0.2s" }} />
+                            <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#52b788", animation: "ifarmBounce 1.4s infinite ease-in-out both", animationDelay: "0.4s" }} />
+                          </span>
+                        ) : (
+                          <div dangerouslySetInnerHTML={{ __html: formatBotReply(c.gemini) }} />
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
 
-        </div>
-
-        {/* Input Bar Footer */}
-        {activeTab === "chat" && (
           <form
             onSubmit={onSubmit}
             style={{
@@ -367,7 +330,7 @@ const FloatingChat: React.FC = () => {
               borderTop: "1px solid rgba(255, 255, 255, 0.08)",
               background: "rgba(0, 0, 0, 0.15)",
               display: "flex",
-              gap: "8px"
+              gap: "8px",
             }}
           >
             <input
@@ -378,41 +341,48 @@ const FloatingChat: React.FC = () => {
               disabled={isLoader}
               style={{
                 flex: 1,
+                minWidth: 0,
                 padding: "10px 14px",
                 background: "rgba(0,0,0,0.3)",
                 border: "1px solid rgba(255, 255, 255, 0.1)",
                 borderRadius: "12px",
-                color: "#white",
+                color: "#ffffff",
                 fontSize: "13px",
-                outline: "none"
+                outline: "none",
               }}
             />
             <button
               type="submit"
-              disabled={isLoader}
+              disabled={isLoader || !userInput.trim()}
               style={{
                 padding: "10px 16px",
-                background: "linear-gradient(135deg, #2e7d32 0%, #1b5e20 100%)",
+                background: isLoader || !userInput.trim() ? "rgba(82, 183, 136, 0.25)" : "linear-gradient(135deg, #2e7d32 0%, #1b5e20 100%)",
                 border: "none",
                 borderRadius: "12px",
                 color: "white",
-                cursor: "pointer",
-                fontWeight: 600,
-                fontSize: "13px"
+                cursor: isLoader || !userInput.trim() ? "not-allowed" : "pointer",
+                fontWeight: 700,
+                fontSize: "13px",
               }}
             >
               Send
             </button>
           </form>
-        )}
-
+        </section>
       </div>
-      
-      {/* Styles for loading animation */}
+
       <style>{`
-        @keyframes bounce {
-          0%, 80%, 100% { transform: scale(0); }
-          40% { transform: scale(1.0); }
+        @keyframes ifarmBounce {
+          0%, 80%, 100% { transform: scale(0); opacity: 0.45; }
+          40% { transform: scale(1); opacity: 1; }
+        }
+        @media (max-width: 640px) {
+          .ifarm-floating-chat-panel {
+            grid-template-columns: 1fr !important;
+          }
+          .ifarm-floating-chat-panel aside {
+            display: none !important;
+          }
         }
       `}</style>
     </div>

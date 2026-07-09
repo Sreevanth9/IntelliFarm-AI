@@ -5,7 +5,7 @@ const SERVER_ENDPOINT = process.env.REACT_APP_SERVER_ENDPOINT;
 
 export const getRecentChat = () => {
   return (dispatch) => {
-    const url = `${SERVER_ENDPOINT}/gemini/api/getchathistory`;
+    const url = `${SERVER_ENDPOINT}/assistant/api/getchathistory`;
 
     fetch(url, {
       method: "GET",
@@ -36,7 +36,7 @@ export const sendChatData = (useInput) => {
 
     const apiKey = process.env.REACT_APP_GEMINI_KEY;
 
-    const url = `${SERVER_ENDPOINT}/gemini/api/chat`;
+    const url = `${SERVER_ENDPOINT}/assistant/api/chat`;
 
     fetch(url, {
       method: "POST",
@@ -49,6 +49,8 @@ export const sendChatData = (useInput) => {
         userInput: useInput.user,
         previousChat: useInput.previousChat,
         chatHistoryId: useInput.chatHistoryId,
+        image: useInput.image || null,
+        farmMemory: useInput.farmMemory || null,
       }),
     })
       .then((response) => {
@@ -123,7 +125,7 @@ export const sendChatData = (useInput) => {
 export const getChat = (chatHistoryId) => {
   return (dispatch) => {
     dispatch(chatAction.loaderHandler());
-    const url = `${SERVER_ENDPOINT}/gemini/api/chatdata`;
+    const url = `${SERVER_ENDPOINT}/assistant/api/chatdata`;
 
     fetch(url, {
       method: "POST",
@@ -146,12 +148,13 @@ export const getChat = (chatHistoryId) => {
           { role: "model", parts: c.message.gemini },
         ]);
 
-        const chats = data.chats.map((c) => {
+        const chats = data.chats.map((c, index) => {
           return {
             user: c.message.user,
             gemini: c.message.gemini,
-            id: c._id,
+            id: c._id || `${data.chatHistory}-${index}`,
             isLoader: "no",
+            fromHistory: true,
           };
         });
 
@@ -179,6 +182,33 @@ export const getChat = (chatHistoryId) => {
         );
         dispatch(chatAction.loaderHandler());
         dispatch(chatAction.chatHistoryIdHandler({ chatHistoryId }));
+      });
+  };
+};
+
+export const deleteChatHistory = (chatHistoryId) => {
+  return (dispatch, getState) => {
+    const url = `${SERVER_ENDPOINT}/assistant/api/chathistory/${chatHistoryId}`;
+    const activeChatHistoryId = getState().chat.chatHistoryId;
+
+    return fetch(url, {
+      method: "DELETE",
+      credentials: "include",
+    })
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error("Unable to delete chat history");
+        }
+        return response.json();
+      })
+      .then(() => {
+        if (activeChatHistoryId === chatHistoryId) {
+          dispatch(chatAction.replaceChat({ chats: [] }));
+          dispatch(chatAction.replacePreviousChat({ previousChat: [] }));
+          dispatch(chatAction.chatHistoryIdHandler({ chatHistoryId: "" }));
+          dispatch(chatAction.newChatHandler());
+        }
+        dispatch(getRecentChat());
       });
   };
 };

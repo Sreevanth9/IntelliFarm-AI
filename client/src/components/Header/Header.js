@@ -1,6 +1,6 @@
 import styles from "./Header.module.css";
 import { useDispatch, useSelector } from "react-redux";
-import { uiAction } from "../../store/ui-gemini";
+import { uiAction } from "../../store/ui-assistant";
 import { themeIcon } from "../../assets";
 import { commonIcon } from "../../assets";
 import { useNavigate } from "react-router-dom";
@@ -17,10 +17,6 @@ const Header = () => {
 
   const toggleSideBarHandler = () => {
     dispatch(uiAction.toggleSideBar());
-  };
-
-  const toggleAadvanceGeminiHandler = () => {
-    dispatch(uiAction.toggleAdvanceShow());
   };
 
   const icon = themeIcon();
@@ -46,9 +42,8 @@ const Header = () => {
         <div className={styles["menu-icon"]} onClick={toggleSideBarHandler}>
           <img src={icon.menuIcon} alt="menu icon"></img>
         </div>
-        <div className={styles["name"]} onClick={toggleAadvanceGeminiHandler}>
+        <div className={styles["name"]}>
           <p>IntelliFarm AI</p>
-          <img src={icon.dropIconSmall} alt="drop down button"></img>
         </div>
       </div>
       <div className={styles["right-section"]}>

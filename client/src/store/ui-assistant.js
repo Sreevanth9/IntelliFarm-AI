@@ -5,7 +5,6 @@ const uiInitialState = {
   isSidebarLong: false,
   isRealTimeResponse: false,
   isSettingsShow: false,
-  isAdvanceShow: false,
   isUserDetailsShow: false,
   showIntroUserPrompt: false,
 };
@@ -29,9 +28,6 @@ const uiCreteSlice = createSlice({
     },
     toggleSettings(state) {
       state.isSettingsShow = !state.isSettingsShow;
-    },
-    toggleAdvanceShow(state) {
-      state.isAdvanceShow = !state.isAdvanceShow;
     },
     toggleUserDetailsShow(state) {
       state.isUserDetailsShow = !state.isUserDetailsShow;

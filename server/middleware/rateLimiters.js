@@ -1,4 +1,4 @@
-import rateLimit from "express-rate-limit";
+import rateLimit, { ipKeyGenerator } from "express-rate-limit";
 
 // Rate limiters for abuse prevention
 
@@ -13,11 +13,10 @@ export const loginLimiter = rateLimit({
   keyGenerator: (req) => {
     const ip = req.ip || req.headers['x-forwarded-for'] || req.socket.remoteAddress || "127.0.0.1";
     const email = req.body?.email ? String(req.body.email).toLowerCase().trim() : "anonymous";
-    return `${ip}-${email}`;
+    return `${ipKeyGenerator(ip)}-${email}`;
   },
   standardHeaders: true,
   legacyHeaders: false,
-  validate: { ip: false },
 });
 
 // Registration Limiter: 3 requests per hour

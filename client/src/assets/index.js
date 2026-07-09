@@ -1,8 +1,8 @@
-import geminiIcon from "./intellifarm-icon.png";
-import advanceGeminiIcon from "./crop-image.png";
+import assistantIcon from "./intellifarm-icon.png";
+import advancedAssistantIcon from "./crop-image.png";
 import avatarIcon from "./intellifarm-icon.png";
-import chatGeminiIcon from "./chatbot-logo.png";
-import geminiLaoder from "./chatbot-logo.png";
+import chatAssistantIcon from "./chatbot-logo.png";
+import assistantLoader from "./chatbot-logo.png";
 import googleLogo from "./intellifarm-icon.png";
 import ytIcon from "./weather-icon.png";
 import flightIcon from "./weather-icon.png";
@@ -14,11 +14,11 @@ import { darkIcon } from "./darkIcon/darkIcon";
 import { lightIcon } from "./lightIcon/lightIcon";
 
 export const commonIcon = {
-  geminiIcon,
-  advanceGeminiIcon,
+  assistantIcon,
+  advancedAssistantIcon,
   avatarIcon,
-  chatGeminiIcon,
-  geminiLaoder,
+  chatAssistantIcon,
+  assistantLoader,
   googleLogo,
   ytIcon,
   flightIcon,

@@ -31,6 +31,7 @@ const chatSlice = createSlice({
         user: action.payload.useInput.user,
         isLoader: action.payload.useInput.isLoader,
         gemini: action.payload.useInput.gemini,
+        image: action.payload.useInput.image || null,
         id: Math.random(),
         newChat: true,
       });

@@ -1,14 +1,11 @@
 import React, { useEffect } from "react";
 import "./App.css";
 import ChatSection from "./components/ChatSection/ChatSection";
-import SettingSection from "./components/SettingSection/SettingSecion";
-import ChatSidebar from "./components/Sidebar/Sidebar";
 import { Navigate, Route, Routes, useParams, useNavigate, useLocation } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
-import { uiAction } from "./store/ui-gemini";
+import { uiAction } from "./store/ui-assistant";
 import { Toaster } from "react-hot-toast";
 import { getRecentChat } from "./store/chat-action";
-import UserDetails from "./components/UserDetails/UserDetails";
 import { refreshToken } from "./store/auth-action";
 import { loginHandler } from "./store/auth-action";
 import Dashboard from "./pages/Dashboard";
@@ -42,7 +39,6 @@ const App: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const settingsShow = useSelector((state: any) => state.ui.isSettingsShow);
-  const isAdvanceGeminiPrompt = useSelector((state: any) => state.ui.isAdvanceShow);
   const newChat = useSelector((state: any) => state.chat.newChat);
   const isDark = useSelector((state: any) => state.ui.isDark);
   const isUserDetails = useSelector((state: any) => state.ui.isUserDetailsShow);
@@ -58,10 +54,6 @@ const App: React.FC = () => {
     if (settingsShow === true) {
       dispatch(uiAction.toggleSettings());
     }
-    if (isAdvanceGeminiPrompt === true) {
-      dispatch(uiAction.toggleAdvanceShow());
-    }
-
     if (isUserDetails === true) {
       dispatch(uiAction.toggleUserDetailsShow());
     }
@@ -154,12 +146,9 @@ const App: React.FC = () => {
         <Route
           path="/assistant/*"
           element={
-            <>
-              <ChatSidebar />
+            <ProtectedRoute>
               <ChatSection />
-              <SettingSection />
-              {isUserDetails && isLogin && <UserDetails />}
-            </>
+            </ProtectedRoute>
           }
         />
         <Route path="/app" element={<LegacyChatRedirect />} />
@@ -176,11 +165,8 @@ const App: React.FC = () => {
         <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
         <Route path="*" element={<NotFound />} />
       </Routes>
-      {isLogin && <FloatingChat />}
+      {isLogin && !location.pathname.startsWith("/assistant") && <FloatingChat />}
       {settingsShow && (
-        <div onClick={settingHandler} className="bg-focus-dark"></div>
-      )}
-      {isAdvanceGeminiPrompt && (
         <div onClick={settingHandler} className="bg-focus-dark"></div>
       )}
       {isUserDetails && isLogin && (

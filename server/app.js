@@ -43,6 +43,7 @@ app.use("/api/weather", weatherRoutes);
 app.use("/api/crops", cropRoutes);
 app.use("/api/farms", farmRoutes);
 
+app.use("/assistant", publicRoutes);
 app.use("/gemini", publicRoutes);
 
 app.use(errorHandler);

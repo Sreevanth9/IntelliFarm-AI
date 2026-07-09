@@ -4,8 +4,17 @@ import toast from "react-hot-toast";
 import { useSelector, useDispatch } from "react-redux";
 import { useAuth } from "../context/AuthContext";
 import { ROUTES } from "../utils/constants";
-import { uiAction } from "../store/ui-gemini";
-import { Search as SearchIcon, Sun, Moon, ChevronDown } from "lucide-react";
+import { uiAction } from "../store/ui-assistant";
+import {
+  Search as SearchIcon,
+  Sun,
+  Moon,
+  ChevronDown,
+  User,
+  Settings,
+  CircleHelp,
+  LogOut,
+} from "lucide-react";
 
 interface SearchableItem {
   title: string;
@@ -195,88 +204,64 @@ const Navbar: React.FC = () => {
               </div>
 
               {profileDropdownOpen && (
-                <div className="profile-dropdown">
-                  <div 
+                <div className="profile-dropdown" role="menu">
+                  <button 
+                    type="button"
                     onClick={() => {
                       setProfileDropdownOpen(false);
                       navigate(ROUTES.profile);
                     }}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "8px",
-                      padding: "10px 12px",
-                      borderRadius: "10px",
-                      color: "var(--search-text)",
-                      fontSize: "13px",
-                      fontWeight: 600,
-                      cursor: "pointer"
-                    }}
-                    className="dropdown-item-hover"
+                    className="profile-dropdown-item"
+                    role="menuitem"
                   >
-                    👤 My Profile
-                  </div>
-                  <div 
+                    <span className="profile-dropdown-icon">
+                      <User size={16} />
+                    </span>
+                    <span>My Profile</span>
+                  </button>
+                  <button 
+                    type="button"
                     onClick={() => {
                       setProfileDropdownOpen(false);
                       navigate(ROUTES.settings);
                     }}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "8px",
-                      padding: "10px 12px",
-                      borderRadius: "10px",
-                      color: "var(--search-text)",
-                      fontSize: "13px",
-                      fontWeight: 600,
-                      cursor: "pointer"
-                    }}
-                    className="dropdown-item-hover"
+                    className="profile-dropdown-item"
+                    role="menuitem"
                   >
-                    ⚙️ Settings
-                  </div>
-                  <div 
+                    <span className="profile-dropdown-icon">
+                      <Settings size={16} />
+                    </span>
+                    <span>Settings</span>
+                  </button>
+                  <button 
+                    type="button"
                     onClick={() => {
                       toast("Help & Documentation center coming soon!");
                       setProfileDropdownOpen(false);
                     }}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "8px",
-                      padding: "10px 12px",
-                      borderRadius: "10px",
-                      color: "var(--search-text)",
-                      fontSize: "13px",
-                      fontWeight: 600,
-                      cursor: "pointer"
-                    }}
-                    className="dropdown-item-hover"
+                    className="profile-dropdown-item"
+                    role="menuitem"
                   >
-                    ❓ Help
-                  </div>
-                  <hr style={{ border: 0, borderTop: "1px solid rgba(0, 0, 0, 0.04)", margin: "4px 0" }} />
-                  <div 
+                    <span className="profile-dropdown-icon">
+                      <CircleHelp size={16} />
+                    </span>
+                    <span>Help</span>
+                  </button>
+                  <div className="profile-dropdown-divider" />
+                  <button 
+                    type="button"
                     onClick={() => {
                       setProfileDropdownOpen(false);
                       authClickHandler();
                     }}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "8px",
-                      padding: "10px 12px",
-                      borderRadius: "10px",
-                      color: "#d32f2f",
-                      fontSize: "13px",
-                      fontWeight: 600,
-                      cursor: "pointer"
-                    }}
-                    className="dropdown-item-hover"
+                    className="profile-dropdown-item profile-dropdown-item-danger"
+                    role="menuitem"
                   >
-                    🚪 Logout
-                  </div>
+                    <span className="profile-dropdown-icon">
+                      <LogOut size={16} />
+                    </span>
+                    <span>Logout</span>
+                  </button>
                 </div>
               )}
             </div>
@@ -393,10 +378,6 @@ const Navbar: React.FC = () => {
       )}
       
       <style>{`
-        .dropdown-item-hover:hover {
-          background: rgba(47, 184, 107, 0.08) !important;
-          color: #1D7A46 !important;
-        }
         .search-result-item:hover {
           background: rgba(47, 184, 107, 0.08) !important;
           border-color: rgba(47, 184, 107, 0.15) !important;

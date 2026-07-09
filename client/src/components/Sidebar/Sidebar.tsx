@@ -3,7 +3,7 @@ import styles from "./Sidebar.module.css";
 import { themeIcon } from "../../assets";
 import { commonIcon } from "../../assets";
 import { useSelector, useDispatch } from "react-redux";
-import { uiAction } from "../../store/ui-gemini";
+import { uiAction } from "../../store/ui-assistant";
 import { chatAction } from "../../store/chat";
 import { Link, useNavigate } from "react-router-dom";
 import { userUpdateLocation } from "../../store/user-action";
@@ -97,7 +97,7 @@ const Sidebar: React.FC = () => {
             {platformLinks.map(([label, path]) => (
               <Link key={path} to={path}>
                 <div className={styles["platform-nav-link"]}>
-                  <img src={commonIcon.geminiIcon} alt=""></img>
+                  <img src={commonIcon.assistantIcon} alt=""></img>
                   <p>{label}</p>
                 </div>
               </Link>
@@ -171,7 +171,7 @@ const Sidebar: React.FC = () => {
         </div>
         {isSidebarLong && (
           <div className={styles["upgrade-gimini"]}>
-            <img src={commonIcon.advanceGeminiIcon} alt="gemini-logo"></img>
+            <img src={commonIcon.advancedAssistantIcon} alt="assistant-logo"></img>
             <p>IntelliFarm Crop Expert</p>
           </div>
         )}

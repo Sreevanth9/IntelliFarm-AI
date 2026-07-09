@@ -2,7 +2,7 @@ import styles from "./SettingSection.module.css";
 import ToggleButton from "./ToggleButton";
 import { themeIcon } from "../../assets";
 import { useSelector, useDispatch } from "react-redux";
-import { uiAction } from "../../store/ui-gemini";
+import { uiAction } from "../../store/ui-assistant";
 
 const SettingSection = () => {
   const dispatch = useDispatch();

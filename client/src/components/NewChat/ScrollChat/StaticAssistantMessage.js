@@ -4,19 +4,19 @@ import hljs from "highlight.js";
 import "highlight.js/styles/github.css";
 import "./ScrollChatModule.css";
 
-const NewChatByGemini = (props) => {
+const StaticAssistantMessage = (props) => {
   useEffect(() => {
     hljs.highlightAll();
-  }, [props.gemini]);
+  }, [props.content]);
 
   return (
     <p
-      className="gemini-p"
+      className="assistant-response"
       dangerouslySetInnerHTML={{
-        __html: DOMPurify.sanitize(props?.gemini),
+        __html: DOMPurify.sanitize(props?.content),
       }}
     ></p>
   );
 };
 
-export default NewChatByGemini;
+export default StaticAssistantMessage;
