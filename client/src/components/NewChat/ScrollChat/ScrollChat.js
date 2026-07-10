@@ -1,5 +1,5 @@
 import styles from "./ScrollChat.module.css";
-import { commonIcon } from "../../../assets";
+
 import { useSelector, useDispatch } from "react-redux";
 import React, { useRef, useEffect, useState, Fragment } from "react";
 import { useNavigate, useParams } from "react-router-dom";
@@ -24,35 +24,35 @@ const ThinkingIndicator = ({ query }) => {
 
   const getStages = () => {
     const q = query?.toLowerCase() || "";
-    if (q.includes("weather") || q.includes("rain") || q.includes("temp") || q.includes("forecast")) {
+    if (q.includes("weather") || q.includes("rain") || q.includes("temp") || q.includes("forecast") || q.includes("climate")) {
       return [
         "Thinking...",
-        "Querying Weather API...",
-        "Analyzing meteorological trends...",
-        "Formatting weather planner..."
+        "☁️ Checking weather...",
+        "🌦 Analyzing precipitation...",
+        "Generating answer..."
       ];
     }
-    if (q.includes("market") || q.includes("price") || q.includes("sell") || q.includes("rate") || q.includes("cost")) {
+    if (q.includes("market") || q.includes("price") || q.includes("sell") || q.includes("rate") || q.includes("cost") || q.includes("mandi")) {
       return [
         "Thinking...",
-        "Accessing market databases...",
-        "Comparing regional mandi prices...",
-        "Calculating price volatility index..."
+        "📈 Reading market...",
+        "📊 Fetching Mandi price index...",
+        "Generating answer..."
       ];
     }
-    if (q.includes("disease") || q.includes("spot") || q.includes("blight") || q.includes("pest") || q.includes("leaf") || q.includes("diagnose")) {
+    if (q.includes("disease") || q.includes("spot") || q.includes("blight") || q.includes("pest") || q.includes("leaf") || q.includes("diagnose") || q.includes("bug")) {
       return [
         "Thinking...",
-        "Initializing leaf image analyzer...",
-        "Scanning agricultural pathology catalogs...",
-        "Synthesizing chemical & organic cures..."
+        "🌱 Reading crop data...",
+        "🔍 Diagnosing pathology...",
+        "Generating answer..."
       ];
     }
     return [
       "Thinking...",
-      "Analyzing agricultural databases...",
-      "Generating farming suggestions...",
-      "Formatting responsive panels..."
+      "🧠 Processing question...",
+      "🚜 Analyzing agricultural context...",
+      "Generating answer..."
     ];
   };
 
@@ -241,9 +241,8 @@ const ScrollChat = () => {
   const chatHistoryId = useSelector((state) => state.chat.chatHistoryId);
   const previousChat = useSelector((state) => state.chat.previousChat);
   const realTimeResponse = localStorage.getItem("realtime") || "no";
-  const userImage = useSelector((state) => state.user.user.profileImg);
-
-  const userLogo = userImage || commonIcon.avatarIcon;
+  const user = useSelector((state) => state.user.user);
+  const userImage = user?.profileImg;
 
   useEffect(() => {
     if (historyId) {
@@ -253,12 +252,18 @@ const ScrollChat = () => {
       return;
     }
 
-    if (chat.length > 0 && chatHistoryId) {
+    if (chatHistoryId) {
       navigate(`/assistant/app/${chatHistoryId}`, { replace: true });
     } else {
-      navigate("/assistant", { replace: true });
+      // Prevent race conditions between navigation and Redux store state propagation
+      const redirectTimer = setTimeout(() => {
+        if (chat.length === 0 && !chatHistoryId) {
+          navigate("/assistant", { replace: true });
+        }
+      }, 200);
+      return () => clearTimeout(redirectTimer);
     }
-  }, [dispatch, historyId, chatHistoryId, navigate, chat.length]);
+  }, [historyId, chatHistoryId, chat.length, navigate, dispatch]);
 
   useEffect(() => {
     if (chatRef.current) {
@@ -267,19 +272,71 @@ const ScrollChat = () => {
   }, [chat]);
 
   const loadText = (text) => {
-    return text
-      ?.replace(/\n/g, "<br>")
-      ?.replace(/\*\*(.*?)\*\*/g, '<span class="h1-bold">$1</span>')
-      ?.replace(/<br>\*/g, "<br><span class='list'>&#9898;</span>")
-      ?.replace(/```([\s\S]*?)```/g, (_, codeBlock) => {
-        let code = codeBlock
-          .replace(/<br>/g, "\n")
-          .replace(/</g, "&#60;")
-          .replace(/>/g, "&#62;");
-        let highlighted = `\`\`\`` + code + `\`\`\``;
-        return `<br><pre><code>${highlighted}</code></pre>`;
-      })
-      ?.replace(/```([\s\S]*?)```/g, "<br><div class='email-div'>$1</div>");
+    if (!text) return "";
+
+    let html = text;
+
+    // Callout Alerts (Good/Warning/Avoid)
+    html = html.replace(/🟢 (Recommended|Good)\n([\s\S]*?)(?=\n\n|\n[🔴🟡🟢]|$)/gi, (match, title, content) => {
+      return `<div class="${styles["callout-good"]}"><strong>🟢 ${title}</strong><br>${content.trim().replace(/\n/g, '<br>')}</div>`;
+    });
+    html = html.replace(/🟡 (Warning)\n([\s\S]*?)(?=\n\n|\n[🔴🟡🟢]|$)/gi, (match, title, content) => {
+      return `<div class="${styles["callout-warning"]}"><strong>🟡 ${title}</strong><br>${content.trim().replace(/\n/g, '<br>')}</div>`;
+    });
+    html = html.replace(/🔴 (Avoid|Important)\n([\s\S]*?)(?=\n\n|\n[🔴🟡🟢]|$)/gi, (match, title, content) => {
+      return `<div class="${styles["callout-avoid"]}"><strong>🔴 ${title}</strong><br>${content.trim().replace(/\n/g, '<br>')}</div>`;
+    });
+
+    // Tables
+    const tableRegex = /((?:^|\n)\|[^\n]*\|)+/g;
+    html = html.replace(tableRegex, (tableBlock) => {
+      const lines = tableBlock.trim().split("\n");
+      let tableHtml = `<div class="${styles["table-container"]}"><table class="${styles["chat-table"]}">`;
+      let isFirst = true;
+
+      lines.forEach((line) => {
+        if (line.match(/^\|?\s*:-*:\s*\|/) || line.includes("---")) return;
+
+        const cells = line.split("|").map(c => c.trim()).filter((_, idx, arr) => idx > 0 && idx < arr.length - 1);
+        tableHtml += "<tr>";
+        cells.forEach((cell) => {
+          if (isFirst) {
+            tableHtml += `<th>${cell}</th>`;
+          } else {
+            tableHtml += `<td>${cell}</td>`;
+          }
+        });
+        tableHtml += "</tr>";
+        isFirst = false;
+      });
+
+      tableHtml += "</table></div>";
+      return tableHtml;
+    });
+
+    // Headers
+    html = html.replace(/### (.*?)(?=\n|$)/g, '<h3>$1</h3>');
+    html = html.replace(/## (.*?)(?=\n|$)/g, '<h2>$1</h2>');
+
+    // Bold text
+    html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+
+    // Bullet points
+    html = html.replace(/(?:^|\n)\*\s+(.*?)(?=\n|$)/g, '<br><span class="bullet-item">• $1</span>');
+
+    // Line breaks
+    html = html.replace(/\n/g, "<br>");
+
+    // Code blocks
+    html = html.replace(/```([\s\S]*?)```/g, (_, codeBlock) => {
+      let code = codeBlock
+        .replace(/<br>/g, "\n")
+        .replace(/</g, "&#60;")
+        .replace(/>/g, "&#62;");
+      return `<pre class="${styles["code-block"]}"><code>${code}</code></pre>`;
+    });
+
+    return html;
   };
 
   const followUpHandler = (promptText) => {
@@ -356,21 +413,25 @@ const ScrollChat = () => {
               )}
               <p>{c.user}</p>
             </div>
-            <img
-              src={userLogo}
-              alt="user avatar"
-              className={styles["user-avatar-bubble"]}
-            ></img>
+            {userImage ? (
+              <img
+                src={userImage}
+                alt="user avatar"
+                className={styles["user-avatar-bubble"]}
+              />
+            ) : (
+              <div className={styles["user-avatar-placeholder-bubble"]}>
+                {(user?.name || "S").charAt(0).toUpperCase()}
+              </div>
+            )}
           </div>
 
           {/* AI Bubble */}
           <div className={styles["assistant"]}>
-            <img
-              src={commonIcon.chatAssistantIcon}
-              alt="copilot avatar"
-              className={styles["copilot-avatar-bubble"]}
-            ></img>
             <div className={styles["assistant-content-wrapper"]}>
+              <div className={styles["assistant-header"]}>
+                <span>🌾 intelli <span style={{ color: "#22C55E", fontWeight: "700" }}>farm</span> ai</span>
+              </div>
               {c?.isLoader === "yes" ? (
                 <ThinkingIndicator query={c.user} />
               ) : (

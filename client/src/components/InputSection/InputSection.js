@@ -9,7 +9,6 @@ import {
   Plus,
   Mic,
   MicOff,
-  Paperclip,
   Camera,
   Image,
   FileText,
@@ -25,6 +24,7 @@ const InputSection = () => {
   const previousChat = useSelector((state) => state.chat.previousChat);
   const chatHistoryId = useSelector((state) => state.chat.chatHistoryId);
   const suggestPrompt = useSelector((state) => state.chat.suggestPrompt);
+  const chats = useSelector((state) => state.chat.chats);
 
   // Redesign states
   const [showUploadMenu, setShowUploadMenu] = useState(false);
@@ -33,6 +33,14 @@ const InputSection = () => {
 
   const fileInputRef = useRef(null);
   const uploadMenuRef = useRef(null);
+  const inputRef = useRef(null);
+
+  // Focus input automatically on new conversation
+  useEffect(() => {
+    if (!chatHistoryId || chats.length === 0) {
+      inputRef.current?.focus();
+    }
+  }, [chatHistoryId, chats.length]);
 
   // Close upload menu if clicked outside
   useEffect(() => {
@@ -145,12 +153,17 @@ const InputSection = () => {
     const savedMemory = localStorage.getItem("farmMemory");
     const farmMemory = savedMemory ? JSON.parse(savedMemory) : null;
 
+    // Context isolation: only send the last 10 messages to avoid token overflow
+    const limitedPreviousChat = Array.isArray(previousChat)
+      ? previousChat.slice(-10)
+      : previousChat;
+
     dispatch(
       sendChatData({
         user: trimmedInput,
         gemini: "",
         isLoader: "yes",
-        previousChat,
+        previousChat: limitedPreviousChat,
         chatHistoryId,
         image: uploadedFile && uploadedFile.type.startsWith("image/") ? uploadedFile.preview : null,
         farmMemory: farmMemory,
@@ -268,6 +281,7 @@ const InputSection = () => {
           name="prompt"
           value={userInput}
           className={styles["text-input"]}
+          ref={inputRef}
         />
 
         {/* Right Action Icons Group */}
@@ -292,29 +306,18 @@ const InputSection = () => {
             {isListening ? <MicOff size={16} /> : <Mic size={16} />}
           </button>
 
-          <button
-            type="button"
-            className={styles["action-btn"]}
-            onClick={triggerFileSelect}
-            title="Attach file"
-          >
-            <Paperclip size={16} />
-          </button>
-
-          <button
-            type="button"
-            className={styles["action-btn"]}
-            onClick={triggerFileSelect}
-            title="Take a crop photo"
-          >
-            <Camera size={16} />
-          </button>
-
           <button type="submit" className={styles["submit-btn"]}>
             <SendHorizontal size={18} />
           </button>
         </div>
       </form>
+
+      <div className={styles["warning-text"]}>
+        <p>
+          IntelliFarm AI can make mistakes. Verify critical farming, chemical,
+          weather, and market decisions with local experts.
+        </p>
+      </div>
     </div>
   );
 };

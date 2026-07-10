@@ -171,11 +171,23 @@ export const postAssistantChat = async (req, res, next) => {
     let newChatHistoryId = chatHistoryId;
 
     if (!chatHistoryId || chatHistoryId.length < 5) {
+      // Generate a clean conversation title (truncate/summarize long prompts)
+      let conversationTitle = query.trim();
+      conversationTitle = conversationTitle.replace(/[?.,!]$/g, '');
+      if (conversationTitle.length > 35) {
+        const words = conversationTitle.split(/\s+/);
+        if (words.length > 5) {
+          conversationTitle = words.slice(0, 5).join(' ') + '...';
+        } else {
+          conversationTitle = conversationTitle.slice(0, 35) + '...';
+        }
+      }
+
       const { data: newHistory, error: historyError } = await supabase
         .from("chat_histories")
         .insert({
           user_id: req.user.id,
-          title: query,
+          title: conversationTitle,
         })
         .select()
         .single();
@@ -193,6 +205,7 @@ export const postAssistantChat = async (req, res, next) => {
               message: {
                 user: query,
                 gemini: responseText,
+                image: image || null,
               },
               timestamp: new Date().toISOString()
             }
@@ -237,6 +250,7 @@ export const postAssistantChat = async (req, res, next) => {
         message: {
           user: query,
           gemini: responseText,
+          image: image || null,
         },
         timestamp: new Date().toISOString()
       });
