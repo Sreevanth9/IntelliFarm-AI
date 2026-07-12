@@ -41,7 +41,13 @@ export const HistorySidebar: React.FC = () => {
     const sevenDaysAgoStart = todayStart - 7 * 24 * 60 * 60 * 1000;
 
     convs.forEach((c) => {
-      const time = new Date(c.updatedAt || c.createdAt).getTime();
+      const time = new Date(
+        c.updated_at ??
+        c.created_at ??
+        (c as any).updatedAt ??
+        (c as any).createdAt ??
+        Date.now()
+      ).getTime();
       if (time >= todayStart) {
         today.push(c);
       } else if (time >= yesterdayStart) {

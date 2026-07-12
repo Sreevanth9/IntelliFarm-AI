@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import { useSelector, useDispatch } from "react-redux";
 import { useAuth } from "../context/AuthContext";
@@ -37,10 +37,8 @@ const SEARCHABLE_ITEMS: SearchableItem[] = [
 const Navbar: React.FC = () => {
   const { farmer, isAuthenticated, logout } = useAuth() as any;
   const navigate = useNavigate();
-  const location = useLocation();
   const dispatch = useDispatch();
   const isDarkRedux = useSelector((state: any) => state.ui.isDark);
-  const isCopilotPage = location.pathname.includes("copilot") || location.pathname.includes("assistant");
 
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -109,7 +107,7 @@ const Navbar: React.FC = () => {
       <nav className="top-navbar">
         
         {/* Left Section: Search Trigger */}
-        {!isCopilotPage && isAuthenticated && (
+        {isAuthenticated && (
           <div 
             className="search-container" 
             onClick={() => setIsSearchOpen(true)}
