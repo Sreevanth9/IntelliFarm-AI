@@ -3,7 +3,7 @@
 :root {
   --copilot-bg: #f9fbf7;
   --copilot-sidebar-bg: #ffffff;
-  --copilot-border: rgba(46, 125, 50, 0.12);
+  --copilot-border: rgba(46, 125, 50, 0.18);
   --copilot-primary: #2e7d32;
   --copilot-primary-light: rgba(46, 125, 50, 0.08);
   --copilot-user-bubble: #e8f5e9;
@@ -20,7 +20,7 @@
 [data-theme="dark"] {
   --copilot-bg: #111a14;
   --copilot-sidebar-bg: #16221b;
-  --copilot-border: rgba(76, 175, 80, 0.15);
+  --copilot-border: rgba(76, 175, 80, 0.28);
   --copilot-primary: #4caf50;
   --copilot-primary-light: rgba(76, 175, 80, 0.1);
   --copilot-user-bubble: #1b2e24;
@@ -356,8 +356,8 @@
 }
 
 .copilot-suggestion-card {
-  background-color: #F7FCF8;
-  border: 1px solid rgba(46, 125, 50, 0.08);
+  background-color: var(--copilot-assistant-bubble);
+  border: 1px solid var(--copilot-border);
   border-radius: 16px;
   padding: 18px;
   min-height: 74px;
