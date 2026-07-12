@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { useCopilotContext } from "../../context/CopilotContext";
 import { useCopilot } from "../../hooks/useCopilot";
 import ChatInput from "./ChatInput";
@@ -17,6 +17,15 @@ export const ChatWindow: React.FC = () => {
   } = useCopilotContext();
 
   const { sendMessage, stopGeneration } = useCopilot();
+
+  // Pre-fill chat draft when navigating from Disease Detection
+  useEffect(() => {
+    const prefill = localStorage.getItem("spryzen_prefill");
+    if (prefill) {
+      setDraft(prefill);
+      localStorage.removeItem("spryzen_prefill");
+    }
+  }, [setDraft]);
 
   const handleSuggestionSelect = (suggestion: string) => {
     setDraft(suggestion);
