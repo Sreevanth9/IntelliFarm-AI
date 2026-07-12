@@ -1299,6 +1299,7 @@ code {
 .search-container {
   position: relative;
   flex: 1;
+  min-width: 280px;
   max-width: 720px;
   height: 56px;
   display: flex;
@@ -1384,6 +1385,7 @@ code {
   color: #64748B;
   cursor: pointer;
   transition: all 0.3s ease;
+  flex-shrink: 0;
 }
 
 .theme-toggle-btn:hover {
@@ -1393,21 +1395,22 @@ code {
 }
 
 .profile-card {
-  height: 60px;
-  min-width: 220px;
-  max-width: 320px;
-  width: fit-content;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  height: 64px;
   padding: 0 18px;
   border-radius: 20px;
   background: rgba(255, 255, 255, 0.74);
   border: 1px solid rgba(255, 255, 255, 0.7);
-  display: flex;
-  align-items: center;
-  gap: 12px;
   cursor: pointer;
   transition: all 0.3s ease;
   position: relative;
   box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+  white-space: nowrap;
+  min-width: 220px;
+  max-width: 320px;
+  width: fit-content;
 }
 
 .profile-card:hover {
