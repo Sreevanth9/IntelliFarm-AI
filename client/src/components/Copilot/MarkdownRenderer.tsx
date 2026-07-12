@@ -9,6 +9,12 @@ interface MarkdownRendererProps {
 }
 
 export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content }) => {
+  // Strip out suggestions block (and any partial suggestions block during active stream)
+  const cleanContent = (content || "")
+    .replace(/\[SUGGESTIONS:\s*\[[\s\S]*?\]\]/i, "")
+    .replace(/\[SUGGESTIONS:[\s\S]*$/i, "")
+    .trim();
+
   return (
     <div className="copilot-markdown">
       <ReactMarkdown
@@ -33,7 +39,7 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content }) =
           }
         }}
       >
-        {content}
+        {cleanContent}
       </ReactMarkdown>
     </div>
   );
