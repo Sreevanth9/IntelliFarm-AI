@@ -254,7 +254,7 @@
   display: flex;
   flex-direction: column;
   width: 100%;
-  max-width: 1100px;
+  max-width: 920px;
   margin: 0 auto;
   animation: slideIn 0.3s ease forwards;
 }
@@ -345,20 +345,21 @@
 /* Suggested Queries */
 .copilot-suggestions-container {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 20px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
   width: 100%;
-  max-width: 1100px;
+  max-width: 920px;
   margin: 0 auto;
   padding: 12px;
+  box-sizing: border-box;
 }
 
 .copilot-suggestion-card {
   background-color: #F7FCF8;
   border: 1px solid rgba(46, 125, 50, 0.08);
   border-radius: 16px;
-  padding: 22px;
-  min-height: 90px;
+  padding: 18px;
+  min-height: 74px;
   box-sizing: border-box;
   cursor: pointer;
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
@@ -366,6 +367,13 @@
   align-items: center;
   justify-content: space-between;
   box-shadow: none;
+}
+
+/* Mobile responsive card layouts */
+@media (max-width: 768px) {
+  .copilot-suggestions-container {
+    grid-template-columns: 1fr;
+  }
 }
 
 .copilot-suggestion-card:hover {
@@ -404,7 +412,7 @@
 }
 
 .copilot-input-wrapper {
-  max-width: 1100px;
+  max-width: 920px;
   margin: 0 auto;
   background-color: var(--copilot-sidebar-bg);
   border: 1px solid var(--copilot-border);
