@@ -15,7 +15,7 @@ export const ROUTES = {
   diseaseInfo: "/disease-info",
   diseaseDetection: "/disease-detection",
   profile: "/profile",
-  assistant: "/assistant",
+  assistant: "/copilot",
   copilot: "/copilot",
   settings: "/settings",
 };
@@ -42,9 +42,9 @@ export const SERVICE_CARDS = [
     icon: cropImage,
   },
   {
-    title: "AI Farming Assistant",
+    title: "IntelliFarm Copilot",
     description: "Conversational help for specific farming questions across crops and soil.",
-    route: ROUTES.assistant,
+    route: ROUTES.copilot,
     icon: cropImage,
   },
   {
