@@ -254,7 +254,7 @@
   display: flex;
   flex-direction: column;
   width: 100%;
-  max-width: 900px;
+  max-width: 1100px;
   margin: 0 auto;
   animation: slideIn 0.3s ease forwards;
 }
@@ -348,7 +348,7 @@
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 20px;
   width: 100%;
-  max-width: 900px;
+  max-width: 1100px;
   margin: 0 auto;
   padding: 12px;
 }
@@ -357,7 +357,9 @@
   background-color: #F7FCF8;
   border: 1px solid rgba(46, 125, 50, 0.08);
   border-radius: 16px;
-  padding: 16px;
+  padding: 22px;
+  min-height: 90px;
+  box-sizing: border-box;
   cursor: pointer;
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
@@ -402,7 +404,7 @@
 }
 
 .copilot-input-wrapper {
-  max-width: 900px;
+  max-width: 1100px;
   margin: 0 auto;
   background-color: var(--copilot-sidebar-bg);
   border: 1px solid var(--copilot-border);

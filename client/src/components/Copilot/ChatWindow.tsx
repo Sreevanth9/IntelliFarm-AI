@@ -32,23 +32,25 @@ export const ChatWindow: React.FC = () => {
 
   return (
     <div className="copilot-chat-window">
-      {/* Header */}
-      <header className="copilot-chat-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 24px" }}>
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: "2px" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "11px", fontWeight: "700", color: "var(--copilot-primary)", textTransform: "uppercase", letterSpacing: "0.8px" }}>
-            <span style={{ display: "inline-block", width: "8px", height: "8px", borderRadius: "50%", backgroundColor: "#2fb86b" }}></span>
-            Spryzen AI
+      {/* Header (Only visible after discussion starts) */}
+      {messages.length > 0 && (
+        <header className="copilot-chat-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 24px" }}>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: "2px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "11px", fontWeight: "700", color: "var(--copilot-primary)", textTransform: "uppercase", letterSpacing: "0.8px" }}>
+              <span style={{ display: "inline-block", width: "8px", height: "8px", borderRadius: "50%", backgroundColor: "#2fb86b" }}></span>
+              Spryzen AI
+            </div>
+            <div className="copilot-chat-header-title" style={{ fontSize: "13.5px", fontWeight: "500", color: "var(--copilot-text-muted)" }}>
+              {selectedConversation
+                ? selectedConversation.title
+                : "New Discussion"}
+            </div>
           </div>
-          <div className="copilot-chat-header-title" style={{ fontSize: "13.5px", fontWeight: "500", color: "var(--copilot-text-muted)" }}>
-            {selectedConversation
-              ? selectedConversation.title
-              : "New Discussion"}
-          </div>
-        </div>
-        {isStreaming && (
-          <RefreshCw size={16} className="animate-spin" style={{ color: "var(--copilot-primary)" }} />
-        )}
-      </header>
+          {isStreaming && (
+            <RefreshCw size={16} className="animate-spin" style={{ color: "var(--copilot-primary)" }} />
+          )}
+        </header>
+      )}
 
       {/* Main Workspace Body */}
       {isLoadingMessages ? (
@@ -58,8 +60,8 @@ export const ChatWindow: React.FC = () => {
         </div>
       ) : messages.length === 0 ? (
         // Empty State / Suggestions
-        <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", padding: "24px", overflowY: "auto" }}>
-          <div className="copilot-empty-state" style={{ marginBottom: "32px", textAlign: "center" }}>
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", width: "100%", maxWidth: "1100px", margin: "0 auto", padding: "24px", boxSizing: "border-box", overflowY: "auto" }}>
+          <div className="copilot-empty-state" style={{ marginBottom: "24px", textAlign: "center" }}>
             <h1 style={{ fontSize: "40px", fontWeight: "800", letterSpacing: "-0.5px", color: "var(--copilot-text)", marginBottom: "6px" }}>
               Spryzen AI
             </h1>
