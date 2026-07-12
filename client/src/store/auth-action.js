@@ -1,6 +1,5 @@
 import { authAction } from "./auth";
 import { userAction } from "./user";
-import { chatAction } from "./chat";
 
 const SERVER_ENDPOINT = process.env.REACT_APP_SERVER_ENDPOINT || "http://localhost:5000";
 
@@ -80,11 +79,6 @@ export const logoutHandler = () => {
         localStorage.removeItem("isLogin");
         localStorage.removeItem("accessToken");
         localStorage.removeItem("loginCheck");
-        dispatch(chatAction.replaceChat({ chats: [] }));
-        dispatch(chatAction.recentChatHandler({ recentChat: [] }));
-        dispatch(chatAction.replacePreviousChat({ previousChat: [] }));
-        dispatch(chatAction.chatHistoryIdHandler({ chatHistoryId: "" }));
-        dispatch(chatAction.newChatHandler());
         dispatch(
           userAction.setUserData({
             userData: {

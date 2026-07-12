@@ -2,7 +2,7 @@ import { useState } from "react";
 
 import CropCard from "../components/CropCard";
 import MainLayout from "../layouts/MainLayout";
-import { getFertilizerSuggestion } from "../services/chatApi";
+import api from "../services/api";
 
 const Fertilizer = () => {
   const [form, setForm] = useState({ crop: "", issue: "", soilType: "", stage: "" });
@@ -19,7 +19,7 @@ const Fertilizer = () => {
     setLoading(true);
     setError("");
     try {
-      const result = await getFertilizerSuggestion(form);
+      const result = await api.post("/api/crops/fertilizer-suggest", form);
       setAnswer(result.data.recommendation);
     } catch (err) {
       setError(err.response?.data?.message || "Unable to get fertilizer guidance right now.");
