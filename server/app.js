@@ -5,13 +5,12 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 import helmet from "helmet";
 
-import assistantRoutes from "./routes/assistant.js";
 import authRoutes from "./routes/auth.js";
 import cropRoutes from "./routes/cropRoutes.js";
 import farmRoutes from "./routes/farmRoutes.js";
 import profileRoutes from "./routes/profile.js";
-import publicRoutes from "./routes/public.js";
 import weatherRoutes from "./routes/weatherRoutes.js";
+import copilotRoutes from "./routes/copilot.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 import { sanitizeBody } from "./middleware/sanitizeInput.js";
 
@@ -37,14 +36,11 @@ app.get("/api/health", (req, res) => {
 });
 
 app.use("/api/auth", authRoutes);
-app.use("/api/assistant", assistantRoutes);
 app.use("/api/profile", profileRoutes);
 app.use("/api/weather", weatherRoutes);
 app.use("/api/crops", cropRoutes);
 app.use("/api/farms", farmRoutes);
-
-app.use("/assistant", publicRoutes);
-app.use("/gemini", publicRoutes);
+app.use("/api/copilot", copilotRoutes);
 
 app.use(errorHandler);
 

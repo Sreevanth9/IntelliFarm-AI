@@ -13,7 +13,8 @@ import {
   User,
   Settings,
   LogOut,
-  ChevronRight
+  ChevronRight,
+  Sparkles
 } from "lucide-react";
 
 const Sidebar = () => {
@@ -23,6 +24,7 @@ const Sidebar = () => {
   const group1 = [
     { label: "Dashboard", href: ROUTES.dashboard, icon: LayoutDashboard },
     { label: "AI Assistant", href: ROUTES.assistant, icon: Bot },
+    { label: "Copilot v2", href: ROUTES.copilot, icon: Sparkles },
     { label: "Disease Detection", href: ROUTES.diseaseDetection, icon: Microscope },
   ];
 

@@ -4,7 +4,7 @@ import toast from "react-hot-toast";
 import { useSelector, useDispatch } from "react-redux";
 import { useAuth } from "../context/AuthContext";
 import { ROUTES } from "../utils/constants";
-import { uiAction } from "../store/ui-assistant";
+import { uiAction } from "../store/ui";
 import {
   Search as SearchIcon,
   Sun,

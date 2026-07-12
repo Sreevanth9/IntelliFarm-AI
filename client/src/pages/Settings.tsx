@@ -3,7 +3,7 @@ import MainLayout from "../layouts/MainLayout";
 import { useAuth } from "../context/AuthContext";
 import toast from "react-hot-toast";
 import { useSelector, useDispatch } from "react-redux";
-import { uiAction } from "../store/ui-assistant";
+import { uiAction } from "../store/ui";
 
 const Settings: React.FC = () => {
   const { farmer } = useAuth();

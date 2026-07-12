@@ -3,8 +3,7 @@ import styles from "./Sidebar.module.css";
 import { themeIcon } from "../../assets";
 import { commonIcon } from "../../assets";
 import { useSelector, useDispatch } from "react-redux";
-import { uiAction } from "../../store/ui-assistant";
-import { chatAction } from "../../store/chat";
+import { uiAction } from "../../store/ui";
 import { Link, useNavigate } from "react-router-dom";
 import { userUpdateLocation } from "../../store/user-action";
 
@@ -12,17 +11,12 @@ const Sidebar: React.FC = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const isSidebarLong = useSelector((state: any) => state.ui.isSidebarLong);
-  const isNewChat = useSelector((state: any) => state.chat.newChat);
-  const recentChat = useSelector((state: any) => state.chat.recentChat);
-  const [isShowMore, setisShowMore] = useState(false);
-  const [isActiveChat, setIsActiveChat] = useState("");
-  const chatHistoryId = useSelector((state: any) => state.chat.chatHistoryId);
   const location = useSelector((state: any) => state.user.location);
   const platformLinks = [
     ["Home", "/"],
     ["Dashboard", "/dashboard"],
     ["My Farms", "/farms"],
-    ["AI Assistant", "/assistant"],
+    ["IntelliFarm Copilot", "/copilot"],
     ["Weather", "/weather"],
     ["Fertilizer", "/fertilizer"],
     ["Schemes", "/schemes"],
@@ -35,15 +29,6 @@ const Sidebar: React.FC = () => {
     dispatch(uiAction.toggleSideBar());
   };
 
-  const showMoreHandler = () => {
-    setisShowMore((pre) => !pre);
-  };
-
-  useEffect(() => {
-    const id = chatHistoryId || "";
-    setIsActiveChat(id);
-  }, [chatHistoryId]);
-
   const settingsHandler = (e: any) => {
     dispatch(uiAction.toggleSettings());
     if (e.view.innerWidth <= 960) {
@@ -51,16 +36,8 @@ const Sidebar: React.FC = () => {
     }
   };
 
-  const newChatHandler = () => {
-    dispatch(chatAction.replaceChat({ chats: [] }));
-    dispatch(chatAction.newChatHandler());
-    dispatch(chatAction.chatHistoryIdHandler({ chatHistoryId: "" }));
-    navigate("/assistant");
-  };
-
   const icon = themeIcon();
   const sideBarWidthClass = isSidebarLong ? "side-bar-long" : "side-bar-sort";
-  const showMoreArrowIcon = isShowMore ? icon.upArrowIcon : icon.expandIcon;
 
   console.log("sidebar");
 
@@ -77,22 +54,8 @@ const Sidebar: React.FC = () => {
         <img src={icon.menuIcon} alt="menu icon"></img>
       </div>
 
-      <div className={styles["recent-chat-section"]}>
-        {isNewChat ? (
-          <div
-            onClick={newChatHandler}
-            className={`${styles["pluc-icon"]} ${styles["new-plus-icon"]}`}
-          >
-            <img src={icon.plusIcon} alt="plus icon"></img>
-            {isSidebarLong && <p>New chat</p>}
-          </div>
-        ) : (
-          <div className={`${styles["pluc-icon"]} ${styles["old-plus-icon"]}`}>
-            <img src={icon.plusIcon} alt="plus icon"></img>
-            {isSidebarLong && <p>New chat</p>}
-          </div>
-        )}
-        {isSidebarLong && (
+      {isSidebarLong && (
+        <div className={styles["recent-chat-section"]}>
           <nav className={styles["platform-nav"]}>
             {platformLinks.map(([label, path]) => (
               <Link key={path} to={path}>
@@ -103,58 +66,8 @@ const Sidebar: React.FC = () => {
               </Link>
             ))}
           </nav>
-        )}
-        {isSidebarLong && (
-          <div className={styles["recent-chat-main"]}>
-            <p>Recent</p>
-
-            {(recentChat || []).slice(0, 5).map((chat: any) => (
-              <Link to={`/assistant/app/${chat._id}`} key={chat._id}>
-                <div
-                  className={`${styles["recent-chat"]} ${
-                    isActiveChat === chat._id
-                      ? styles["active-recent-chat"]
-                      : ""
-                  }`}
-                  onClick={() => {
-                    setIsActiveChat(chat._id);
-                  }}
-                >
-                  <img src={icon.messageIcon} alt="message"></img>
-                  <p>{chat.title.slice(0, 20)}</p>
-                </div>
-              </Link>
-            ))}
-            {recentChat && recentChat.length > 5 && (
-              <div className={styles["show-more"]} onClick={showMoreHandler}>
-                <img src={showMoreArrowIcon} alt="drop down"></img>
-                <p>Show more</p>
-              </div>
-            )}
-
-            {isShowMore &&
-              recentChat &&
-              recentChat.slice(5, recentChat.length).map((chat: any) => (
-                <Link to={`/assistant/app/${chat._id}`} key={chat._id}>
-                  <div
-                    className={`${styles["recent-chat"]} ${
-                      isActiveChat === chat._id
-                        ? styles["active-recent-chat"]
-                        : ""
-                    }`}
-                    onClick={() => {
-                      setIsActiveChat(chat._id);
-                    }}
-                    key={chat._id}
-                  >
-                    <img src={icon.messageIcon} alt="message"></img>
-                    <p>{chat.title.slice(0, 20)}</p>
-                  </div>
-                </Link>
-              ))}
-          </div>
-        )}
-      </div>
+        </div>
+      )}
 
       <div className={styles["settings-section"]}>
         <div className={styles["help"]}>

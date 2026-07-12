@@ -16,6 +16,7 @@ export const ROUTES = {
   diseaseDetection: "/disease-detection",
   profile: "/profile",
   assistant: "/assistant",
+  copilot: "/copilot",
   settings: "/settings",
 };
 

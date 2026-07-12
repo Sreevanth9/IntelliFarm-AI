@@ -1,11 +1,9 @@
 import React, { useEffect } from "react";
 import "./App.css";
-import ChatSection from "./components/ChatSection/ChatSection";
 import { Navigate, Route, Routes, useParams, useNavigate, useLocation } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
-import { uiAction } from "./store/ui-assistant";
+import { uiAction } from "./store/ui";
 import { Toaster } from "react-hot-toast";
-import { getRecentChat } from "./store/chat-action";
 import { refreshToken } from "./store/auth-action";
 import { loginHandler } from "./store/auth-action";
 import Dashboard from "./pages/Dashboard";
@@ -22,24 +20,14 @@ import Farms from "./pages/Farms";
 import Login from "./pages/Login";
 import AuthCallback from "./pages/AuthCallback";
 import Settings from "./pages/Settings";
-import FloatingChat from "./components/FloatingChat";
-
-const LegacyChatRedirect: React.FC = () => {
-  const { historyId } = useParams<{ historyId?: string }>();
-  return (
-    <Navigate
-      to={historyId ? `/assistant/app/${historyId}` : "/assistant/app"}
-      replace
-    />
-  );
-};
+import CopilotPage from "./pages/CopilotPage";
+// Legacy assistant routes redirect to Copilot
 
 const App: React.FC = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const location = useLocation();
   const settingsShow = useSelector((state: any) => state.ui.isSettingsShow);
-  const newChat = useSelector((state: any) => state.chat.newChat);
   const isDark = useSelector((state: any) => state.ui.isDark);
   const isUserDetails = useSelector((state: any) => state.ui.isUserDetailsShow);
   const isLogin = useSelector((state: any) => state.auth.isLogin);
@@ -64,12 +52,6 @@ const App: React.FC = () => {
     const theme = getLocalTheme || "light";
     document.documentElement.setAttribute("data-theme", theme);
   }, [isDark]);
-
-  useEffect(() => {
-    if (newChat === false) {
-      dispatch(getRecentChat() as any);
-    }
-  }, [dispatch, newChat]);
 
   useEffect(() => {
     dispatch(loginHandler() as any);
@@ -143,16 +125,10 @@ const App: React.FC = () => {
         />
         <Route path="/login" element={<Login />} />
         <Route path="/auth/callback" element={<AuthCallback />} />
-        <Route
-          path="/assistant/*"
-          element={
-            <ProtectedRoute>
-              <ChatSection />
-            </ProtectedRoute>
-          }
-        />
-        <Route path="/app" element={<LegacyChatRedirect />} />
-        <Route path="/app/:historyId" element={<LegacyChatRedirect />} />
+        <Route path="/assistant" element={<Navigate to="/copilot" replace />} />
+        <Route path="/assistant/*" element={<Navigate to="/copilot" replace />} />
+        <Route path="/app" element={<Navigate to="/copilot" replace />} />
+        <Route path="/app/:historyId" element={<Navigate to="/copilot" replace />} />
         <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
         <Route path="/weather" element={<Weather />} />
         <Route path="/fertilizer" element={<Fertilizer />} />
@@ -163,9 +139,10 @@ const App: React.FC = () => {
         <Route path="/farms" element={<ProtectedRoute><Farms /></ProtectedRoute>} />
         <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
         <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+        <Route path="/copilot/*" element={<ProtectedRoute><CopilotPage /></ProtectedRoute>} />
         <Route path="*" element={<NotFound />} />
       </Routes>
-      {isLogin && !location.pathname.startsWith("/assistant") && <FloatingChat />}
+      {isLogin && !location.pathname.startsWith("/copilot")}
       {settingsShow && (
         <div onClick={settingHandler} className="bg-focus-dark"></div>
       )}
