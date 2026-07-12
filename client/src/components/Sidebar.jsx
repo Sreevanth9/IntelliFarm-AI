@@ -22,7 +22,7 @@ const Sidebar = () => {
 
   const group1 = [
     { label: "Dashboard", href: ROUTES.dashboard, icon: LayoutDashboard },
-    { label: "IntelliFarm Copilot", href: ROUTES.copilot, icon: Sparkles },
+    { label: "Spryzen AI", href: ROUTES.copilot, icon: Sparkles },
     { label: "Disease Detection", href: ROUTES.diseaseDetection, icon: Microscope },
   ];
 

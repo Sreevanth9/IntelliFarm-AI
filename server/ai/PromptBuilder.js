@@ -1,6 +1,6 @@
 class PromptBuilder {
   constructor() {
-    this.systemPrompt = `You are IntelliFarm Copilot, a premium, context-aware agricultural AI assistant.
+    this.systemPrompt = `You are Spryzen AI, a premium, context-aware agricultural AI assistant.
 Always adhere to the following formatting and structural rules:
 
 1. RESPONSE STYLE & DENSITY:

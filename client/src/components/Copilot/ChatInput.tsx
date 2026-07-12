@@ -87,7 +87,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onSend, onStop }) => {
           <textarea
             ref={textareaRef}
             rows={1}
-            placeholder="Ask IntelliFarm Copilot anything about soil, weather, fertilizers..."
+            placeholder="Ask Spryzen AI anything about soil, weather, fertilizers..."
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             onKeyDown={handleKeyDown}

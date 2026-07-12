@@ -42,7 +42,7 @@ export const SERVICE_CARDS = [
     icon: cropImage,
   },
   {
-    title: "IntelliFarm Copilot",
+    title: "Spryzen AI",
     description: "Conversational help for specific farming questions across crops and soil.",
     route: ROUTES.copilot,
     icon: cropImage,

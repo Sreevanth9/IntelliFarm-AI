@@ -16,7 +16,7 @@ const Sidebar: React.FC = () => {
     ["Home", "/"],
     ["Dashboard", "/dashboard"],
     ["My Farms", "/farms"],
-    ["IntelliFarm Copilot", "/copilot"],
+    ["Spryzen AI", "/copilot"],
     ["Weather", "/weather"],
     ["Fertilizer", "/fertilizer"],
     ["Schemes", "/schemes"],
