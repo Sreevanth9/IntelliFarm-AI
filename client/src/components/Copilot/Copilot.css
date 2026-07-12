@@ -45,7 +45,7 @@
 
 /* Sidebar Styling */
 .copilot-sidebar {
-  flex: 0 0 clamp(280px, 22vw, 320px);
+  flex: 0 0 clamp(260px, 20vw, 300px);
   background-color: var(--copilot-sidebar-bg);
   border-right: 1px solid var(--copilot-border);
   display: flex;
@@ -379,8 +379,8 @@
 
 .copilot-suggestion-card:hover {
   background-color: #eef8f0;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(46, 125, 50, 0.08);
+  transform: translateY(-3px);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.08);
 }
 
 .copilot-suggestion-arrow {
@@ -409,7 +409,7 @@
 /* Floating Input Panel */
 .copilot-input-area {
   width: 100%;
-  padding: 24px 40px;
+  padding: 16px 24px 24px;
   box-sizing: border-box;
   background-color: transparent;
 }
@@ -420,11 +420,11 @@
   width: 100%;
   background-color: var(--copilot-sidebar-bg);
   border: 1px solid var(--copilot-border);
-  border-radius: 16px;
+  border-radius: 20px;
   padding: 8px 12px;
   display: flex;
   flex-direction: column;
-  box-shadow: var(--copilot-shadow);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
   transition: box-shadow 0.2s ease, border-color 0.2s ease;
 }
 

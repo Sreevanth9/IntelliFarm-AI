@@ -1374,8 +1374,8 @@ code {
 }
 
 .theme-toggle-btn {
-  width: 48px;
-  height: 48px;
+  width: 56px;
+  height: 56px;
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.72);
   border: 1px solid rgba(255, 255, 255, 0.55);
@@ -1397,8 +1397,8 @@ code {
 .profile-card {
   display: flex;
   align-items: center;
-  gap: 14px;
-  height: 64px;
+  gap: 10px;
+  height: 56px;
   padding: 0 18px;
   border-radius: 20px;
   background: rgba(255, 255, 255, 0.74);
@@ -1420,8 +1420,8 @@ code {
 }
 
 .profile-avatar {
-  width: 48px;
-  height: 48px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
   background: linear-gradient(135deg, #2FB86B 0%, #1D7A46 100%);
   display: flex;

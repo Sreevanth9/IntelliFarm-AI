@@ -43,7 +43,7 @@ export const ChatWindow: React.FC = () => {
             <div className="copilot-chat-header-title" style={{ fontSize: "13.5px", fontWeight: "500", color: "var(--copilot-text-muted)" }}>
               {selectedConversation
                 ? selectedConversation.title
-                : "New Discussion"}
+                : "New Chat"}
             </div>
           </div>
           {isStreaming && (
