@@ -60,12 +60,12 @@ export const ChatWindow: React.FC = () => {
         </div>
       ) : messages.length === 0 ? (
         // Empty State / Suggestions
-        <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", width: "100%", maxWidth: "1100px", margin: "0 auto", padding: "24px", boxSizing: "border-box", overflowY: "auto" }}>
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", width: "100%", maxWidth: "var(--content-width)", margin: "0 auto", padding: "24px", boxSizing: "border-box", overflowY: "auto" }}>
           <div className="copilot-empty-state" style={{ marginBottom: "24px", textAlign: "center" }}>
-            <h1 style={{ fontSize: "40px", fontWeight: "800", letterSpacing: "-0.5px", color: "var(--copilot-text)", marginBottom: "6px" }}>
+            <h1 style={{ fontSize: "48px", fontWeight: "800", letterSpacing: "-0.5px", color: "var(--copilot-text)", marginBottom: "6px" }}>
               Spryzen AI
             </h1>
-            <h2 style={{ fontSize: "17px", fontWeight: "400", color: "var(--copilot-text-muted)", margin: 0 }}>
+            <h2 style={{ fontSize: "22px", fontWeight: "400", color: "var(--copilot-text-muted)", margin: 0 }}>
               How can Spryzen AI help you today?
             </h2>
           </div>

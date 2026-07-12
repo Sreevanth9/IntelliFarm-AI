@@ -14,6 +14,7 @@
   --copilot-shadow-hover: 0 8px 30px -4px rgba(46, 125, 50, 0.12);
   --copilot-glass: rgba(255, 255, 255, 0.7);
   --copilot-font: 'Outfit', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --content-width: min(100%, 980px);
 }
 
 [data-theme="dark"] {
@@ -215,6 +216,7 @@
 /* Chat Main Window */
 .copilot-chat-window {
   flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -254,7 +256,7 @@
   display: flex;
   flex-direction: column;
   width: 100%;
-  max-width: 920px;
+  max-width: var(--content-width);
   margin: 0 auto;
   animation: slideIn 0.3s ease forwards;
 }
@@ -348,7 +350,7 @@
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 18px;
   width: 100%;
-  max-width: 920px;
+  max-width: var(--content-width);
   margin: 0 auto;
   padding: 12px;
   box-sizing: border-box;
@@ -412,7 +414,7 @@
 }
 
 .copilot-input-wrapper {
-  max-width: 920px;
+  max-width: var(--content-width);
   margin: 0 auto;
   background-color: var(--copilot-sidebar-bg);
   border: 1px solid var(--copilot-border);

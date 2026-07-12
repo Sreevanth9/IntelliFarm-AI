@@ -1298,7 +1298,8 @@ code {
 
 .search-container {
   position: relative;
-  width: 650px;
+  flex: 1;
+  max-width: 720px;
   height: 56px;
   display: flex;
   align-items: center;
@@ -1393,6 +1394,9 @@ code {
 
 .profile-card {
   height: 60px;
+  min-width: 220px;
+  max-width: 320px;
+  width: fit-content;
   padding: 0 18px;
   border-radius: 20px;
   background: rgba(255, 255, 255, 0.74);
