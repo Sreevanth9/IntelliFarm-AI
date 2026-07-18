@@ -14,18 +14,25 @@ import {
   MapPin,
   AlertTriangle,
   CheckCircle2,
-  XCircle,
-  Loader2
+  Loader2,
+  Clock,
+  Compass,
+  Sunrise,
+  Sunset,
+  Calendar
 } from "lucide-react";
 
 import MainLayout from "../layouts/MainLayout";
 import EmptyState from "../components/EmptyState/EmptyState";
-import { fetchForecast, fetchWeather } from "../services/weatherApi";
+import { fetchForecast, fetchWeather, fetchWeatherAdvisory } from "../services/weatherApi";
+import { fetchDiseaseReports } from "../services/diseaseApi";
 
 const Weather = () => {
   const [city, setCity] = useState("");
   const [weather, setWeather] = useState(null);
   const [forecast, setForecast] = useState(null);
+  const [advisory, setAdvisory] = useState("");
+  const [recentDiagnosis, setRecentDiagnosis] = useState(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -33,13 +40,54 @@ const Weather = () => {
     if (!cityName) return;
     setLoading(true);
     setError("");
+    setAdvisory("");
     try {
       const [weatherResult, forecastResult] = await Promise.all([
         fetchWeather({ city: cityName }),
         fetchForecast({ city: cityName }),
       ]);
-      setWeather(weatherResult.data.data);
-      setForecast(forecastResult.data.data);
+      const w = weatherResult.data.data;
+      const f = forecastResult.data.data;
+      setWeather(w);
+      setForecast(f);
+
+      // Count rain slots in next 24h (8 slots * 3h = 24h)
+      const rainCount = f.list?.slice(0, 8).filter(item => 
+        item.weather?.[0]?.main?.toLowerCase().includes("rain")
+      ).length || 0;
+
+      // Fetch user recent disease context
+      let activeCrop = "General Crop";
+      try {
+        const diagResult = await fetchDiseaseReports();
+        if (diagResult.data.success && diagResult.data.reports && diagResult.data.reports.length > 0) {
+          const mostRecent = diagResult.data.reports[0];
+          setRecentDiagnosis(mostRecent);
+          if (mostRecent.crop) {
+            activeCrop = mostRecent.crop;
+          }
+        }
+      } catch (diagErr) {
+        console.warn("Could not load recent disease reports context:", diagErr.message);
+      }
+
+      // Fetch Spryzen AI advisory
+      try {
+        const advResult = await fetchWeatherAdvisory({
+          temp: Math.round(w.main.temp),
+          humidity: w.main.humidity,
+          windSpeed: w.wind.speed,
+          rainSlotsCount: rainCount,
+          cityName: w.name,
+          cropName: activeCrop
+        });
+        if (advResult.data.success) {
+          setAdvisory(advResult.data.advisory);
+        }
+      } catch (advErr) {
+        console.warn("Could not fetch Spryzen AI weather advisory:", advErr.message);
+      }
+
     } catch (err) {
       setError(err.response?.data?.message || "Unable to load weather right now.");
       toast.error("Weather fetch failed");
@@ -67,11 +115,112 @@ const Weather = () => {
 
   const getConditionIcon = (main) => {
     const m = (main || "").toLowerCase();
-    if (m.includes("rain")) return <CloudRain size={24} />;
-    if (m.includes("thunderstorm")) return <CloudLightning size={24} />;
-    if (m.includes("clear") || m.includes("sun")) return <Sun size={24} />;
-    if (m.includes("cloud")) return <CloudSun size={24} />;
-    return <Cloud size={24} />;
+    if (m.includes("rain")) return <CloudRain size={20} />;
+    if (m.includes("thunderstorm")) return <CloudLightning size={20} />;
+    if (m.includes("clear") || m.includes("sun")) return <Sun size={20} />;
+    if (m.includes("cloud")) return <CloudSun size={20} />;
+    return <Cloud size={20} />;
+  };
+
+  const getWindDirection = (deg) => {
+    if (deg === undefined) return "N/A";
+    const val = Math.floor((deg / 22.5) + 0.5);
+    const arr = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"];
+    return arr[(val % 16)];
+  };
+
+  const formatTime = (timestamp) => {
+    if (!timestamp) return "N/A";
+    return new Date(timestamp * 1000).toLocaleTimeString("en-US", { hour: 'numeric', minute: '2-digit', hour12: true });
+  };
+
+  const getWeeklyForecast = () => {
+    if (!forecast?.list) return [];
+    const days = {};
+    forecast.list.forEach((slot) => {
+      const dateStr = new Date(slot.dt * 1000).toDateString();
+      if (!days[dateStr]) {
+        days[dateStr] = [];
+      }
+      days[dateStr].push(slot);
+    });
+    return Object.keys(days).slice(1, 6).map((dayStr) => {
+      const slots = days[dayStr];
+      const middaySlot = slots.find(s => new Date(s.dt * 1000).getHours() === 12) || slots[Math.floor(slots.length / 2)];
+      const minTemp = Math.min(...slots.map(s => s.main.temp_min));
+      const maxTemp = Math.max(...slots.map(s => s.main.temp_max));
+      return {
+        dateStr: dayStr,
+        dayName: new Date(middaySlot.dt * 1000).toLocaleDateString("en-US", { weekday: "short" }),
+        tempMin: Math.round(minTemp),
+        tempMax: Math.round(maxTemp),
+        pop: Math.round(middaySlot.pop * 100),
+        condition: middaySlot.weather[0].main
+      };
+    });
+  };
+
+  const getDiseaseWeatherAnalysis = (diseaseName, temp, humidity) => {
+    const d = (diseaseName || "").toLowerCase();
+    let risk = "Medium";
+    let reason = "Moderate humidity and temperature conditions.";
+    let recommendation = "Monitor the crop weekly for leaf spots or lesions.";
+
+    const isHighHumidity = humidity > 80;
+    const isModerateTemp = temp >= 15 && temp <= 25;
+    const isWarmTemp = temp > 25 && temp <= 32;
+
+    if (d.includes("late blight")) {
+      if (isHighHumidity && isModerateTemp) {
+        risk = "Very High";
+        reason = "High humidity (>80%) and moderate temperatures (15-25°C) are the optimal breeding ground for Phytophthora infestans (Late Blight).";
+        recommendation = "Apply preventative bio-fungicide or copper-based fungicide within 24 hours. Improve ventilation and prune bottom leaves.";
+      } else if (isHighHumidity || isModerateTemp) {
+        risk = "High";
+        reason = "Humid air or moderate temperature is creating conducive conditions for Late Blight development.";
+        recommendation = "Keep foliage dry, inspect plants daily, and avoid overhead watering.";
+      } else {
+        risk = "Low";
+        reason = "Current weather conditions are dry or extreme enough to slow down Late Blight spread.";
+        recommendation = "Continue normal maintenance. Clean tools before moving to healthy plots.";
+      }
+    } else if (d.includes("early blight")) {
+      if (isHighHumidity && isWarmTemp) {
+        risk = "Very High";
+        reason = "High humidity (>75%) and warm temperatures (24-32°C) cause rapid spore germination of Alternaria solani (Early Blight).";
+        recommendation = "Spray organic neem oil or recommended fungicide. Prune infected lower foliage immediately.";
+      } else if (isHighHumidity || isWarmTemp) {
+        risk = "High";
+        reason = "Warm temperature or humidity is raising the risk of Early Blight development.";
+        recommendation = "Inspect tomato plants for black concentric rings on lower leaves. Ensure proper plant spacing.";
+      } else {
+        risk = "Low";
+        reason = "Dry conditions limit spore germination and infection cycles.";
+        recommendation = "Maintain proper soil nutrient levels to strengthen plant resistance.";
+      }
+    } else if (d.includes("blast")) {
+      if (isHighHumidity && temp >= 20 && temp <= 30) {
+        risk = "Very High";
+        reason = "Optimal blast development conditions (high humidity >85% and temperature 20-30°C).";
+        recommendation = "Avoid excessive nitrogen application. Apply recommended systemic fungicide if lesions appear.";
+      } else {
+        risk = "Medium";
+        reason = "Weather is moderately supportive of blast spore propagation.";
+        recommendation = "Monitor rice leaves and collars for diamond-shaped lesions.";
+      }
+    } else {
+      if (isHighHumidity) {
+        risk = "High";
+        reason = "High humidity (>80%) generally favors most bacterial and fungal pathogens.";
+        recommendation = "Keep crop canopy well-ventilated and avoid wet foliage during early mornings.";
+      } else {
+        risk = "Low";
+        reason = "Dry air is highly unfavorable for most foliar pathogens.";
+        recommendation = "Standard prevention measures apply.";
+      }
+    }
+
+    return { risk, reason, recommendation };
   };
 
   return (
@@ -148,19 +297,7 @@ const Weather = () => {
                     <div className="weather-metric-details">
                       <span className="weather-metric-title">Temperature</span>
                       <h3 className="weather-metric-value">{Math.round(weather.main.temp)}°C</h3>
-                      <span className="weather-metric-helper">Real-time temperature</span>
-                    </div>
-                  </div>
-
-                  {/* Feels Like */}
-                  <div className="weather-metric-card-premium">
-                    <div className="weather-metric-icon-wrapper feels-like">
-                      <Thermometer size={22} />
-                    </div>
-                    <div className="weather-metric-details">
-                      <span className="weather-metric-title">Feels Like</span>
-                      <h3 className="weather-metric-value">{Math.round(weather.main.feels_like)}°C</h3>
-                      <span className="weather-metric-helper">Field comfort estimate</span>
+                      <span className="weather-metric-helper">Feels like {Math.round(weather.main.feels_like)}°C</span>
                     </div>
                   </div>
 
@@ -172,168 +309,262 @@ const Weather = () => {
                     <div className="weather-metric-details">
                       <span className="weather-metric-title">Humidity</span>
                       <h3 className="weather-metric-value">{weather.main.humidity}%</h3>
-                      <span className="weather-metric-helper">Disease risk indicator</span>
+                      <span className="weather-metric-helper">Disease propagation factor</span>
                     </div>
                   </div>
 
-                  {/* Wind Speed */}
+                  {/* Wind Speed & Direction */}
                   <div className="weather-metric-card-premium">
                     <div className="weather-metric-icon-wrapper wind">
                       <Wind size={22} />
                     </div>
                     <div className="weather-metric-details">
-                      <span className="weather-metric-title">Wind Speed</span>
+                      <span className="weather-metric-title">Wind</span>
                       <h3 className="weather-metric-value">{weather.wind.speed} m/s</h3>
-                      <span className="weather-metric-helper">Spraying suitability</span>
+                      <span className="weather-metric-helper">Direction: {getWindDirection(weather.wind.deg)} ({weather.wind.deg || 0}°)</span>
                     </div>
                   </div>
 
-                  {/* Rain Prediction */}
-                  <div className="weather-metric-card-premium">
-                    <div className="weather-metric-icon-wrapper rain">
-                      <CloudRain size={22} />
-                    </div>
-                    <div className="weather-metric-details">
-                      <span className="weather-metric-title">Rain Prediction</span>
-                      <h3 className="weather-metric-value">{rainSlots.length ? "Possible" : "Low"}</h3>
-                      <span className="weather-metric-helper">{rainSlots.length} rainy slots in forecast</span>
-                    </div>
-                  </div>
-
-                  {/* Condition */}
+                  {/* Cloud Cover */}
                   <div className="weather-metric-card-premium">
                     <div className="weather-metric-icon-wrapper condition">
-                      {getConditionIcon(weather.weather[0].main)}
+                      <CloudSun size={22} />
                     </div>
                     <div className="weather-metric-details">
-                      <span className="weather-metric-title">Condition</span>
-                      <h3 className="weather-metric-value">{weather.weather[0].main}</h3>
-                      <span className="weather-metric-helper">Sky condition status</span>
+                      <span className="weather-metric-title">Cloud Cover</span>
+                      <h3 className="weather-metric-value">{weather.clouds?.all}%</h3>
+                      <span className="weather-metric-helper">Condition: {weather.weather[0].main}</span>
+                    </div>
+                  </div>
+
+                  {/* Visibility */}
+                  <div className="weather-metric-card-premium">
+                    <div className="weather-metric-icon-wrapper condition" style={{ backgroundColor: 'rgba(99,102,241,0.08)', color: '#6366f1' }}>
+                      <Compass size={22} />
+                    </div>
+                    <div className="weather-metric-details">
+                      <span className="weather-metric-title">Visibility</span>
+                      <h3 className="weather-metric-value">{(weather.visibility / 1000).toFixed(1)} km</h3>
+                      <span className="weather-metric-helper">Atmospheric clarity</span>
+                    </div>
+                  </div>
+
+                  {/* Pressure */}
+                  <div className="weather-metric-card-premium">
+                    <div className="weather-metric-icon-wrapper condition" style={{ backgroundColor: 'rgba(107,114,128,0.08)', color: '#6b7280' }}>
+                      <Compass size={22} />
+                    </div>
+                    <div className="weather-metric-details">
+                      <span className="weather-metric-title">Pressure</span>
+                      <h3 className="weather-metric-value">{weather.main.pressure} hPa</h3>
+                      <span className="weather-metric-helper">Sea-level pressure</span>
                     </div>
                   </div>
 
                 </div>
+
+                {/* Sunrise & Sunset */}
+                <div className="weather-sunrise-sunset-bar">
+                  <div className="weather-sun-time">
+                    <Sunrise size={16} style={{ color: '#ca8a04' }} />
+                    <span>Sunrise: {formatTime(weather.sys?.sunrise)}</span>
+                  </div>
+                  <div className="weather-sun-time">
+                    <Sunset size={16} style={{ color: '#6366f1' }} />
+                    <span>Sunset: {formatTime(weather.sys?.sunset)}</span>
+                  </div>
+                </div>
+
               </div>
+
+              {/* Hourly Timeline decision support */}
+              {forecast?.list && (
+                <div className="weather-card-glass">
+                  <div className="weather-card-header">
+                    <Clock size={18} className="weather-header-icon" />
+                    <h2>Hourly Farm Decision Timeline (Next 24h)</h2>
+                  </div>
+                  <div className="weather-hourly-timeline">
+                    {forecast.list.slice(0, 8).map((slot, i) => {
+                      const timeStr = new Date(slot.dt * 1000).toLocaleTimeString("en-US", { hour: 'numeric', minute: '2-digit', hour12: true });
+                      const popPerc = Math.round(slot.pop * 100);
+                      const isRain = slot.weather[0].main.toLowerCase().includes("rain");
+                      const isWindy = slot.wind.speed > 5;
+                      let sprayStatus = "✅ Good";
+                      let sprayColor = "#10b981";
+                      if (isRain) {
+                        sprayStatus = "❌ Rain";
+                        sprayColor = "#ef4444";
+                      } else if (isWindy) {
+                        sprayStatus = "⚠️ Windy";
+                        sprayColor = "#f59e0b";
+                      }
+                      return (
+                        <div key={i} className="weather-hourly-item">
+                          <span className="weather-hourly-time">{timeStr}</span>
+                          <span className="weather-hourly-icon">{getConditionIcon(slot.weather[0].main)}</span>
+                          <span className="weather-hourly-temp">{Math.round(slot.main.temp)}°C</span>
+                          <span className="weather-hourly-pop" style={{ color: popPerc > 30 ? "#3b82f6" : "inherit" }}>
+                            💧 {popPerc}% Rain
+                          </span>
+                          <span className="weather-hourly-spray" style={{ color: sprayColor, fontWeight: '700' }}>
+                            {sprayStatus}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Weekly Forecast */}
+              <div className="weather-card-glass">
+                <div className="weather-card-header">
+                  <Calendar size={18} className="weather-header-icon" />
+                  <h2>5-Day Weekly Forecast</h2>
+                </div>
+                <div className="weather-weekly-grid">
+                  {getWeeklyForecast().map((day, i) => (
+                    <div key={i} className="weather-weekly-item">
+                      <span className="weather-weekly-day">{day.dayName}</span>
+                      <span className="weather-weekly-icon">{getConditionIcon(day.condition)}</span>
+                      <span className="weather-weekly-condition">{day.condition}</span>
+                      <span className="weather-weekly-temps">
+                        <span className="temp-max">{day.tempMax}°</span>
+                        <span className="temp-min">{day.tempMin}°</span>
+                      </span>
+                      <span className="weather-weekly-pop">💧 {day.pop}%</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
             </div>
 
-            {/* RIGHT PANEL: Spryzen AI Agricultural Guidance */}
+            {/* RIGHT PANEL: Spryzen AI Guidance */}
             <div className="weather-col">
+              
+              {/* Spryzen AI Farm Summary */}
               <div className="weather-card-glass">
                 <div className="weather-chat-header">
                   <div className="weather-chat-avatar">
                     <Sparkles size={20} />
                   </div>
                   <div className="weather-chat-title-wrapper">
-                    <p className="weather-chat-name">Spryzen AI Weather Guidance</p>
+                    <p className="weather-chat-name">Spryzen AI Farm Summary</p>
                     <p className="weather-chat-status">Advisory Live</p>
                   </div>
                 </div>
 
                 <div className="weather-chat-bubble">
-                  <p className="weather-bubble-intro">
-                    I analyzed the current weather parameters and upcoming forecast slots for <strong>{weather.name}</strong>. Here is your location-specific agricultural advisory:
-                  </p>
+                  {advisory ? (
+                    <p style={{ margin: 0, fontSize: '14.5px', lineHeight: 1.65 }}>{advisory}</p>
+                  ) : (
+                    <p style={{ margin: 0, fontSize: '14.5px', lineHeight: 1.65 }}>
+                      Evaluating conditions... High humidity might raise fungal risk. Avoid chemical spraying if winds are gusty, and coordinate soil irrigation relative to the 24h precipitation forecasts.
+                    </p>
+                  )}
+                </div>
+              </div>
 
-                  {/* Main Advisory Box */}
-                  <div className="weather-advisory-box-main" style={{
-                    borderLeft: `4px solid ${rainSlots.length ? '#f97316' : '#10b981'}`,
-                    background: 'var(--dd-primary-light)',
-                    padding: '16px',
-                    borderRadius: '0 16px 16px 16px',
-                    margin: '16px 0',
-                    fontSize: '14px',
-                    lineHeight: '1.6',
-                    color: 'var(--dd-text)'
-                  }}>
-                    {rainSlots.length
-                      ? "⚠️ Rain forecast signals indicate moisture accumulation. Fields should be prepped for storm drains and pesticide applications must be deferred."
-                      : "✓ Clear and dry weather conditions are forecast. This provides an excellent window for standard field procedures, fertilizing, and scheduled irrigation."
-                    }
+              {/* Pathological Disease Weather Context Integration */}
+              {recentDiagnosis && (
+                <div className="weather-card-glass pathological-risk-card" style={{
+                  borderTop: '4px solid #ef4444'
+                }}>
+                  <div className="weather-card-header">
+                    <AlertTriangle size={18} className="weather-header-icon" style={{ color: '#ef4444' }} />
+                    <h2>Pathological Disease Propagation Risk</h2>
+                  </div>
+                  <div className="weather-disease-advisory">
+                    <div className="weather-disease-header-row">
+                      <p className="weather-disease-title">Active Disease Context:</p>
+                      <span className="weather-disease-name">{recentDiagnosis.diseaseName}</span>
+                    </div>
+                    
+                    {(() => {
+                      const analysis = getDiseaseWeatherAnalysis(
+                        recentDiagnosis.diseaseName,
+                        weather.main.temp,
+                        weather.main.humidity
+                      );
+                      return (
+                        <>
+                          <div className="weather-disease-risk-badge-wrapper">
+                            <span className="weather-disease-risk-label">Weather Risk Factor:</span>
+                            <span className="weather-disease-risk-value" style={{
+                              color: analysis.risk.includes("Very High") || analysis.risk.includes("High") ? "#ef4444" : "#10b981",
+                              fontWeight: "800",
+                              fontSize: "16px"
+                            }}>
+                              {analysis.risk}
+                            </span>
+                          </div>
+                          
+                          <div className="weather-disease-reason-box">
+                            <p className="weather-disease-sub-title">Pathogen Behavior:</p>
+                            <p style={{ margin: 0 }}>{analysis.reason}</p>
+                          </div>
+
+                          <div className="weather-disease-recommendation-box">
+                            <p className="weather-disease-sub-title">Agro-action Recommendation:</p>
+                            <p style={{ margin: 0 }}>{analysis.recommendation}</p>
+                          </div>
+                        </>
+                      );
+                    })()}
+                  </div>
+                </div>
+              )}
+
+              {/* Best Operational Windows Card */}
+              <div className="weather-card-glass">
+                <div className="weather-card-header">
+                  <CheckCircle2 size={18} className="weather-header-icon" />
+                  <h2>Best Operations Window (Next 24h)</h2>
+                </div>
+                
+                <div className="weather-checklist-grid">
+                  
+                  {/* Spraying window */}
+                  <div className="weather-checklist-item-modern">
+                    <span className="checklist-item-title">Pesticide Spray Window</span>
+                    <span className="checklist-item-val" style={{
+                      color: weather.wind.speed < 4.5 && rainSlots.length === 0 ? "#10b981" : "#f97316"
+                    }}>
+                      {weather.wind.speed < 4.5 && rainSlots.length === 0 
+                        ? "Optimal Spray Window (Mild Winds & Dry Skies)" 
+                        : "Sub-optimal Spray Window (Risk of Drift/Washout)"}
+                    </span>
                   </div>
 
-                  {/* Operations Suitability Checklist */}
-                  <div className="weather-checklist-section">
-                    <p className="weather-checklist-title">Operational Suitability</p>
-                    <div className="weather-checklist-grid">
-                      
-                      {/* Pesticide Spraying */}
-                      <div className="weather-checklist-item">
-                        <div className="weather-check-icon">
-                          {weather.wind.speed < 5 && rainSlots.length === 0 ? (
-                            <CheckCircle2 size={16} style={{ color: "#10b981" }} />
-                          ) : (
-                            <XCircle size={16} style={{ color: "#ef4444" }} />
-                          )}
-                        </div>
-                        <div className="weather-check-details">
-                          <span className="weather-check-label">Pesticide Spraying</span>
-                          <span className="weather-check-value">
-                            {weather.wind.speed >= 5 
-                              ? "Unsuitable (Too windy)" 
-                              : rainSlots.length > 0 
-                              ? "Unsuitable (Rain expected)" 
-                              : "Highly Suitable"
-                            }
-                          </span>
-                        </div>
-                      </div>
+                  {/* Irrigation window */}
+                  <div className="weather-checklist-item-modern">
+                    <span className="checklist-item-title">Irrigation Recommendation</span>
+                    <span className="checklist-item-val" style={{
+                      color: rainSlots.length === 0 ? "#10b981" : "#ef4444"
+                    }}>
+                      {rainSlots.length > 0 
+                        ? "Defer Irrigation (Natural rainfall expected)" 
+                        : "Suitable Window (Administer scheduled watering)"}
+                    </span>
+                  </div>
 
-                      {/* Irrigation Scheduling */}
-                      <div className="weather-checklist-item">
-                        <div className="weather-check-icon">
-                          {rainSlots.length === 0 ? (
-                            <CheckCircle2 size={16} style={{ color: "#10b981" }} />
-                          ) : (
-                            <XCircle size={16} style={{ color: "#ef4444" }} />
-                          )}
-                        </div>
-                        <div className="weather-check-details">
-                          <span className="weather-check-label">Irrigation scheduling</span>
-                          <span className="weather-check-value">
-                            {rainSlots.length > 0 ? "Defer (Rain will irrigate)" : "Highly Suitable"}
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Disease propagation risk */}
-                      <div className="weather-checklist-item">
-                        <div className="weather-check-icon">
-                          {weather.main.humidity > 75 ? (
-                            <AlertTriangle size={16} style={{ color: "#f97316" }} />
-                          ) : (
-                            <CheckCircle2 size={16} style={{ color: "#10b981" }} />
-                          )}
-                        </div>
-                        <div className="weather-check-details">
-                          <span className="weather-check-label">Fungal Disease Risk</span>
-                          <span className="weather-check-value" style={{ color: weather.main.humidity > 75 ? "#f97316" : "inherit" }}>
-                            {weather.main.humidity > 75 ? "High (High humidity)" : "Low"}
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Fertilizer application */}
-                      <div className="weather-checklist-item">
-                        <div className="weather-check-icon">
-                          {rainSlots.length === 0 ? (
-                            <CheckCircle2 size={16} style={{ color: "#10b981" }} />
-                          ) : (
-                            <XCircle size={16} style={{ color: "#ef4444" }} />
-                          )}
-                        </div>
-                        <div className="weather-check-details">
-                          <span className="weather-check-label">Fertilizer Application</span>
-                          <span className="weather-check-value">
-                            {rainSlots.length > 0 ? "Defer (Risk of leaching)" : "Suitable"}
-                          </span>
-                        </div>
-                      </div>
-
-                    </div>
+                  {/* Harvest window */}
+                  <div className="weather-checklist-item-modern">
+                    <span className="checklist-item-title">Harvest Window</span>
+                    <span className="checklist-item-val" style={{
+                      color: rainSlots.length === 0 ? "#10b981" : "#ef4444"
+                    }}>
+                      {rainSlots.length === 0 
+                        ? "Optimal Window (Dry foliage prevents mold)" 
+                        : "Risky Window (Damp conditions, mold hazard)"}
+                    </span>
                   </div>
 
                 </div>
               </div>
+
             </div>
 
           </div>
@@ -540,6 +771,91 @@ const Weather = () => {
           opacity: 0.8;
         }
 
+        /* Sunrise & Sunset bar */
+        .weather-sunrise-sunset-bar {
+          display: flex;
+          justify-content: space-between;
+          padding: 12px 18px;
+          border-radius: 14px;
+          background: rgba(0,0,0,0.02);
+          border: 1px solid var(--dd-border);
+          margin-top: 20px;
+        }
+        .weather-sun-time {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          font-size: 13px;
+          font-weight: 700;
+          color: var(--dd-text);
+        }
+
+        /* Hourly Decision timeline */
+        .weather-hourly-timeline {
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+        }
+        .weather-hourly-item {
+          display: grid;
+          grid-template-columns: 1.4fr 0.6fr 0.8fr 1.2fr 1.2fr;
+          align-items: center;
+          padding: 12px 16px;
+          border-radius: 14px;
+          background: rgba(0,0,0,0.01);
+          border: 1px solid var(--dd-border);
+          font-size: 13.5px;
+        }
+        .weather-hourly-time {
+          font-weight: 700;
+          color: var(--dd-text);
+        }
+        .weather-hourly-temp {
+          font-weight: 800;
+          color: var(--dd-text);
+        }
+        .weather-hourly-pop {
+          font-weight: 700;
+          color: #3b82f6;
+        }
+
+        /* Weekly Forecast */
+        .weather-weekly-grid {
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+        }
+        .weather-weekly-item {
+          display: grid;
+          grid-template-columns: 1.4fr 0.6fr 1.4fr 1.2fr 1fr;
+          align-items: center;
+          padding: 12px 16px;
+          border-radius: 14px;
+          background: rgba(0,0,0,0.01);
+          border: 1px solid var(--dd-border);
+          font-size: 13.5px;
+        }
+        .weather-weekly-day {
+          font-weight: 700;
+          color: var(--dd-text);
+        }
+        .weather-weekly-condition {
+          font-weight: 600;
+          color: var(--dd-text-muted);
+        }
+        .weather-weekly-temps {
+          display: flex;
+          gap: 8px;
+          font-weight: 800;
+        }
+        .temp-max { color: var(--dd-text); }
+        .temp-min { color: var(--dd-text-muted); opacity: 0.6; }
+        .weather-weekly-pop {
+          font-weight: 700;
+          color: #3b82f6;
+          text-align: right;
+        }
+
         /* Loading wrapper */
         .weather-loading-wrapper {
           display: flex;
@@ -622,20 +938,62 @@ const Weather = () => {
           opacity: 0.9;
         }
 
-        /* Suitability checklist styling */
-        .weather-checklist-section {
-          margin-top: 24px;
+        /* Pathological advisory integration styling */
+        .weather-disease-advisory {
+          display: flex;
+          flex-direction: column;
+          gap: 14px;
+          font-size: 14px;
         }
-        .weather-checklist-title {
-          font-size: 13px;
+        .weather-disease-header-row {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          flex-wrap: wrap;
+          gap: 8px;
+        }
+        .weather-disease-title {
+          font-weight: 700;
+          margin: 0;
+          color: var(--dd-text);
+        }
+        .weather-disease-name {
+          font-weight: 850;
+          background: rgba(239, 68, 68, 0.08);
+          color: #ef4444;
+          padding: 4px 12px;
+          border-radius: 10px;
+          border: 1px solid rgba(239, 68, 68, 0.2);
+        }
+        .weather-disease-risk-badge-wrapper {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding-bottom: 8px;
+          border-bottom: 1px solid var(--dd-border);
+        }
+        .weather-disease-risk-label {
+          font-weight: 700;
+          color: var(--dd-text);
+        }
+        .weather-disease-sub-title {
+          margin: 0 0 6px;
           font-weight: 800;
           text-transform: uppercase;
-          letter-spacing: 0.5px;
+          font-size: 11px;
           color: var(--dd-text-muted);
-          margin-bottom: 16px;
-          border-bottom: 1px solid var(--dd-border);
-          padding-bottom: 8px;
+          letter-spacing: 0.5px;
         }
+        .weather-disease-reason-box, .weather-disease-recommendation-box {
+          padding: 14px 18px;
+          border-radius: 16px;
+          background: rgba(0,0,0,0.02);
+          border: 1px solid var(--dd-border);
+          line-height: 1.55;
+          color: var(--dd-text);
+        }
+
+        /* Operations suitability checklists */
         .weather-checklist-grid {
           display: flex;
           flex-direction: column;
@@ -663,14 +1021,36 @@ const Weather = () => {
           gap: 2px;
         }
         .weather-check-label {
-          font-size: 13px;
+          font-size: 13.5px;
           font-weight: 700;
           color: var(--dd-text);
         }
         .weather-check-value {
-          font-size: 12px;
+          font-size: 12.5px;
           color: var(--dd-text-muted);
           font-weight: 600;
+        }
+
+        .weather-checklist-item-modern {
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+          padding: 14px 18px;
+          border-radius: 16px;
+          background: rgba(0,0,0,0.02);
+          border: 1px solid var(--dd-border);
+          box-shadow: var(--dd-shadow);
+        }
+        .checklist-item-title {
+          font-size: 11px;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          color: var(--dd-text-muted);
+        }
+        .checklist-item-val {
+          font-size: 14px;
+          font-weight: 800;
         }
 
         @keyframes pulse {
@@ -694,6 +1074,13 @@ const Weather = () => {
           }
           .weather-search-btn {
             width: 100%;
+          }
+          .weather-hourly-item, .weather-weekly-item {
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 8px;
+          }
+          .weather-weekly-pop, .weather-hourly-spray {
+            text-align: left;
           }
         }
       `}</style>

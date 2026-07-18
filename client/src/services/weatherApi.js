@@ -11,3 +11,7 @@ export const fetchForecast = (params) => {
 export const fetchWeatherBundle = (params) => {
   return api.get("/api/weather", { params });
 };
+
+export const fetchWeatherAdvisory = (params) => {
+  return api.get("/api/weather/advisory", { params });
+};
