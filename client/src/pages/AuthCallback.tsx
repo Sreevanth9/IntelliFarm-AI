@@ -18,24 +18,9 @@ export default function AuthCallback() {
         console.error("OAuth callback sync failed:", err);
         if (!cancelled) {
           const detail = err.response?.data?.message
-            ? `${err.message}: ${err.response.data.message}`
-            : (err.stack || err.message || "Unknown error occurred");
+            ? err.response.data.message
+            : (err.message || "Unable to finish Google sign-in.");
           setError(detail);
-
-          // Report the error to the backend error logger
-          const logPayload = {
-            message: err.message,
-            stack: err.stack,
-            responseStatus: err.response?.status,
-            responseData: err.response?.data,
-            location: window.location.href,
-          };
-          fetch("/api/auth/log-error", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(logPayload),
-          }).catch(() => {});
-
           setTimeout(() => navigate("/login", { replace: true }), 15000);
         }
       });

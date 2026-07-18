@@ -27,6 +27,7 @@ import EmptyState from "../components/EmptyState/EmptyState";
 import { fetchForecast, fetchWeather, fetchWeatherAdvisory } from "../services/weatherApi";
 import { fetchDiseaseReports } from "../services/diseaseApi";
 import { fetchProfile } from "../services/profileApi";
+import { useLocation } from "react-router-dom";
 
 const Weather = () => {
   const [city, setCity] = useState("");
@@ -38,6 +39,10 @@ const Weather = () => {
   const [loading, setLoading] = useState(false);
   // null = still resolving, false = no profile location found
   const [locationPrompt, setLocationPrompt] = useState(false);
+  // Farm deep-link context
+  const routerLocation = useLocation();
+  const urlParams = new URLSearchParams(routerLocation.search);
+  const [farmName, setFarmName] = useState(urlParams.get("farmName") || "");
 
   const fetchWeatherForCity = async (cityName) => {
     if (!cityName) return;
@@ -100,6 +105,17 @@ const Weather = () => {
   };
 
   useEffect(() => {
+    // Check URL params first (from My Farms deep-link)
+    const params = new URLSearchParams(window.location.search);
+    const urlCity = params.get("city");
+    const urlFarmName = params.get("farmName");
+    if (urlCity) {
+      setCity(urlCity);
+      if (urlFarmName) setFarmName(urlFarmName);
+      fetchWeatherForCity(urlCity);
+      return;
+    }
+
     const initWeather = async () => {
       // 1. Try user profile location first
       try {
@@ -264,6 +280,11 @@ const Weather = () => {
         <div className="weather-header-centered">
           <h1 className="weather-page-title">Weather Intelligence</h1>
           <p className="weather-page-subtitle">Real-time weather metrics, agricultural recommendations, and rain alerts</p>
+          {farmName && (
+            <div style={{ display: "inline-flex", alignItems: "center", gap: "8px", marginTop: "10px", padding: "6px 14px", borderRadius: "99px", background: "rgba(46,125,50,0.08)", border: "1px solid rgba(46,125,50,0.2)", fontSize: "13px", fontWeight: 700, color: "var(--dd-primary, #2e7d32)" }}>
+              <MapPin size={13} /> Weather for: {farmName}
+            </div>
+          )}
         </div>
 
         {/* SEARCH BAR */}

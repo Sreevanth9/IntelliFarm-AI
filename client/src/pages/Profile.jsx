@@ -1,8 +1,10 @@
 import React, { useEffect, useState, useCallback } from "react";
 import toast from "react-hot-toast";
+import { Link } from "react-router-dom";
 import MainLayout from "../layouts/MainLayout";
 import { useAuth } from "../context/AuthContext";
 import { fetchProfile, updateProfile } from "../services/profileApi";
+import { fetchFarms } from "../services/farmApi";
 
 const Profile = () => {
   const { farmer, applySession } = useAuth();
@@ -18,6 +20,8 @@ const Profile = () => {
   const [profileImg, setProfileImg] = useState("");
 
   const availableCrops = ["Paddy", "Tomato", "Maize", "Wheat", "Cotton", "Soybean", "Potato", "Chilli"];
+  const [farms, setFarms] = useState([]);
+  const [farmsLoading, setFarmsLoading] = useState(false);
 
   const loadProfile = useCallback(async () => {
     try {
@@ -44,6 +48,14 @@ const Profile = () => {
   useEffect(() => {
     loadProfile();
   }, [loadProfile]);
+
+  useEffect(() => {
+    setFarmsLoading(true);
+    fetchFarms()
+      .then(({ data }) => { if (data.success) setFarms(data.farms || []); })
+      .catch(() => {})
+      .finally(() => setFarmsLoading(false));
+  }, []);
 
   const calculateCompletion = () => {
     let score = 0;
@@ -118,10 +130,10 @@ const Profile = () => {
     { device: "Mobile App (iPhone 14)", ip: "172.56.21.99", status: "Active 2 hours ago", icon: "📱" }
   ];
 
-  // Mock activity logs
+  // Activity log — enrich with farm data
   const activityLogs = [
+    { title: "Farms Registered", detail: farms.length > 0 ? `${farms.length} farm(s) — ${[...new Set(farms.map(f => f.crop))].join(", ")}` : "No farms yet", time: "Now" },
     { title: "Leaf Scan Uploaded", detail: "Early Blight spotted on Tomato Crop", time: "2 hours ago" },
-    { title: "Added New Farm", detail: "Paddy crop field (2.5 acres)", time: "1 day ago" },
     { title: "Profile Modified", detail: "Updated farm location and interested crops list", time: "3 days ago" }
   ];
 
@@ -229,6 +241,52 @@ const Profile = () => {
                 </div>
               </div>
             </div>
+          </div>
+
+          {/* Farm Overview Card */}
+          <div className="liquid-glass-panel" style={{ padding: "20px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "14px" }}>
+              <h3 style={{ margin: 0, fontSize: "15px", fontWeight: 700, color: "var(--body-color)" }}>🌾 Farm Overview</h3>
+              <Link to="/farms" style={{ fontSize: "12px", fontWeight: 700, color: "#52b788", textDecoration: "none" }}>Manage →</Link>
+            </div>
+            {farmsLoading ? (
+              <p style={{ fontSize: "13px", color: "#8e918f", margin: 0 }}>Loading farms...</p>
+            ) : farms.length === 0 ? (
+              <div style={{ textAlign: "center", padding: "16px 0" }}>
+                <p style={{ fontSize: "13px", color: "#8e918f", margin: "0 0 12px" }}>No farms registered yet.</p>
+                <Link to="/farms" className="glass-btn-primary" style={{ textDecoration: "none", padding: "8px 16px", fontSize: "13px", display: "inline-block", borderRadius: "10px" }}>+ Add Farm</Link>
+              </div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+                  <div style={{ background: "rgba(82,183,136,0.06)", borderRadius: "12px", padding: "10px 14px" }}>
+                    <span style={{ fontSize: "10px", color: "#8e918f", fontWeight: 700, textTransform: "uppercase" }}>Total Farms</span>
+                    <strong style={{ display: "block", fontSize: "22px", color: "#52b788", fontWeight: 800 }}>{farms.length}</strong>
+                  </div>
+                  <div style={{ background: "rgba(82,183,136,0.06)", borderRadius: "12px", padding: "10px 14px" }}>
+                    <span style={{ fontSize: "10px", color: "#8e918f", fontWeight: 700, textTransform: "uppercase" }}>Total Area</span>
+                    <strong style={{ display: "block", fontSize: "22px", color: "#52b788", fontWeight: 800 }}>{farms.map(f => parseFloat(f.area) || 0).reduce((a, b) => a + b, 0).toFixed(1)} ac</strong>
+                  </div>
+                </div>
+                <div>
+                  <span style={{ fontSize: "10px", color: "#8e918f", fontWeight: 700, textTransform: "uppercase", display: "block", marginBottom: "6px" }}>Active Crops</span>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: "5px" }}>
+                    {[...new Set(farms.map(f => f.crop))].map(c => (
+                      <span key={c} style={{ fontSize: "11px", fontWeight: 700, padding: "3px 8px", borderRadius: "6px", background: "rgba(82,183,136,0.12)", color: "#52b788" }}>{c}</span>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <span style={{ fontSize: "10px", color: "#8e918f", fontWeight: 700, textTransform: "uppercase", display: "block", marginBottom: "6px" }}>Farm Names</span>
+                  {farms.slice(0, 3).map(f => (
+                    <div key={f.id} style={{ fontSize: "12px", color: "var(--body-color)", fontWeight: 600, padding: "3px 0", borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
+                      📍 {f.name} — {f.crop}
+                    </div>
+                  ))}
+                  {farms.length > 3 && <span style={{ fontSize: "11px", color: "#8e918f" }}>+{farms.length - 3} more</span>}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Linked accounts */}

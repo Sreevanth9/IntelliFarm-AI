@@ -5,6 +5,7 @@ import toast from "react-hot-toast";
 import { useSelector, useDispatch } from "react-redux";
 import { uiAction } from "../store/ui";
 import { changePasswordUser } from "../services/authApi";
+import { fetchFarms } from "../services/farmApi";
 
 const Settings: React.FC = () => {
   const { farmer } = useAuth();
@@ -21,6 +22,18 @@ const Settings: React.FC = () => {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [updatingPassword, setUpdatingPassword] = useState(false);
+
+  // Farm Settings State
+  const [farms, setFarms] = useState<any[]>([]);
+  const [defaultFarmId, setDefaultFarmId] = useState<string>(
+    () => localStorage.getItem("defaultFarmId") || ""
+  );
+
+  useEffect(() => {
+    fetchFarms()
+      .then(({ data }) => { if (data.success) setFarms(data.farms || []); })
+      .catch(() => {});
+  }, []);
 
   // Sync state with localstorage
   useEffect(() => {
@@ -140,6 +153,50 @@ const Settings: React.FC = () => {
                 <span>☀️</span> Light Mode
               </button>
             </div>
+          </div>
+
+          {/* Farm Settings Card */}
+          <div className="liquid-glass-panel" style={{ padding: "24px" }}>
+            <h2 style={{ fontSize: "18px", marginBottom: "8px", color: "var(--body-color)" }}>Farm Settings</h2>
+            <p style={{ fontSize: "14px", color: "var(--text-main, #5b6b62)", marginBottom: "20px" }}>
+              Set your default farm. Weather, disease detection, and AI advisor will use this context automatically.
+            </p>
+            {farms.length === 0 ? (
+              <p style={{ fontSize: "13px", color: "#8e918f" }}>No farms registered. <a href="/farms" style={{ color: "#52b788", fontWeight: 700 }}>Add a farm →</a></p>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                  <label style={{ fontSize: "12px", fontWeight: 700, color: "#8e918f", textTransform: "uppercase", letterSpacing: "0.5px" }}>Default Farm</label>
+                  <select
+                    className="liquid-glass-input"
+                    value={defaultFarmId}
+                    onChange={(e) => {
+                      setDefaultFarmId(e.target.value);
+                      localStorage.setItem("defaultFarmId", e.target.value);
+                      const sel = farms.find((f: any) => f.id === e.target.value);
+                      if (sel?.location) localStorage.setItem("location", sel.location);
+                      toast.success(`Default farm set to ${sel?.name || "none"}`);
+                    }}
+                    style={{ background: "var(--glass-bg)" }}
+                  >
+                    <option value="">— None selected —</option>
+                    {farms.map((f: any) => (
+                      <option key={f.id} value={f.id}>{f.name} ({f.crop})</option>
+                    ))}
+                  </select>
+                </div>
+                {defaultFarmId && (() => {
+                  const sel = farms.find((f: any) => f.id === defaultFarmId);
+                  return sel ? (
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "10px", background: "rgba(82,183,136,0.04)", borderRadius: "14px", padding: "14px" }}>
+                      <div><span style={{ fontSize: "10px", color: "#8e918f", fontWeight: 700, textTransform: "uppercase" }}>Crop</span><strong style={{ display: "block", fontSize: "14px", color: "#52b788" }}>{sel.crop}</strong></div>
+                      <div><span style={{ fontSize: "10px", color: "#8e918f", fontWeight: 700, textTransform: "uppercase" }}>Soil</span><strong style={{ display: "block", fontSize: "14px", color: "var(--body-color)" }}>{sel.soilType}</strong></div>
+                      <div><span style={{ fontSize: "10px", color: "#8e918f", fontWeight: 700, textTransform: "uppercase" }}>Stage</span><strong style={{ display: "block", fontSize: "14px", color: "var(--body-color)" }}>{sel.stage || "—"}</strong></div>
+                    </div>
+                  ) : null;
+                })()}
+              </div>
+            )}
           </div>
 
           {/* Notifications config card */}

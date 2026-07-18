@@ -54,10 +54,20 @@ export interface Farm {
   id?: string;
   name: string;
   location?: string;
+  latitude?: number | null;
+  longitude?: number | null;
   crop: string;
+  cropVariety?: string;
   soilType: string;
   area: string;
   sowingDate: string;
+  expectedHarvest?: string;
+  irrigationMethod?: string;
+  notes?: string;
+  // Computed by server
+  stage?: string;
+  daysElapsed?: number;
+  diseaseHistory?: Array<{ id: string; disease_name: string; crop?: string; confidence?: number; created_at: string }>;
   createdAt?: string;
 }
 

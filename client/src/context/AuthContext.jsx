@@ -140,8 +140,25 @@ export const AuthProvider = ({ children }) => {
       if (callbackUrl.searchParams.has("code")) {
         const { error } = await supabase.auth.exchangeCodeForSession(window.location.href);
         if (error) throw error;
-        window.history.replaceState({}, document.title, window.location.pathname);
+      } else {
+        // Mobile browsers can use Supabase's implicit OAuth response, which
+        // places the access and refresh tokens in the URL fragment.
+        const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+        const accessToken = hashParams.get("access_token");
+        const refreshToken = hashParams.get("refresh_token");
+        if (accessToken && refreshToken) {
+          const { error } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken,
+          });
+          if (error) throw error;
+        } else if (hashParams.get("error")) {
+          throw new Error(hashParams.get("error_description") || "Google sign-in was cancelled or denied.");
+        }
       }
+
+      // Remove OAuth credentials from the address bar and browser history.
+      window.history.replaceState({}, document.title, window.location.pathname);
 
       const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
       if (sessionError) throw sessionError;

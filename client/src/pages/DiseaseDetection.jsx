@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState, useRef } from "react";
 import toast from "react-hot-toast";
 import { useSelector } from "react-redux";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import {
   UploadCloud,
   Camera,
@@ -69,6 +69,13 @@ const DiseaseDetection = () => {
   const [validationErr, setValidationErr] = useState(null);
   const [reports, setReports]     = useState([]);
   const [followUp, setFollowUp]   = useState("");
+
+  // Farm deep-link context
+  const routerLoc = useLocation();
+  const urlP = new URLSearchParams(routerLoc.search);
+  const [_linkedFarmId]  = useState(urlP.get("farmId") || ""); // eslint-disable-line
+  const [linkedFarmName] = useState(urlP.get("farmName") || "");
+  const [linkedCrop]     = useState(urlP.get("crop") || "");
 
   /* load history */
   const loadReports = useCallback(() => {
@@ -267,7 +274,13 @@ const DiseaseDetection = () => {
         {/* CENTERED HEADER */}
         <div className="dd-header-centered">
           <h1 className="dd-page-title">Disease Detection</h1>
-          <p className="dd-page-subtitle">Upload a crop leaf for real-time AI diagnosis & pathology analysis</p>
+          <p className="dd-page-subtitle">Upload a crop leaf for real-time AI diagnosis &amp; pathology analysis</p>
+          {linkedFarmName && (
+            <div style={{ display: "inline-flex", alignItems: "center", gap: "8px", marginTop: "10px", padding: "6px 16px", borderRadius: "99px", background: "rgba(139,92,246,0.08)", border: "1px solid rgba(139,92,246,0.2)", fontSize: "13px", fontWeight: 700, color: "#8b5cf6" }}>
+              <Microscope size={13} />
+              Scanning for: {linkedFarmName}{linkedCrop ? ` · ${linkedCrop}` : ""}
+            </div>
+          )}
         </div>
 
         {/* TWO-COLUMN GRID */}

@@ -9,13 +9,6 @@ import { csrfProtection } from "../middleware/csrf.js";
 
 const routes = express.Router();
 
-routes.post("/log-error", (req, res) => {
-  console.error("=== CLIENT OAUTH SYNC ERROR LOG ===");
-  console.error(JSON.stringify(req.body, null, 2));
-  console.error("====================================");
-  res.status(200).json({ success: true });
-});
-
 routes.post(
   "/register",
   registerLimiter,
