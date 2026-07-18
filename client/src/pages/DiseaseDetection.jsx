@@ -159,6 +159,20 @@ const DiseaseDetection = () => {
     setValidationErr(null);
     setStep(0);
 
+    let lat = null;
+    let lon = null;
+
+    try {
+      const pos = await new Promise((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 3500 });
+      });
+      lat = pos.coords.latitude;
+      lon = pos.coords.longitude;
+      console.log("Acquired user location coordinates:", lat, lon);
+    } catch (err) {
+      console.warn("Could not acquire location coordinates:", err.message);
+    }
+
     let s = 0;
     const tick = setInterval(() => {
       s = Math.min(s + 1, STEPS.length - 1);
@@ -166,7 +180,7 @@ const DiseaseDetection = () => {
     }, 700);
 
     try {
-      const { data } = await detectDisease(base64);
+      const { data } = await detectDisease(base64, lat, lon);
       clearInterval(tick);
       setStep(STEPS.length); // all done
 
@@ -251,8 +265,36 @@ const DiseaseDetection = () => {
             ) : (
               // Image preview
               <div className="dd-preview-container">
-                <div className="dd-image-wrapper">
-                  <img src={image} alt="Leaf Preview" className="dd-preview-image" />
+                <div className="dd-image-wrapper" style={{ position: "relative" }}>
+                  <img src={image} alt="Leaf Preview" className="dd-preview-image" style={{ display: "block", width: "100%", height: "auto" }} />
+                  {report && report.box && Array.isArray(report.box) && report.box.length === 4 && (
+                    <div style={{
+                      position: "absolute",
+                      border: "3px dashed #ff4d4f",
+                      borderRadius: "4px",
+                      boxShadow: "0 0 10px rgba(255, 77, 79, 0.7)",
+                      pointerEvents: "none",
+                      left: `${report.box[1] / 10}%`,
+                      top: `${report.box[0] / 10}%`,
+                      width: `${(report.box[3] - report.box[1]) / 10}%`,
+                      height: `${(report.box[2] - report.box[0]) / 10}%`
+                    }}>
+                      <span style={{
+                        position: "absolute",
+                        top: "-22px",
+                        left: "-3px",
+                        backgroundColor: "#ff4d4f",
+                        color: "#fff",
+                        fontSize: "10px",
+                        padding: "2px 6px",
+                        borderRadius: "2px",
+                        fontWeight: "bold",
+                        whiteSpace: "nowrap"
+                      }}>
+                        Infected Area
+                      </span>
+                    </div>
+                  )}
                 </div>
                 {fileName && <p className="dd-filename">{fileName}</p>}
                 
@@ -356,9 +398,14 @@ const DiseaseDetection = () => {
                       {SEV[mapSeverity(report.severity)].dot} {SEV[mapSeverity(report.severity)].label}
                     </span>
                   </div>
-                  <div className="dd-report-header-right">
-                    <p className="dd-confidence-label">Confidence</p>
-                    <p className="dd-confidence-value">{report.confidence}%</p>
+                  <div className="dd-report-header-right" style={{ textAlign: "right" }}>
+                    <p className="dd-confidence-label">AI Confidence</p>
+                    <p className="dd-confidence-value" style={{ margin: 0 }}>
+                      {report.confidence >= 85 ? "High" : report.confidence >= 60 ? "Medium" : "Low"}
+                    </p>
+                    <span style={{ fontSize: "11px", color: "var(--color-text-muted, #6c757d)" }}>
+                      ({report.confidence}% Estimate)
+                    </span>
                   </div>
                 </div>
 
@@ -441,6 +488,26 @@ const DiseaseDetection = () => {
                       </div>
                     </>
                   )}
+
+                  {/* AI Disclaimer */}
+                  <div className="dd-divider"></div>
+                  <div className="dd-disclaimer-card" style={{
+                    backgroundColor: "var(--color-bg-light, #f8f9fa)",
+                    border: "1px solid var(--color-border, #e9ecef)",
+                    borderRadius: "8px",
+                    padding: "12px 16px",
+                    fontSize: "12px",
+                    color: "var(--color-text-muted, #6c757d)",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "4px",
+                    marginTop: "16px"
+                  }}>
+                    <p style={{ fontWeight: "600", color: "var(--color-text, #212529)", margin: 0 }}>⚠️ AI-generated Estimate</p>
+                    <p style={{ margin: 0 }}>
+                      This diagnosis and confidence score are estimates based on visual AI analysis. For critical, high-value, or severe crop issues, consult a qualified agronomist or plant pathologist before making treatment decisions.
+                    </p>
+                  </div>
 
                   {/* Ask Spryzen AI */}
                   <div className="dd-divider"></div>

@@ -43,7 +43,7 @@ export const farmingTips = (req, res, next) => {
 export const detectDisease = async (req, res, next) => {
   console.log("=== START DISEASE DETECTION PIPELINE ===");
   try {
-    const { image } = req.body;
+    const { image, lat, lon } = req.body;
     if (!image) {
       console.warn("[VALIDATION FAILED]: Image missing in body");
       const error = new Error("Crop image is required");
@@ -75,8 +75,25 @@ export const detectDisease = async (req, res, next) => {
       throw error;
     }
 
+    let weatherData = null;
+    if (lat && lon) {
+      try {
+        console.log(`[WEATHER SERVICE]: Fetching current weather for lat: ${lat}, lon: ${lon}`);
+        const { fetchWeatherData } = await import("../services/weatherService.js");
+        const data = await fetchWeatherData({ lat, lon });
+        weatherData = {
+          temp: data.main?.temp,
+          humidity: data.main?.humidity,
+          city: data.name
+        };
+        console.log(`[WEATHER SERVICE SUCCESS]: Temperature: ${weatherData.temp}°C, Humidity: ${weatherData.humidity}%`);
+      } catch (err) {
+        console.warn("[WEATHER SERVICE ERROR]: Weather fetch failed:", err.message);
+      }
+    }
+
     console.log("Calling detectCropDisease service...");
-    const diagnosis = await detectCropDisease({ base64Image: base64Content });
+    const diagnosis = await detectCropDisease({ base64Image: base64Content, weatherData });
     console.log("[DIAGNOSIS SERVICE RETURNED]:", JSON.stringify(diagnosis, null, 2));
 
     if (diagnosis.status === "invalid") {
@@ -136,6 +153,7 @@ export const detectDisease = async (req, res, next) => {
         weatherRisk: report.weather_risk,
         expectedRecovery: report.expected_recovery,
         createdAt: report.created_at,
+        box: diagnosis.box,
       },
     });
   } catch (error) {
