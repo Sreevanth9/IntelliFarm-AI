@@ -26,6 +26,7 @@ import MainLayout from "../layouts/MainLayout";
 import EmptyState from "../components/EmptyState/EmptyState";
 import { fetchForecast, fetchWeather, fetchWeatherAdvisory } from "../services/weatherApi";
 import { fetchDiseaseReports } from "../services/diseaseApi";
+import { fetchProfile } from "../services/profileApi";
 
 const Weather = () => {
   const [city, setCity] = useState("");
@@ -35,6 +36,8 @@ const Weather = () => {
   const [recentDiagnosis, setRecentDiagnosis] = useState(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  // null = still resolving, false = no profile location found
+  const [locationPrompt, setLocationPrompt] = useState(false);
 
   const fetchWeatherForCity = async (cityName) => {
     if (!cityName) return;
@@ -97,15 +100,45 @@ const Weather = () => {
   };
 
   useEffect(() => {
-    const localLocation = localStorage.getItem("location");
-    const initialCity = localLocation ? localLocation.split(",")[0].trim() : "Hyderabad";
-    setCity(initialCity);
-    fetchWeatherForCity(initialCity);
+    const initWeather = async () => {
+      // 1. Try user profile location first
+      try {
+        const profileRes = await fetchProfile();
+        const loc =
+          profileRes.data?.profile?.location ||
+          profileRes.data?.location ||
+          null;
+        if (loc && loc.trim()) {
+          setCity(loc.trim());
+          fetchWeatherForCity(loc.trim());
+          return;
+        }
+      } catch (profileErr) {
+        console.warn("Could not read profile location:", profileErr.message);
+      }
+
+      // 2. Try cached localStorage location
+      const localLocation = localStorage.getItem("location");
+      if (localLocation && localLocation.trim()) {
+        const cached = localLocation.split(",")[0].trim();
+        setCity(cached);
+        fetchWeatherForCity(cached);
+        return;
+      }
+
+      // 3. No location found — show prompt
+      setLocationPrompt(true);
+    };
+
+    initWeather();
   }, []);
 
   const submitHandler = async (event) => {
     event.preventDefault();
-    fetchWeatherForCity(city);
+    if (!city.trim()) return;
+    setLocationPrompt(false);
+    localStorage.setItem("location", city.trim());
+    fetchWeatherForCity(city.trim());
   };
 
   const rainSlots =
@@ -265,12 +298,46 @@ const Weather = () => {
           </div>
         )}
 
-        {/* EMPTY STATE */}
-        {!loading && !weather && !error && (
+        {/* LOCATION PROMPT — shown when no profile/cached location found */}
+        {locationPrompt && !loading && !weather && !error && (
+          <div className="weather-location-prompt-card">
+            <div className="weather-prompt-icon-wrapper">
+              <MapPin size={36} />
+            </div>
+            <h2 className="weather-prompt-title">Where is your farm located?</h2>
+            <p className="weather-prompt-subtitle">
+              We couldn't find a location in your profile. Enter your city name or
+              pincode below to load real-time weather and agricultural insights.
+            </p>
+            <form className="weather-prompt-form" onSubmit={submitHandler}>
+              <div className="weather-prompt-input-wrapper">
+                <Search size={17} className="weather-prompt-search-icon" />
+                <input
+                  autoFocus
+                  value={city}
+                  onChange={(e) => setCity(e.target.value)}
+                  placeholder="City name or pincode (e.g. 500001, Hyderabad, Delhi)"
+                  className="weather-prompt-input"
+                />
+              </div>
+              <button type="submit" className="weather-prompt-btn" disabled={!city.trim()}>
+                Load Weather
+              </button>
+            </form>
+            <p className="weather-prompt-hint">
+              💡 Tip: Set your farm location in{" "}
+              <a href="/profile" className="weather-prompt-link">Profile Settings</a>{" "}
+              so weather loads automatically every time.
+            </p>
+          </div>
+        )}
+
+        {/* GENERIC EMPTY STATE (no prompt, no data — should not normally appear) */}
+        {!locationPrompt && !loading && !weather && !error && (
           <div className="weather-card-glass weather-empty">
             <EmptyState
               title="No weather data loaded"
-              message="Search a city to load live weather metrics, forecasts, and Spryzen AI advisory."
+              message="Search a city above to load live weather metrics, forecasts, and Spryzen AI advisory."
             />
           </div>
         )}
@@ -888,6 +955,127 @@ const Weather = () => {
           margin: 0;
           font-weight: 600;
           font-size: 14px;
+        }
+
+        /* Location Prompt Card */
+        .weather-location-prompt-card {
+          max-width: 560px;
+          width: 100%;
+          margin: 0 auto;
+          padding: 52px 44px;
+          border-radius: 28px;
+          background: var(--dd-card-bg);
+          border: 1px solid var(--dd-border);
+          box-shadow: var(--dd-shadow-hover);
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          text-align: center;
+          gap: 20px;
+        }
+        .weather-prompt-icon-wrapper {
+          width: 72px;
+          height: 72px;
+          border-radius: 22px;
+          background: var(--dd-primary-light);
+          color: var(--dd-primary);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          box-shadow: 0 4px 16px rgba(46,125,50,0.12);
+        }
+        .weather-prompt-title {
+          font-size: 24px;
+          font-weight: 800;
+          margin: 0;
+          color: var(--dd-text);
+          letter-spacing: -0.4px;
+        }
+        .weather-prompt-subtitle {
+          font-size: 14.5px;
+          color: var(--dd-text-muted);
+          margin: 0;
+          line-height: 1.6;
+          max-width: 400px;
+        }
+        .weather-prompt-form {
+          display: flex;
+          gap: 12px;
+          width: 100%;
+        }
+        .weather-prompt-input-wrapper {
+          flex: 1;
+          display: flex;
+          align-items: center;
+          background: rgba(0,0,0,0.02);
+          border: 1.5px solid var(--dd-border);
+          border-radius: 16px;
+          padding: 4px 16px;
+          gap: 10px;
+          transition: border-color 0.2s ease;
+        }
+        .weather-prompt-input-wrapper:focus-within {
+          border-color: var(--dd-primary);
+          box-shadow: 0 0 0 3px rgba(46,125,50,0.08);
+        }
+        .weather-prompt-search-icon {
+          color: var(--dd-text-muted);
+          flex-shrink: 0;
+        }
+        .weather-prompt-input {
+          flex: 1;
+          border: none;
+          background: transparent;
+          color: var(--dd-text);
+          font-size: 14.5px;
+          outline: none;
+          padding: 12px 0;
+        }
+        .weather-prompt-btn {
+          padding: 12px 24px;
+          border-radius: 16px;
+          font-size: 14px;
+          font-weight: 700;
+          background: var(--dd-primary);
+          color: #fff;
+          border: none;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          white-space: nowrap;
+        }
+        .weather-prompt-btn:hover:not(:disabled) {
+          background: #246427;
+          transform: translateY(-1px);
+          box-shadow: 0 4px 14px rgba(46,125,50,0.25);
+        }
+        .weather-prompt-btn:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+        .weather-prompt-hint {
+          font-size: 13px;
+          color: var(--dd-text-muted);
+          margin: 4px 0 0;
+          line-height: 1.5;
+        }
+        .weather-prompt-link {
+          color: var(--dd-primary);
+          font-weight: 700;
+          text-decoration: none;
+        }
+        .weather-prompt-link:hover {
+          text-decoration: underline;
+        }
+        @media (max-width: 600px) {
+          .weather-location-prompt-card {
+            padding: 36px 24px;
+          }
+          .weather-prompt-form {
+            flex-direction: column;
+          }
+          .weather-prompt-btn {
+            width: 100%;
+          }
         }
 
         /* Chat advisory styling */
