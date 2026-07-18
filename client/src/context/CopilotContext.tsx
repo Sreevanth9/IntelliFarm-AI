@@ -1,5 +1,6 @@
 import React, { createContext, useState, useEffect, useContext, ReactNode } from "react";
 import * as copilotService from "../services/copilotService";
+import { useAuth } from "./AuthContext";
 
 export interface CopilotContextType {
   conversations: copilotService.Conversation[];
@@ -37,6 +38,7 @@ export interface CopilotContextType {
 const CopilotContext = createContext<CopilotContextType | undefined>(undefined);
 
 export const CopilotProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  const { isAuthenticated } = useAuth();
   const [conversations, setConversations] = useState<copilotService.Conversation[]>([]);
   const [messages, setMessages] = useState<copilotService.Message[]>([]);
   const [selectedConversation, setSelectedConversation] = useState<copilotService.Conversation | null>(null);
@@ -55,7 +57,7 @@ export const CopilotProvider: React.FC<{ children: ReactNode }> = ({ children })
     "Suggest a fertilizer plan for organic tomato farming",
     "How do I prevent early blight in potato plants?"
   ];
-  const [suggestions, setSuggestions] = useState<string[]>(defaultSuggestions);
+  const [suggestions] = useState<string[]>(defaultSuggestions);
 
   const loadConversations = async () => {
     setIsLoadingConversations(true);
@@ -186,12 +188,11 @@ export const CopilotProvider: React.FC<{ children: ReactNode }> = ({ children })
   };
 
   useEffect(() => {
-    const token = localStorage.getItem("accessToken");
-    if (token) {
+    if (isAuthenticated) {
       loadConversations();
       loadMemories();
     }
-  }, []);
+  }, [isAuthenticated]);
 
   return (
     <CopilotContext.Provider value={{

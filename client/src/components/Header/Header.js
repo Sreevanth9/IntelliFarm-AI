@@ -4,7 +4,7 @@ import { uiAction } from "../../store/ui";
 import { themeIcon } from "../../assets";
 import { commonIcon } from "../../assets";
 import { useNavigate } from "react-router-dom";
-import { continueWithGoogleOauth } from "../../utils/getGoogleOauthUrl";
+import { useAuth } from "../../context/AuthContext";
 
 const Header = () => {
   const dispatch = useDispatch();
@@ -12,6 +12,7 @@ const Header = () => {
   const isUserDetails = useSelector((state) => state.ui.isUserDetailsShow);
   const isLogin = useSelector((state) => state.auth.isLogin);
   const userDetails = useSelector((state) => state.user.user);
+  const { loginWithGoogle } = useAuth();
 
   const toggleSideBarHandler = () => {
     dispatch(uiAction.toggleSideBar());
@@ -26,7 +27,7 @@ const Header = () => {
   };
 
   const loginHandler = () => {
-    window.open(continueWithGoogleOauth(), "_self");
+    loginWithGoogle().catch((error) => console.error("Google sign-in failed", error));
   };
 
   return (

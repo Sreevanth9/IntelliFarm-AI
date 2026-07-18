@@ -1,8 +1,6 @@
 import { createSlice } from "@reduxjs/toolkit";
 
-const loginValue = localStorage.getItem("isLogin") || false;
-
-const authInitialState = { isLogin: loginValue };
+const authInitialState = { isLogin: false };
 
 const authSlice = createSlice({
   name: "auth slice",

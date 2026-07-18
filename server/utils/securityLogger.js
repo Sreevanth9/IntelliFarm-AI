@@ -1,5 +1,18 @@
 import { supabase } from "../config/supabase.js";
 
+const SENSITIVE_DETAIL_KEYS = /(?:token|secret|password|authorization|cookie|api[_-]?key)/i;
+
+const redactSensitiveDetails = (value, key = "") => {
+  if (SENSITIVE_DETAIL_KEYS.test(key)) return "[REDACTED]";
+  if (Array.isArray(value)) return value.map((item) => redactSensitiveDetails(item));
+  if (value && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value).map(([entryKey, entryValue]) => [entryKey, redactSensitiveDetails(entryValue, entryKey)])
+    );
+  }
+  return value;
+};
+
 // Structured Security Logger to log security-sensitive events
 export const logSecurityEvent = async ({ eventType, userId, ipAddress, endpoint, details }) => {
   const ip = ipAddress || "0.0.0.0";
@@ -12,7 +25,7 @@ export const logSecurityEvent = async ({ eventType, userId, ipAddress, endpoint,
     ip,
     endpoint: route,
     timestamp: new Date().toISOString(),
-    details: details || {}
+    details: redactSensitiveDetails(details || {})
   };
 
   // Warn console output
@@ -26,7 +39,7 @@ export const logSecurityEvent = async ({ eventType, userId, ipAddress, endpoint,
         user_id: userId || null,
         ip_address: ip,
         endpoint: route,
-        details: details || {},
+        details: logEntry.details,
       });
 
     if (error) {

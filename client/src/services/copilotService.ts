@@ -1,4 +1,4 @@
-import api, { API_BASE_URL } from "./api.js";
+import api, { API_BASE_URL, ensureCsrfToken, getCsrfToken } from "./api.js";
 export { API_BASE_URL };
 
 export interface Conversation {
@@ -72,12 +72,13 @@ export const fetchChatStream = async (
   conversationId: string | null,
   attachments: any[] = []
 ): Promise<Response> => {
-  const token = localStorage.getItem("accessToken");
+  await ensureCsrfToken();
   const response = await fetch(`${API_BASE_URL}/api/copilot/chat`, {
     method: "POST",
+    credentials: "include",
     headers: {
       "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {})
+      "X-CSRF-Token": getCsrfToken() || "",
     },
     body: JSON.stringify({ message, conversationId, attachments })
   });

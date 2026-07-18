@@ -1,13 +1,7 @@
 import React from "react";
 import {
   CloudSun,
-  Droplets,
-  Wind,
-  CloudRain,
-  Activity,
-  AlertTriangle,
   Leaf,
-  ShieldCheck,
   TrendingUp,
   TrendingDown,
   MapPin,

@@ -2,13 +2,48 @@ import { supabase } from "../config/supabase.js";
 import { verifyAccessToken } from "../utils/jwt.js";
 
 const getTokenFromRequest = (req) => {
-  const authHeader = req.headers.authorization;
+  return req.cookies?.access_token;
+};
 
-  if (authHeader?.startsWith("Bearer ")) {
-    return authHeader.split(" ")[1];
+const getAuthenticatedUser = async (token) => {
+  const decoded = verifyAccessToken(token);
+  const userId = decoded.sub;
+  const sessionId = decoded.jti;
+
+  if (!userId || !sessionId) {
+    const error = new Error("Invalid session");
+    error.statusCode = 401;
+    throw error;
   }
 
-  return req.cookies?.access_token;
+  const { data: session, error: sessionError } = await supabase
+    .from("user_sessions")
+    .select("id, user_id, expires_at, revoked")
+    .eq("id", sessionId)
+    .maybeSingle();
+
+  if (sessionError) throw sessionError;
+
+  if (!session || session.user_id !== userId || session.revoked || new Date(session.expires_at) <= new Date()) {
+    const error = new Error("Session expired");
+    error.statusCode = 401;
+    throw error;
+  }
+
+  const { data: userData, error: selectError } = await supabase
+    .from("users")
+    .select("id, name, email, profile_img, location, farm_size, crops_interested")
+    .eq("id", userId)
+    .maybeSingle();
+
+  if (selectError) throw selectError;
+  if (!userData) {
+    const error = new Error("User not found");
+    error.statusCode = 401;
+    throw error;
+  }
+
+  return { decoded, session, userData };
 };
 
 export const requireAuth = async (req, res, next) => {
@@ -21,24 +56,12 @@ export const requireAuth = async (req, res, next) => {
       throw error;
     }
 
-    const decoded = verifyAccessToken(token);
-    const { data: userData, error: selectError } = await supabase
-      .from("users")
-      .select("*")
-      .eq("id", decoded.id)
-      .maybeSingle();
+    const { decoded, session, userData } = await getAuthenticatedUser(token);
 
-    if (selectError) throw selectError;
-
-    if (!userData) {
-      const error = new Error("User not found");
-      error.statusCode = 401;
-      throw error;
-    }
-
-    // Set req.user to match expected properties
     req.user = userData;
-    req.user._id = userData.id; // Map id to _id for compatibility
+    req.user._id = userData.id;
+    req.session = session;
+    req.token = decoded;
     req.auth = "auth";
     next();
   } catch (error) {
@@ -56,18 +79,12 @@ export const optionalAuth = async (req, res, next) => {
       return next();
     }
 
-    const decoded = verifyAccessToken(token);
-    const { data: userData, error: selectError } = await supabase
-      .from("users")
-      .select("*")
-      .eq("id", decoded.id)
-      .maybeSingle();
-
-    if (selectError) throw selectError;
-
+    const { decoded, session, userData } = await getAuthenticatedUser(token);
     if (userData) {
       req.user = userData;
-      req.user._id = userData.id; // Map id to _id for compatibility
+      req.user._id = userData.id;
+      req.session = session;
+      req.token = decoded;
       req.auth = "auth";
     } else {
       req.auth = "guest";

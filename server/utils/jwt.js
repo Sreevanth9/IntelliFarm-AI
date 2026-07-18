@@ -1,90 +1,42 @@
-import crypto from "crypto";
+import "dotenv/config";
+import jwt from "jsonwebtoken";
 
-const accessTokenSecret = process.env.ACCESS_TOKEN_JWT_SECRET || "intellifarm_access_secret";
-const refreshTokenSecret = process.env.REFRESH_TOKEN_JWT_SECRET || "intellifarm_refresh_secret";
+const ISSUER = process.env.JWT_ISSUER || "intellifarm-api";
+const AUDIENCE = process.env.JWT_AUDIENCE || "intellifarm-web";
 
-const base64Url = (input) =>
-  Buffer.from(input)
-    .toString("base64")
-    .replace(/=/g, "")
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_");
-
-const parseDuration = (value, fallbackSeconds) => {
-  if (!value) return fallbackSeconds;
-  const match = String(value).match(/^(\d+)([smhd])$/);
-  if (!match) return Number(value) || fallbackSeconds;
-
-  const amount = Number(match[1]);
-  const unit = match[2];
-  const multipliers = { s: 1, m: 60, h: 3600, d: 86400 };
-  return amount * multipliers[unit];
-};
-
-const signJwt = (payload, secret, expiresInSeconds) => {
-  const header = { alg: "HS256", typ: "JWT" };
-  const now = Math.floor(Date.now() / 1000);
-  const body = {
-    ...payload,
-    iat: now,
-    exp: now + expiresInSeconds,
-  };
-  const encodedHeader = base64Url(JSON.stringify(header));
-  const encodedBody = base64Url(JSON.stringify(body));
-  const signature = crypto
-    .createHmac("sha256", secret)
-    .update(`${encodedHeader}.${encodedBody}`)
-    .digest("base64")
-    .replace(/=/g, "")
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_");
-
-  return `${encodedHeader}.${encodedBody}.${signature}`;
-};
-
-const verifyJwt = (token, secret) => {
-  const [encodedHeader, encodedBody, signature] = token.split(".");
-
-  if (!encodedHeader || !encodedBody || !signature) {
-    throw new Error("Invalid token");
+const readSecret = (name) => {
+  const value = process.env[name];
+  if (!value || value.length < 32 || /placeholder|intellifarm_access_secret|intellifarm_refresh_secret/i.test(value)) {
+    throw new Error(`${name} must be a unique secret of at least 32 characters`);
   }
+  return value;
+};
 
-  const expectedSignature = crypto
-    .createHmac("sha256", secret)
-    .update(`${encodedHeader}.${encodedBody}`)
-    .digest("base64")
-    .replace(/=/g, "")
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_");
+const accessTokenSecret = readSecret("ACCESS_TOKEN_JWT_SECRET");
+const refreshTokenSecret = readSecret("REFRESH_TOKEN_JWT_SECRET");
+const accessExpiry = process.env.ACCESS_TOKEN_EXPIRETIME || "15m";
+const refreshExpiry = process.env.REFRESH_TOKEN_EXPIRETIME || "7d";
 
-  if (signature !== expectedSignature) {
-    throw new Error("Invalid token signature");
+const sign = (userData, sessionId, secret, expiresIn) => jwt.sign(
+  { email: userData.email },
+  secret,
+  {
+    algorithm: "HS256",
+    subject: String(userData.id || userData._id),
+    audience: AUDIENCE,
+    issuer: ISSUER,
+    expiresIn,
+    jwtid: sessionId,
   }
+);
 
-  const payload = JSON.parse(Buffer.from(encodedBody, "base64url").toString("utf8"));
+const verify = (token, secret) => jwt.verify(token, secret, {
+  algorithms: ["HS256"],
+  audience: AUDIENCE,
+  issuer: ISSUER,
+});
 
-  if (payload.exp && payload.exp < Math.floor(Date.now() / 1000)) {
-    throw new Error("Token expired");
-  }
-
-  return payload;
-};
-
-export const signAccessToken = (userData) => {
-  return signJwt(
-    userData,
-    accessTokenSecret,
-    parseDuration(process.env.ACCESS_TOKEN_EXPIRETIME, 15 * 60)
-  );
-};
-
-export const signRefreshToken = (userData) => {
-  return signJwt(
-    userData,
-    refreshTokenSecret,
-    parseDuration(process.env.REFRESH_TOKEN_EXPIRETIME, 7 * 24 * 60 * 60)
-  );
-};
-
-export const verifyAccessToken = (token) => verifyJwt(token, accessTokenSecret);
-export const verifyRefreshToken = (token) => verifyJwt(token, refreshTokenSecret);
+export const signAccessToken = (userData, sessionId) => sign(userData, sessionId, accessTokenSecret, accessExpiry);
+export const signRefreshToken = (userData, sessionId) => sign(userData, sessionId, refreshTokenSecret, refreshExpiry);
+export const verifyAccessToken = (token) => verify(token, accessTokenSecret);
+export const verifyRefreshToken = (token) => verify(token, refreshTokenSecret);

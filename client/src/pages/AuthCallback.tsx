@@ -1,26 +1,54 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
 export default function AuthCallback() {
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuth() as any;
+  const { completeOAuthRedirect, isAuthenticated } = useAuth() as any;
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+
+    completeOAuthRedirect()
+      .then((user: any) => {
+        if (!cancelled && user) navigate("/dashboard", { replace: true });
+      })
+      .catch((err: any) => {
+        console.error("OAuth callback sync failed:", err);
+        if (!cancelled) {
+          const detail = err.response?.data?.message
+            ? `${err.message}: ${err.response.data.message}`
+            : (err.stack || err.message || "Unknown error occurred");
+          setError(detail);
+
+          // Report the error to the backend error logger
+          const logPayload = {
+            message: err.message,
+            stack: err.stack,
+            responseStatus: err.response?.status,
+            responseData: err.response?.data,
+            location: window.location.href,
+          };
+          fetch("/api/auth/log-error", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(logPayload),
+          }).catch(() => {});
+
+          setTimeout(() => navigate("/login", { replace: true }), 15000);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [completeOAuthRedirect, navigate]);
 
   useEffect(() => {
     if (isAuthenticated) {
-      navigate("/dashboard");
+      navigate("/dashboard", { replace: true });
     }
-  }, [isAuthenticated, navigate]);
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (!isAuthenticated) {
-        console.warn("OAuth callback timed out waiting for backend session sync.");
-        navigate("/login");
-      }
-    }, 5000);
-
-    return () => clearTimeout(timer);
   }, [isAuthenticated, navigate]);
 
   return (
@@ -62,9 +90,11 @@ export default function AuthCallback() {
           boxShadow: "0 0 15px rgba(82, 183, 136, 0.2)"
         }}></div>
         
-        <h3 style={{ margin: "0 0 8px 0", fontWeight: "700", color: "#fff", fontSize: "18px" }}>Signing you in...</h3>
+        <h3 style={{ margin: "0 0 8px 0", fontWeight: "700", color: "#fff", fontSize: "18px" }}>
+          {error ? "Sign-in needs attention" : "Signing you in..."}
+        </h3>
         <p style={{ margin: 0, opacity: 0.7, fontSize: "13px", lineHeight: "1.4" }}>
-          Please wait while we sync your secure partner credentials.
+          {error || "Please wait while we sync your secure partner credentials."}
         </p>
       </div>
 

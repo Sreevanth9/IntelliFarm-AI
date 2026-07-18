@@ -5,8 +5,10 @@ import {
   getWeather,
   getWeatherBundle,
 } from "../controllers/weatherApiController.js";
+import { weatherLimiter } from "../middleware/rateLimiters.js";
 
 const router = express.Router();
+router.use(weatherLimiter);
 
 router.get("/", getWeatherBundle);
 router.get("/current", getWeather);

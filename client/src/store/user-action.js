@@ -1,6 +1,9 @@
 import { userAction } from "./user";
 
-const SERVER_ENDPOINT = process.env.REACT_APP_SERVER_ENDPOINT;
+const SERVER_ENDPOINT =
+  process.env.NODE_ENV === "production"
+    ? ""
+    : (process.env.REACT_APP_SERVER_ENDPOINT || "http://localhost:5001");
 
 export const userUpdateLocation = () => {
   return (dispatch) => {

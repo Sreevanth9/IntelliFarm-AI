@@ -1,6 +1,7 @@
 import { useRef } from "react";
 import { useCopilotContext } from "../context/CopilotContext";
 import * as copilotService from "../services/copilotService";
+import { ensureCsrfToken, getCsrfToken } from "../services/api";
 
 export const useCopilot = () => {
   const {
@@ -15,8 +16,6 @@ export const useCopilot = () => {
     setDraft,
     setAttachments,
     loadConversations,
-    selectConversation,
-    createConversation,
     setSelectedConversation,
     setConversations,
   } = useCopilotContext();
@@ -76,11 +75,13 @@ export const useCopilot = () => {
     let uiCards: copilotService.Attachment[] = [];
 
     try {
+      await ensureCsrfToken();
       const response = await fetch(`${copilotService.API_BASE_URL}/api/copilot/chat`, {
         method: "POST",
+        credentials: "include",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("accessToken")}`
+          "X-CSRF-Token": getCsrfToken() || ""
         },
         body: JSON.stringify({
           message: text,
@@ -137,10 +138,11 @@ export const useCopilot = () => {
               // Stream word tokens
               if (data.content) {
                 assistantText += data.content;
+                const nextAssistantText = assistantText;
                 setMessages((prev) =>
                   prev.map((msg) =>
                     msg.id === assistantMessageId
-                      ? { ...msg, content: assistantText }
+                      ? { ...msg, content: nextAssistantText }
                       : msg
                   )
                 );

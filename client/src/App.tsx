@@ -1,11 +1,9 @@
 import React, { useEffect } from "react";
 import "./App.css";
-import { Navigate, Route, Routes, useParams, useNavigate, useLocation } from "react-router-dom";
+import { Navigate, Route, Routes, useNavigate, useLocation } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import { uiAction } from "./store/ui";
 import { Toaster } from "react-hot-toast";
-import { refreshToken } from "./store/auth-action";
-import { loginHandler } from "./store/auth-action";
 import Dashboard from "./pages/Dashboard";
 import DiseaseInfo from "./pages/DiseaseInfo";
 import DiseaseDetection from "./pages/DiseaseDetection";
@@ -52,23 +50,6 @@ const App: React.FC = () => {
     const theme = getLocalTheme || "light";
     document.documentElement.setAttribute("data-theme", theme);
   }, [isDark]);
-
-  useEffect(() => {
-    dispatch(loginHandler() as any);
-  }, [dispatch]);
-
-
-
-  useEffect(() => {
-    const refreshTokenHandler = setInterval(() => {
-      const isLoginLocal = localStorage.getItem("isLogin");
-      if (isLoginLocal) {
-        dispatch(refreshToken() as any);
-      }
-    }, 14 * 60 * 1000);
-
-    return () => clearInterval(refreshTokenHandler);
-  }, [dispatch]);
 
   return (
     <div className="App">

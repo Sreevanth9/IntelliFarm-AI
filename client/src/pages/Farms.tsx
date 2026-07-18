@@ -9,7 +9,7 @@ import { addFarm, fetchFarms, deleteFarm } from "../services/farmApi";
 import { Farm } from "../types";
 
 const Farms: React.FC = () => {
-  const isLogin = useSelector((state: any) => state.auth.isLogin) || localStorage.getItem("isLogin");
+  const isLogin = useSelector((state: any) => state.auth.isLogin);
 
   const [farms, setFarms] = useState<Farm[]>([]);
   const [loading, setLoading] = useState(false);

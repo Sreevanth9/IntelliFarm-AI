@@ -13,20 +13,62 @@ import weatherRoutes from "./routes/weatherRoutes.js";
 import copilotRoutes from "./routes/copilot.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 import { sanitizeBody } from "./middleware/sanitizeInput.js";
+import { allowedOrigins } from "./config/security.js";
+import { generalApiLimiter } from "./middleware/rateLimiters.js";
 
 const app = express();
-app.set("trust proxy", 1);
-const originUrl = process.env.CLIENT_REDIRECT_URL || "http://localhost:3000";
+app.disable("x-powered-by");
+app.set("trust proxy", process.env.TRUST_PROXY === "true" ? 1 : false);
 
-app.use(helmet());
-app.use(express.json({ limit: "1mb" }));
+// Hardened Helmet configuration to enforce HSTS and define CSP directives allowing Supabase and postal connections
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        connectSrc: [
+          "'self'",
+          "https://pkfdbgwavkblnzabdpmd.supabase.co",
+          "https://api.postalpincode.in",
+        ],
+        imgSrc: [
+          "'self'",
+          "data:",
+          "https://api.dicebear.com",
+          "https://pkfdbgwavkblnzabdpmd.supabase.co",
+          "https://*.supabase.co",
+        ],
+        scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+        styleSrc: ["'self'", "'unsafe-inline'", "https:"],
+        fontSrc: ["'self'", "https:", "data:"],
+        objectSrc: ["'none'"],
+        upgradeInsecureRequests: [],
+      },
+    },
+    hsts: {
+      maxAge: 31536000, // 1 year in seconds
+      includeSubDomains: true,
+      preload: true,
+    },
+  })
+);
+app.use(generalApiLimiter);
+app.use(express.json({ limit: "7mb" }));
 app.use(sanitizeBody);
 app.use(cookieParser());
 app.use(requestIp.mw());
 app.use(
   cors({
-    origin: originUrl,
-    optionsSuccessStatus: 200,
+    origin(origin, callback) {
+      if (!origin || allowedOrigins.has(origin)) return callback(null, true);
+      const error = new Error("Origin is not allowed");
+      error.statusCode = 403;
+      return callback(error);
+    },
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "X-CSRF-Token"],
+    optionsSuccessStatus: 204,
+    maxAge: 600,
     credentials: true,
   })
 );

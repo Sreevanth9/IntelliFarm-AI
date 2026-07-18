@@ -10,6 +10,7 @@ import {
   registerUser,
   oauthLoginUser,
 } from "../services/authApi";
+import { ensureCsrfToken } from "../services/api";
 import { supabase } from "../utils/supabaseClient";
 
 const AuthContext = createContext(null);
@@ -24,18 +25,12 @@ const fallbackFarmer = {
 export const AuthProvider = ({ children }) => {
   const dispatch = useDispatch();
   const [farmer, setFarmer] = useState(fallbackFarmer);
-  const [isAuthenticated, setIsAuthenticated] = useState(
-    Boolean(localStorage.getItem("accessToken"))
-  );
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(false);
   const syncingRef = useRef(false);
 
   const applySession = useCallback(
-    (user, token) => {
-      if (token) {
-        localStorage.setItem("accessToken", token);
-      }
-      localStorage.setItem("isLogin", "true");
+    (user) => {
       setFarmer({
         ...fallbackFarmer,
         ...user,
@@ -59,7 +54,7 @@ export const AuthProvider = ({ children }) => {
   );
 
   const clearSession = useCallback(() => {
-    localStorage.removeItem("accessToken");
+    localStorage.removeItem("accessToken"); // Clear the legacy insecure token after upgrade.
     localStorage.removeItem("isLogin");
     setFarmer(fallbackFarmer);
     setIsAuthenticated(false);
@@ -80,7 +75,7 @@ export const AuthProvider = ({ children }) => {
       setLoading(true);
       try {
         const { data } = await loginUser(payload);
-        applySession(data.user, data.token);
+        applySession(data.user);
         return data.user;
       } finally {
         setLoading(false);
@@ -94,7 +89,7 @@ export const AuthProvider = ({ children }) => {
       setLoading(true);
       try {
         const { data } = await registerUser(payload);
-        applySession(data.user, data.token);
+        applySession(data.user);
         return data.user;
       } finally {
         setLoading(false);
@@ -125,7 +120,7 @@ export const AuthProvider = ({ children }) => {
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: "github",
         options: {
-          redirectTo: `${window.location.origin}/`,
+          redirectTo: `${window.location.origin}/auth/callback`,
         },
       });
       if (error) throw error;
@@ -134,6 +129,34 @@ export const AuthProvider = ({ children }) => {
       setLoading(false);
     }
   }, []);
+
+  const completeOAuthRedirect = useCallback(async () => {
+    if (syncingRef.current) return null;
+
+    syncingRef.current = true;
+    setLoading(true);
+    try {
+      const callbackUrl = new URL(window.location.href);
+      if (callbackUrl.searchParams.has("code")) {
+        const { error } = await supabase.auth.exchangeCodeForSession(window.location.href);
+        if (error) throw error;
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
+
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError) throw sessionError;
+      if (!sessionData.session?.access_token) {
+        throw new Error("Google sign-in did not return a Supabase session.");
+      }
+
+      const { data } = await oauthLoginUser(sessionData.session.access_token);
+      applySession(data.user);
+      return data.user;
+    } finally {
+      setLoading(false);
+      syncingRef.current = false;
+    }
+  }, [applySession]);
 
   const logout = useCallback(async () => {
     setLoading(true);
@@ -147,31 +170,10 @@ export const AuthProvider = ({ children }) => {
   }, [clearSession]);
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if ((event === "SIGNED_IN" || event === "USER_UPDATED" || event === "INITIAL_SESSION" || event === "TOKEN_REFRESHED") && session) {
-        const localToken = localStorage.getItem("accessToken");
-        if (!localToken && !syncingRef.current) {
-          syncingRef.current = true;
-          setLoading(true);
-          try {
-            const userMetadata = session.user.user_metadata;
-            const payload = {
-              id: session.user.id,
-              email: session.user.email,
-              name: userMetadata.full_name || userMetadata.name || session.user.email?.split("@")[0] || "Farmer",
-              profileImg: userMetadata.avatar_url || userMetadata.picture,
-            };
-            const { data } = await oauthLoginUser(payload);
-            applySession(data.user, data.token);
-          } catch (err) {
-            console.error("OAuth login sync error:", err);
-            await supabase.auth.signOut().catch(() => {});
-          } finally {
-            setLoading(false);
-            syncingRef.current = false;
-          }
-        }
-      } else if (event === "SIGNED_OUT") {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      // OAuth credential exchange is completed exactly once by AuthCallback.
+      // Duplicating it here races the callback and can trigger rate limits.
+      if (event === "SIGNED_OUT") {
         clearSession();
         syncingRef.current = false;
       }
@@ -180,16 +182,20 @@ export const AuthProvider = ({ children }) => {
     return () => {
       subscription?.unsubscribe();
     };
+  }, [clearSession]);
+
+  useEffect(() => {
+    ensureCsrfToken()
+      .then(() => fetchCurrentUser())
+      .then(({ data }) => applySession(data.user))
+      .catch(() => clearSession());
   }, [applySession, clearSession]);
 
   useEffect(() => {
-    const token = localStorage.getItem("accessToken");
-    if (!token) return;
-
-    fetchCurrentUser()
-      .then(({ data }) => applySession(data.user, token))
-      .catch(() => clearSession());
-  }, [applySession, clearSession]);
+    const onSessionExpired = () => clearSession();
+    window.addEventListener("intellifarm:session-expired", onSessionExpired);
+    return () => window.removeEventListener("intellifarm:session-expired", onSessionExpired);
+  }, [clearSession]);
 
   const value = useMemo(
     () => ({
@@ -201,8 +207,9 @@ export const AuthProvider = ({ children }) => {
       register,
       loginWithGoogle,
       loginWithGithub,
+      completeOAuthRedirect,
     }),
-    [farmer, isAuthenticated, loading, login, logout, register, loginWithGoogle, loginWithGithub]
+    [farmer, isAuthenticated, loading, login, logout, register, loginWithGoogle, loginWithGithub, completeOAuthRedirect]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

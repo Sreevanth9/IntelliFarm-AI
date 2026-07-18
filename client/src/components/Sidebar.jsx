@@ -44,12 +44,12 @@ const Sidebar = () => {
         toast.success("Logged out successfully");
         navigate("/login");
       })
-      .catch((err: any) => {
+      .catch((err) => {
         console.error("Logout failed:", err);
       });
   };
 
-  const renderMenuItems = (items: typeof group1) => {
+  const renderMenuItems = (items) => {
     return items.map((item) => {
       const IconComponent = item.icon;
       return (

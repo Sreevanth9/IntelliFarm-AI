@@ -22,8 +22,10 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content }) =
         rehypePlugins={[rehypeHighlight]}
         components={{
           // Render links as target="_blank"
-          a: ({ node, ...props }) => (
-            <a {...props} target="_blank" rel="noopener noreferrer" style={{ color: "var(--copilot-primary)", textDecoration: "underline" }} />
+          a: ({ node, children, ...props }) => (
+            <a {...props} target="_blank" rel="noopener noreferrer" style={{ color: "var(--copilot-primary)", textDecoration: "underline" }}>
+              {children}
+            </a>
           ),
           // Custom code block wrapper
           code: ({ node, inline, className, children, ...props }: any) => {

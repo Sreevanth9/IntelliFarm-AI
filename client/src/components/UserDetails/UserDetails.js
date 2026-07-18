@@ -2,21 +2,22 @@ import styles from "./UserDetails.module.css";
 import { themeIcon } from "../../assets";
 import { uiAction } from "../../store/ui";
 import { useDispatch, useSelector } from "react-redux";
-import { logoutHandler } from "../../store/auth-action";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
 
 const UserDetails = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const userDetails = useSelector((state) => state.user.user);
+  const { logout } = useAuth();
   const icon = themeIcon();
 
   const userDetsilsClose = () => {
     dispatch(uiAction.toggleUserDetailsShow());
   };
 
-  const onLogoutHandler = () => {
-    dispatch(logoutHandler());
+  const onLogoutHandler = async () => {
+    await logout();
     navigate("/assistant");
   };
 

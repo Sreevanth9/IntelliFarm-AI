@@ -4,6 +4,7 @@ import { useAuth } from "../context/AuthContext";
 import toast from "react-hot-toast";
 import { useSelector, useDispatch } from "react-redux";
 import { uiAction } from "../store/ui";
+import { changePasswordUser } from "../services/authApi";
 
 const Settings: React.FC = () => {
   const { farmer } = useAuth();
@@ -41,34 +42,19 @@ const Settings: React.FC = () => {
       toast.error("New passwords do not match");
       return;
     }
-    if (newPassword.length < 8) {
-      toast.error("New password must be at least 8 characters long");
+    if (newPassword.length < 12) {
+      toast.error("New password must be at least 12 characters long");
       return;
     }
 
     setUpdatingPassword(true);
     try {
-      const token = localStorage.getItem("accessToken");
-      const response = await fetch("http://localhost:5001/api/auth/change-password", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          currentPassword,
-          newPassword
-        })
-      });
-
-      const data = await response.json();
-      if (response.ok) {
+      const { data } = await changePasswordUser({ oldPassword: currentPassword, newPassword });
+      if (data.success) {
         toast.success(data.message || "Password updated successfully");
         setCurrentPassword("");
         setNewPassword("");
         setConfirmPassword("");
-      } else {
-        toast.error(data.error || "Failed to change password");
       }
     } catch (err) {
       console.error(err);
