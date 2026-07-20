@@ -5,11 +5,12 @@ import { useNavigate } from "react-router-dom";
 import {
   MapPin, Leaf, Calendar, Trash2, CloudSun,
   Microscope, Sprout, Waves, ChevronDown, ChevronUp,
-  Navigation, Plus, BarChart3, AlertCircle
+  Plus, BarChart3, AlertCircle, Edit2
 } from "lucide-react";
 
 import EmptyState from "../components/EmptyState/EmptyState";
 import MainLayout from "../layouts/MainLayout";
+import { useAuth } from "../context/AuthContext";
 import { addFarm, fetchFarms, deleteFarm, FarmPayload } from "../services/farmApi";
 import { Farm } from "../types";
 
@@ -49,6 +50,7 @@ const getDaysToHarvest = (expectedHarvest?: string): number | null => {
 
 const Farms: React.FC = () => {
   const isLogin = useSelector((state: any) => state.auth.isLogin);
+  const { farmer } = useAuth() as any;
   const navigate = useNavigate();
 
   const [farms, setFarms] = useState<Farm[]>([]);
@@ -56,11 +58,13 @@ const Farms: React.FC = () => {
   const [fetching, setFetching] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [expandedFarm, setExpandedFarm] = useState<string | null>(null);
-  const [detectingLocation, setDetectingLocation] = useState(false);
+
+  const profileLocation = farmer?.location || farmer?.profile_location || "";
+  const locationInputRef = React.useRef<HTMLInputElement | null>(null);
 
   // Form state
   const [name, setName] = useState("");
-  const [location, setLocation] = useState("");
+  const [location, setLocation] = useState(profileLocation);
   const [latitude, setLatitude] = useState<number | null>(null);
   const [longitude, setLongitude] = useState<number | null>(null);
   const [crop, setCrop] = useState("Tomato");
@@ -85,31 +89,15 @@ const Farms: React.FC = () => {
 
   useEffect(() => { loadFarms(); }, [loadFarms]);
 
-  const handleDetectLocation = () => {
-    if (!navigator.geolocation) {
-      toast.error("Geolocation not supported by your browser");
-      return;
+  // Sync profile location as default when opening form
+  useEffect(() => {
+    if (showForm && !location && profileLocation) {
+      setLocation(profileLocation);
     }
-    setDetectingLocation(true);
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const lat = parseFloat(pos.coords.latitude.toFixed(6));
-        const lng = parseFloat(pos.coords.longitude.toFixed(6));
-        setLatitude(lat);
-        setLongitude(lng);
-        setLocation(`${lat}, ${lng}`);
-        setDetectingLocation(false);
-        toast.success("Location detected!");
-      },
-      () => {
-        setDetectingLocation(false);
-        toast.error("Unable to detect location. Please enter manually.");
-      }
-    );
-  };
+  }, [showForm, profileLocation]);
 
   const resetForm = () => {
-    setName(""); setLocation(""); setLatitude(null); setLongitude(null);
+    setName(""); setLocation(profileLocation); setLatitude(null); setLongitude(null);
     setCrop("Tomato"); setCropVariety(""); setSoilType("Loamy"); setArea("");
     setSowingDate(""); setExpectedHarvest(""); setIrrigationMethod("Drip"); setNotes("");
   };
@@ -175,8 +163,20 @@ const Farms: React.FC = () => {
             <h1 className="farms-page-title">My Farms</h1>
             <p className="farms-page-subtitle">Your digital farm profiles — the heart of IntelliFarm AI</p>
           </div>
-          <button className="farms-add-btn" onClick={() => setShowForm(!showForm)}>
-            <Plus size={18} />
+          <button
+            className={showForm ? "farms-cancel-header-btn" : "farms-add-btn"}
+            onClick={() => {
+              if (showForm) {
+                resetForm();
+                setShowForm(false);
+              } else {
+                if (!location && profileLocation) setLocation(profileLocation);
+                setShowForm(true);
+              }
+            }}
+            type="button"
+          >
+            {!showForm && <Plus size={18} />}
             {showForm ? "Cancel" : "Register Farm"}
           </button>
         </div>
@@ -229,20 +229,27 @@ const Farms: React.FC = () => {
                 <label className="farms-form-label">Location / Address</label>
                 <div style={{ display: "flex", gap: "8px" }}>
                   <input
+                    ref={locationInputRef}
                     className="farms-form-input"
                     value={location}
                     onChange={e => setLocation(e.target.value)}
-                    placeholder="City, village, or GPS coordinates"
+                    placeholder="City, village, or farm address"
                     style={{ flex: 1 }}
                   />
-                  <button type="button" className="farms-detect-btn" onClick={handleDetectLocation} disabled={detectingLocation} title="Detect GPS location">
-                    <Navigation size={15} />
-                    {detectingLocation ? "..." : "GPS"}
+                  <button
+                    type="button"
+                    className="farms-edit-loc-btn"
+                    onClick={() => {
+                      if (locationInputRef.current) {
+                        locationInputRef.current.focus();
+                        locationInputRef.current.select();
+                      }
+                    }}
+                    title="Edit location"
+                  >
+                    <Edit2 size={15} /> Edit
                   </button>
                 </div>
-                {latitude && longitude && (
-                  <span className="farms-coords-badge">📍 {latitude}, {longitude}</span>
-                )}
               </div>
 
               <div className="farms-form-group">
@@ -573,16 +580,25 @@ const Farms: React.FC = () => {
         [data-theme="dark"] .farms-form-input { background: rgba(20,32,24,0.7); color: #fff; }
         .farms-form-input:focus { border-color: var(--fp); box-shadow: 0 0 0 3px rgba(46,125,50,0.1); }
         .farms-form-select { cursor: pointer; }
-        .farms-detect-btn {
+        .farms-cancel-header-btn {
+          padding: 10px 18px; border-radius: 14px; background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+          color: #fff; border: none; font-weight: 700; font-size: 14px; cursor: pointer;
+          box-shadow: 0 4px 14px rgba(239, 68, 68, 0.25); transition: all 0.2s;
+          display: flex; align-items: center; justify-content: center; gap: 6px;
+        }
+        .farms-cancel-header-btn:hover {
+          background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+          transform: translateY(-1px);
+        }
+        .farms-edit-loc-btn {
           display: flex; align-items: center; gap: 6px;
-          padding: 11px 14px; border-radius: 13px;
-          background: var(--fp-light); color: var(--fp);
-          border: 1.5px solid rgba(46,125,50,0.2);
+          padding: 11px 16px; border-radius: 13px;
+          background: rgba(59, 130, 246, 0.08); color: #3b82f6;
+          border: 1.5px solid rgba(59, 130, 246, 0.2);
           font-weight: 700; font-size: 13px; cursor: pointer;
           white-space: nowrap; transition: all 0.2s;
         }
-        .farms-detect-btn:hover { background: rgba(46,125,50,0.15); }
-        .farms-detect-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .farms-edit-loc-btn:hover { background: rgba(59, 130, 246, 0.15); }
         .farms-coords-badge { font-size: 11px; color: var(--fp); font-weight: 600; margin-top: 4px; }
         .farms-soil-preview {
           margin-top: 20px;
