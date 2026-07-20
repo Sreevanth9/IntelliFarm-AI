@@ -281,7 +281,7 @@ const Profile = () => {
               </div>
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+                <div className="profile-form-two-col">
                   <div style={{ background: "rgba(82,183,136,0.06)", borderRadius: "12px", padding: "10px 14px" }}>
                     <span style={{ fontSize: "10px", color: "#8e918f", fontWeight: 700, textTransform: "uppercase" }}>Total Farms</span>
                     <strong style={{ display: "block", fontSize: "22px", color: "#52b788", fontWeight: 800 }}>{farms.length}</strong>

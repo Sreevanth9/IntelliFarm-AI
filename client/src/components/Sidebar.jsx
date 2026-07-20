@@ -1,7 +1,7 @@
 import { NavLink, useNavigate } from "react-router-dom";
 import { ROUTES } from "../utils/constants";
 import farmLogo from "../assets/intellifarm-icon.png";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 
 import { useAuth } from "../context/AuthContext";
 import toast from "react-hot-toast";
@@ -21,6 +21,8 @@ import {
 const Sidebar = ({ isOpen, onClose }) => {
   const { logout } = useAuth();
   const navigate = useNavigate();
+  const closeBtnRef = useRef(null);
+  const isMobileDrawer = () => window.innerWidth <= 1024;
 
   const group1 = [
     { label: "Dashboard", href: ROUTES.dashboard, icon: LayoutDashboard },
@@ -49,6 +51,13 @@ const Sidebar = ({ isOpen, onClose }) => {
       });
   };
 
+  // Move focus into drawer when opened on mobile
+  useEffect(() => {
+    if (isOpen && isMobileDrawer()) {
+      setTimeout(() => closeBtnRef.current?.focus(), 50);
+    }
+  }, [isOpen]);
+
   // Close drawer on Escape key
   useEffect(() => {
     const handler = (e) => {
@@ -58,10 +67,9 @@ const Sidebar = ({ isOpen, onClose }) => {
     return () => document.removeEventListener("keydown", handler);
   }, [isOpen, onClose]);
 
-  // Lock body scroll when drawer is open on mobile
+  // Lock body scroll when drawer is open on mobile/tablet
   useEffect(() => {
-    const isMobileOrTablet = window.innerWidth <= 1024;
-    if (isMobileOrTablet && isOpen) {
+    if (isOpen && isMobileDrawer()) {
       document.body.style.overflow = "hidden";
     } else {
       document.body.style.overflow = "";
@@ -69,9 +77,19 @@ const Sidebar = ({ isOpen, onClose }) => {
     return () => { document.body.style.overflow = ""; };
   }, [isOpen]);
 
+  // Re-evaluate body scroll on resize to avoid stale lock
+  useEffect(() => {
+    const onResize = () => {
+      if (window.innerWidth >= 1025) {
+        document.body.style.overflow = "";
+      }
+    };
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+
   const handleNavClick = () => {
-    // Close drawer on navigation on mobile/tablet
-    if (window.innerWidth <= 1024) onClose?.();
+    if (isMobileDrawer()) onClose?.();
   };
 
   const renderMenuItems = (items) => {
@@ -91,9 +109,7 @@ const Sidebar = ({ isOpen, onClose }) => {
           </span>
           <span className="sidebar-text">{item.label}</span>
           {item.badgeCount && (
-            <span className="sidebar-badge">
-              {item.badgeCount}
-            </span>
+            <span className="sidebar-badge">{item.badgeCount}</span>
           )}
           <ChevronRight size={16} className="sidebar-chevron" />
         </NavLink>
@@ -103,25 +119,32 @@ const Sidebar = ({ isOpen, onClose }) => {
 
   return (
     <>
-      {/* Backdrop — only visible on mobile/tablet when open */}
+      {/* Backdrop — visible on mobile/tablet when drawer is open */}
       <div
         className={`sidebar-backdrop${isOpen ? " visible" : ""}`}
         onClick={onClose}
         aria-hidden="true"
       />
 
-      <aside className={`sidebar${isOpen ? " sidebar-open" : ""}`}>
+      <aside
+        id="main-sidebar"
+        className={`sidebar${isOpen ? " sidebar-open" : ""}`}
+        role={isOpen && isMobileDrawer() ? "dialog" : undefined}
+        aria-modal={isOpen && isMobileDrawer() ? "true" : undefined}
+        aria-label="Navigation menu"
+      >
         {/* Close button — shown inside drawer on ≤1024px */}
         <button
+          ref={closeBtnRef}
           className="sidebar-close-btn"
           onClick={onClose}
-          aria-label="Close menu"
+          aria-label="Close navigation menu"
           type="button"
         >
           <X size={16} />
         </button>
 
-        {/* 1. Fixed Header Area (Logo Only) */}
+        {/* Logo / Brand */}
         <div className="sidebar-header-fixed" style={{ marginBottom: "16px" }}>
           <div className="sidebar-header" style={{ marginBottom: "16px" }}>
             <img src={farmLogo} alt="IntelliFarm AI Logo" className="sidebar-logo-img" />
@@ -133,31 +156,26 @@ const Sidebar = ({ isOpen, onClose }) => {
           <hr className="sidebar-divider" style={{ margin: 0 }} />
         </div>
 
-        {/* 2. Scrollable Content Area */}
+        {/* Scrollable nav */}
         <nav className="sidebar-nav">
-
-          {/* Group 1: Dashboard & AI Services */}
           <div className="sidebar-menu-group">
             {renderMenuItems(group1)}
           </div>
 
           <hr className="sidebar-divider" />
 
-          {/* Group 2: Farm Ops */}
           <div className="sidebar-menu-group">
             {renderMenuItems(group2)}
           </div>
 
           <hr className="sidebar-divider" />
 
-          {/* Group 4: Account / Config */}
           <div className="sidebar-menu-group">
             {renderMenuItems(group4)}
           </div>
 
           <hr className="sidebar-divider" />
 
-          {/* Section 5: Logout Action */}
           <button onClick={handleLogout} className="sidebar-logout">
             <span className="sidebar-icon" style={{ color: "#FF4D4D" }}>
               <LogOut size={18} strokeWidth={2} />

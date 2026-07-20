@@ -163,17 +163,17 @@ const Settings: React.FC = () => {
             <p style={{ fontSize: "14px", color: "var(--text-main, #5b6b62)", marginBottom: "20px" }}>
               Select how IntelliFarm AI looks on your device.
             </p>
-            <div style={{ display: "flex", gap: "12px" }}>
+            <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
               <button
                 className={`glass-btn-${theme === "dark" ? "primary" : "secondary"}`}
-                style={{ flex: 1, padding: "12px", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}
+                style={{ flex: 1, minWidth: "120px", padding: "12px", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}
                 onClick={() => setTheme("dark")}
               >
                 <span>🌙</span> Dark Mode
               </button>
               <button
                 className={`glass-btn-${theme === "light" ? "primary" : "secondary"}`}
-                style={{ flex: 1, padding: "12px", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}
+                style={{ flex: 1, minWidth: "120px", padding: "12px", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}
                 onClick={() => setTheme("light")}
               >
                 <span>☀️</span> Light Mode

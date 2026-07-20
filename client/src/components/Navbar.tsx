@@ -34,7 +34,7 @@ const SEARCHABLE_ITEMS: SearchableItem[] = [
   { title: "Government Schemes", category: "Services", description: "Subsidies, insurance policies & crop support", route: "/schemes" }
 ];
 
-const Navbar: React.FC<{ onMenuClick?: () => void }> = ({ onMenuClick }) => {
+const Navbar: React.FC<{ onMenuClick?: () => void; sidebarOpen?: boolean }> = ({ onMenuClick, sidebarOpen = false }) => {
   const { farmer, isAuthenticated, logout } = useAuth() as any;
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -111,7 +111,9 @@ const Navbar: React.FC<{ onMenuClick?: () => void }> = ({ onMenuClick }) => {
           type="button"
           className="navbar-hamburger"
           onClick={onMenuClick}
-          aria-label="Open navigation menu"
+          aria-label={sidebarOpen ? "Close navigation menu" : "Open navigation menu"}
+          aria-expanded={sidebarOpen}
+          aria-controls="main-sidebar"
         >
           <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
             <line x1="2" y1="5" x2="18" y2="5" />
