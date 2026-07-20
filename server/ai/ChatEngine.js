@@ -81,10 +81,20 @@ class ChatEngine {
         console.warn("[ChatEngine] Database WARNING: Failed to save user message:", dbErr.message);
       }
 
-      // 3. Fetch Farm Profile Context
-      console.log("[ChatEngine] STEP 5: Loading farm profile context...");
+      // 3. Fetch Farm & User Profile Context
+      console.log("[ChatEngine] STEP 5: Loading user & farm profile context...");
       let activeFarm = null;
+      let userProfile = null;
       try {
+        if (req.user) {
+          userProfile = {
+            name: req.user.name,
+            pincode: req.user.pincode,
+            location: req.user.location,
+            cropsInterested: req.user.crops_interested || []
+          };
+        }
+
         const { data: farms } = await supabase
           .from("farms")
           .select("*")
@@ -96,8 +106,9 @@ class ChatEngine {
           activeFarm = {
             id: farm.id,
             name: farm.farm_name,
-            location: farm.location,
+            location: farm.location || userProfile?.location,
             crop: farm.crop,
+            cropVariety: farm.crop_variety,
             soilType: farm.soil_type,
             area: farm.area,
             sowingDate: farm.sowing_date
@@ -138,8 +149,8 @@ class ChatEngine {
       try {
         toolOutputs = await toolExecutor.executeAll(message, {
           id: userId,
-          location: activeFarm?.location || req.user?.location || "Hyderabad",
-          crops_interested: activeFarm?.crop ? [activeFarm.crop] : []
+          location: activeFarm?.location || userProfile?.location || (userProfile?.pincode ? `Pincode ${userProfile.pincode}` : "Hyderabad"),
+          crops_interested: activeFarm?.crop ? [activeFarm.crop] : (userProfile?.cropsInterested || [])
         });
         console.log("[ChatEngine] Context tools completed");
       } catch (err) {
@@ -149,6 +160,7 @@ class ChatEngine {
       // 7. Compile Prompt Messages
       console.log("[ChatEngine] STEP 9: Building prompt message inputs...");
       const promptMessages = promptBuilder.build({
+        userProfile,
         farmProfile: activeFarm,
         weatherContext: toolOutputs.weather,
         diseaseContext: toolOutputs.disease,

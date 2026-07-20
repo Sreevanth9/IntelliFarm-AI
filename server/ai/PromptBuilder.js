@@ -35,6 +35,7 @@ Always adhere to the following formatting and structural rules:
 
   build(params) {
     const {
+      userProfile = null,
       farmProfile = null,
       weatherContext = null,
       diseaseContext = null,
@@ -54,10 +55,17 @@ Always adhere to the following formatting and structural rules:
     // 2. Build Context String
     let contextStr = "CRITICAL FARM CONTEXT:\n";
 
+    if (userProfile) {
+      if (userProfile.name) contextStr += `- Farmer Name: ${userProfile.name}\n`;
+      if (userProfile.pincode) contextStr += `- Farmer Pincode: ${userProfile.pincode}\n`;
+      if (userProfile.location) contextStr += `- Primary Location: ${userProfile.location}\n`;
+      if (userProfile.cropsInterested?.length > 0) contextStr += `- Crops of Interest: ${userProfile.cropsInterested.join(", ")}\n`;
+    }
+
     if (farmProfile) {
-      contextStr += `- Active Farm: "${farmProfile.name}" (Crop: ${farmProfile.crop}, Soil Type: ${farmProfile.soilType}, Size: ${farmProfile.area}, Sowing Date: ${farmProfile.sowingDate})\n`;
+      contextStr += `- Active Farm: "${farmProfile.name}" (Crop: ${farmProfile.crop}, Variety: ${farmProfile.cropVariety || "N/A"}, Soil Type: ${farmProfile.soilType}, Size: ${farmProfile.area}, Sowing Date: ${farmProfile.sowingDate})\n`;
       if (farmProfile.location) {
-        contextStr += `- Location: ${farmProfile.location}\n`;
+        contextStr += `- Farm Location: ${farmProfile.location}\n`;
       }
     }
 

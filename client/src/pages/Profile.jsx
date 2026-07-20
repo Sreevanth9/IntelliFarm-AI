@@ -53,12 +53,15 @@ const Profile = () => {
     loadProfile();
   }, [loadProfile]);
 
+  // Strict Profile Completion calculation:
+  // Name: 25%, Pincode: 25%, Location: 25%, At least 1 Crop: 25% = 100%
   const calculateCompletion = () => {
     let score = 0;
-    if (name) score += 35;
-    if (pincode || location) score += 40;
-    if (profileImg || (profile && profile.profileImg)) score += 25;
-    return Math.min(score, 100);
+    if (name && name.trim()) score += 25;
+    if (pincode && pincode.trim()) score += 25;
+    if (location && location.trim()) score += 25;
+    if (selectedCrops && selectedCrops.length > 0) score += 25;
+    return score;
   };
 
   const handleImageChange = (e) => {
@@ -88,12 +91,23 @@ const Profile = () => {
 
   const handleUpdateProfile = async (e) => {
     e.preventDefault();
+
+    if (!pincode || !pincode.trim()) {
+      toast.error("Please enter your 6-digit Pincode.");
+      return;
+    }
+
+    if (!selectedCrops || selectedCrops.length === 0) {
+      toast.error("Please select at least 1 crop of interest.");
+      return;
+    }
+
     setLoading(true);
     try {
       const { data } = await updateProfile({
-        name,
-        pincode,
-        location,
+        name: name.trim(),
+        pincode: pincode.trim(),
+        location: location.trim(),
         cropsInterested: selectedCrops
       });
       if (data.success) {
@@ -130,7 +144,7 @@ const Profile = () => {
 
   const currentFarmer = profile || farmer || {};
   const completionPercent = calculateCompletion();
-  const isProfileIncomplete = completionPercent < 75 || (!pincode && !location);
+  const isProfileIncomplete = completionPercent < 100;
 
   // Active sessions without IP addresses
   const activeSessions = [
@@ -142,15 +156,17 @@ const Profile = () => {
     <MainLayout eyebrow="" title="" subtitle="">
       <div className="profile-container">
 
-        {/* ── Complete Profile Banner (Shown if Google login / location missing) ── */}
+        {/* ── Complete Profile Banner (Shown if Pincode or Crops missing) ── */}
         {isProfileIncomplete && (
           <div className="profile-alert-banner">
             <div className="profile-alert-content">
               <AlertTriangle size={24} className="profile-alert-icon" />
               <div>
-                <strong className="profile-alert-title">Complete Your Farmer Profile</strong>
+                <strong className="profile-alert-title">Profile Setup Incomplete ({completionPercent}%)</strong>
                 <p className="profile-alert-desc">
-                  Please enter your <strong>Pincode & Farm Area</strong> to enable personalized weather advisories, spray windows, and crop disease alerts for your region.
+                  {!pincode?.trim() ? "Pincode is missing. " : ""}
+                  {selectedCrops.length === 0 ? "Select at least 1 crop of interest. " : ""}
+                  Provide all details so IntelliFarm AI & Spryzen can accurately personalize weather, farm recommendations, and disease advisories.
                 </p>
               </div>
             </div>
@@ -213,7 +229,7 @@ const Profile = () => {
                     <MapPin size={14} /> Pincode
                   </span>
                   <strong className="profile-summary-val">
-                    {pincode || currentFarmer.pincode || "Not Specified"}
+                    {pincode || currentFarmer.pincode || "Not Set"}
                   </strong>
                 </div>
 
@@ -222,7 +238,7 @@ const Profile = () => {
                     <MapPin size={14} /> Farm Area / Location
                   </span>
                   <strong className="profile-summary-val">
-                    {currentFarmer.location || location || "Not Specified"}
+                    {location || currentFarmer.location || "Not Set"}
                   </strong>
                 </div>
 
@@ -231,12 +247,12 @@ const Profile = () => {
                     <Sparkles size={14} /> Crops of Interest
                   </span>
                   <div className="profile-crop-tags">
-                    {(currentFarmer.cropsInterested || selectedCrops).length > 0 ? (
-                      (currentFarmer.cropsInterested || selectedCrops).map((crop) => (
+                    {selectedCrops.length > 0 ? (
+                      selectedCrops.map((crop) => (
                         <span key={crop} className="profile-crop-tag">{crop}</span>
                       ))
                     ) : (
-                      <span className="profile-no-tags">No crops selected</span>
+                      <span className="profile-no-tags">No crops selected (At least 1 required)</span>
                     )}
                   </div>
                 </div>
@@ -275,12 +291,12 @@ const Profile = () => {
                     <strong className="profile-detail-val">{currentFarmer.email || "N/A"}</strong>
                   </div>
                   <div className="profile-detail-card">
-                    <span className="profile-detail-label"><MapPin size={13} /> Pincode</span>
+                    <span className="profile-detail-label"><MapPin size={13} /> Pincode *</span>
                     <strong className="profile-detail-val">{pincode || currentFarmer.pincode || "Not Set"}</strong>
                   </div>
                   <div className="profile-detail-card">
                     <span className="profile-detail-label"><MapPin size={13} /> Farm Area / Location</span>
-                    <strong className="profile-detail-val">{currentFarmer.location || location || "Not Set"}</strong>
+                    <strong className="profile-detail-val">{location || currentFarmer.location || "Not Set"}</strong>
                   </div>
                 </div>
               ) : (
@@ -288,7 +304,7 @@ const Profile = () => {
                   <div className="profile-form-two-col">
 
                     <div className="profile-field-group">
-                      <label className="profile-field-label">Full Name</label>
+                      <label className="profile-field-label">Full Name *</label>
                       <input
                         type="text"
                         className="profile-field-input"
@@ -300,7 +316,7 @@ const Profile = () => {
                     </div>
 
                     <div className="profile-field-group">
-                      <label className="profile-field-label">Pincode (Postal Code)</label>
+                      <label className="profile-field-label">Pincode (Postal Code) *</label>
                       <input
                         type="text"
                         maxLength={10}
@@ -325,9 +341,11 @@ const Profile = () => {
 
                   </div>
 
-                  {/* Crops of Interest */}
+                  {/* Crops of Interest (Mandatory: At least 1) */}
                   <div className="profile-field-group">
-                    <label className="profile-field-label">Crops of Interest</label>
+                    <label className="profile-field-label">
+                      Crops of Interest * <span style={{ textTransform: "none", fontWeight: 400, color: "#ef4444" }}>(Select at least 1)</span>
+                    </label>
                     <div className="profile-crop-selector-grid">
                       {availableCrops.map((crop) => {
                         const active = selectedCrops.includes(crop);
