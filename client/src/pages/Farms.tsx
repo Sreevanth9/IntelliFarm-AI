@@ -1,22 +1,42 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import toast from "react-hot-toast";
 import { useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import {
   MapPin, Leaf, Calendar, Trash2, CloudSun,
   Microscope, Sprout, Waves, ChevronDown, ChevronUp,
-  Plus, BarChart3, AlertCircle, Edit2
+  Plus, BarChart3, Edit2, FileText
 } from "lucide-react";
 
 import EmptyState from "../components/EmptyState/EmptyState";
 import MainLayout from "../layouts/MainLayout";
 import { useAuth } from "../context/AuthContext";
-import { addFarm, fetchFarms, deleteFarm, FarmPayload } from "../services/farmApi";
+import { addFarm, fetchFarms, updateFarm, deleteFarm, FarmPayload } from "../services/farmApi";
 import { Farm } from "../types";
 
-// ─── Static data ───────────────────────────────────────────────────────────────
+// ─── Static Data & Crop Varieties Map ────────────────────────────────────────
 
-const CROPS = ["Paddy", "Wheat", "Maize", "Tomato", "Cotton", "Groundnut", "Sugarcane", "Potato", "Chilli", "Soybean", "Onion", "Sunflower"];
+const CROPS = [
+  "Paddy", "Wheat", "Maize", "Tomato", "Cotton",
+  "Groundnut", "Sugarcane", "Potato", "Chilli",
+  "Soybean", "Onion", "Sunflower"
+];
+
+const CROP_VARIETIES: Record<string, string[]> = {
+  Tomato: ["Roma VF", "Arka Rakshak", "Pusa Ruby", "Abhinav", "Sona", "Custom / Other"],
+  Paddy: ["Sona Masuri", "BPT 5204 (Samba Mahsuri)", "Basmati 370", "IR64", "Swarna", "MTU 1010", "Custom / Other"],
+  Wheat: ["HD 2967", "PBW 343", "DBW 187", "GW 322", "Sharbati", "Custom / Other"],
+  Maize: ["DHM 117", "HQPM 1", "Pioneer 3396", "Bio 9681", "Custom / Other"],
+  Cotton: ["Bt Cotton (RCH 2)", "DCH 32", "Bunny", "Bollgard II", "Custom / Other"],
+  Chilli: ["Guntur Sannam (S4)", "Byadgi", "Wonder Hot", "Teja (S17)", "Custom / Other"],
+  Sugarcane: ["Co 0238", "Co 86032", "Co 0118", "Custom / Other"],
+  Potato: ["Kufri Jyoti", "Kufri Pukhraj", "Kufri Lauvkar", "Custom / Other"],
+  Groundnut: ["K6 (Kadiri 6)", "TG 37A", "JL 24", "Custom / Other"],
+  Soybean: ["JS 335", "JS 95-60", "NRC 37", "Custom / Other"],
+  Onion: ["N-53", "Bhima Super", "Agrifound Dark Red", "Custom / Other"],
+  Sunflower: ["KBSH 44", "DRSH 1", "Sunbred", "Custom / Other"],
+};
+
 const SOIL_TYPES = ["Loamy", "Clayey", "Black Cotton", "Sandy", "Alluvial", "Red Sandy"];
 const IRRIGATION_METHODS = ["Drip", "Sprinkler", "Flood", "Furrow", "Rain-fed", "Manual"];
 
@@ -57,20 +77,22 @@ const Farms: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(false);
   const [showForm, setShowForm] = useState(false);
+  const [editingFarmId, setEditingFarmId] = useState<string | null>(null);
   const [expandedFarm, setExpandedFarm] = useState<string | null>(null);
+  const [logModalFarm, setLogModalFarm] = useState<Farm | null>(null);
+  const [newEventText, setNewEventText] = useState("");
 
   const profileLocation = farmer?.location || farmer?.profile_location || "";
-  const locationInputRef = React.useRef<HTMLInputElement | null>(null);
+  const locationInputRef = useRef<HTMLInputElement | null>(null);
 
   // Form state
   const [name, setName] = useState("");
   const [location, setLocation] = useState(profileLocation);
-  const [latitude, setLatitude] = useState<number | null>(null);
-  const [longitude, setLongitude] = useState<number | null>(null);
+  const [areaValue, setAreaValue] = useState("4.5");
   const [crop, setCrop] = useState("Tomato");
-  const [cropVariety, setCropVariety] = useState("");
+  const [cropVariety, setCropVariety] = useState("Roma VF");
+  const [customVariety, setCustomVariety] = useState("");
   const [soilType, setSoilType] = useState("Loamy");
-  const [area, setArea] = useState("");
   const [sowingDate, setSowingDate] = useState("");
   const [expectedHarvest, setExpectedHarvest] = useState("");
   const [irrigationMethod, setIrrigationMethod] = useState("Drip");
@@ -89,50 +111,153 @@ const Farms: React.FC = () => {
 
   useEffect(() => { loadFarms(); }, [loadFarms]);
 
-  // Sync profile location as default when opening form
+  // Sync default profile location
   useEffect(() => {
-    if (showForm && profileLocation) {
+    if (showForm && !editingFarmId && profileLocation) {
       setLocation(prev => prev || profileLocation);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [showForm, profileLocation]);
+  }, [showForm, editingFarmId, profileLocation]);
+
+  // Update variety selection when crop changes
+  const handleCropChange = (selectedCrop: string) => {
+    setCrop(selectedCrop);
+    const varieties = CROP_VARIETIES[selectedCrop] || ["Custom / Other"];
+    setCropVariety(varieties[0]);
+    setCustomVariety("");
+  };
 
   const resetForm = () => {
-    setName(""); setLocation(profileLocation); setLatitude(null); setLongitude(null);
-    setCrop("Tomato"); setCropVariety(""); setSoilType("Loamy"); setArea("");
-    setSowingDate(""); setExpectedHarvest(""); setIrrigationMethod("Drip"); setNotes("");
+    setEditingFarmId(null);
+    setName("");
+    setLocation(profileLocation);
+    setAreaValue("4.5");
+    setCrop("Tomato");
+    setCropVariety("Roma VF");
+    setCustomVariety("");
+    setSoilType("Loamy");
+    setSowingDate("");
+    setExpectedHarvest("");
+    setIrrigationMethod("Drip");
+    setNotes("");
+  };
+
+  const handleStartEdit = (farm: any) => {
+    setEditingFarmId(farm.id);
+    setName(farm.name || "");
+    setLocation(farm.location || profileLocation);
+
+    // Extract numeric area if stored as "4.5 acres"
+    const rawArea = farm.area || "4.5";
+    const numMatch = String(rawArea).match(/[\d.]+/);
+    setAreaValue(numMatch ? numMatch[0] : "4.5");
+
+    setCrop(farm.crop || "Tomato");
+    
+    // Variety check
+    const currentCropVarieties = CROP_VARIETIES[farm.crop] || [];
+    if (farm.cropVariety && currentCropVarieties.includes(farm.cropVariety)) {
+      setCropVariety(farm.cropVariety);
+      setCustomVariety("");
+    } else if (farm.cropVariety) {
+      setCropVariety("Custom / Other");
+      setCustomVariety(farm.cropVariety);
+    } else {
+      setCropVariety(currentCropVarieties[0] || "Custom / Other");
+      setCustomVariety("");
+    }
+
+    setSoilType(farm.soilType || "Loamy");
+    
+    // Format date string to YYYY-MM-DD for date input
+    if (farm.sowingDate) {
+      setSowingDate(new Date(farm.sowingDate).toISOString().split("T")[0]);
+    } else {
+      setSowingDate("");
+    }
+    if (farm.expectedHarvest) {
+      setExpectedHarvest(new Date(farm.expectedHarvest).toISOString().split("T")[0]);
+    } else {
+      setExpectedHarvest("");
+    }
+
+    setIrrigationMethod(farm.irrigationMethod || "Drip");
+    setNotes(farm.notes || "");
+    setShowForm(true);
+    window.scrollTo({ top: 180, behavior: "smooth" });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name || !crop || !soilType || !area || !sowingDate) {
-      toast.error("Please fill in all required fields.");
+    if (!name || !crop || !soilType || !sowingDate) {
+      toast.error("Please fill in all mandatory fields (*)");
       return;
     }
+
+    const finalVariety = cropVariety === "Custom / Other" ? customVariety.trim() : cropVariety;
+    const finalArea = areaValue ? `${areaValue} acres` : "1.0 acres";
+
     setLoading(true);
     try {
       const payload: FarmPayload = {
-        name, location, latitude, longitude,
-        crop, cropVariety, soilType, area, sowingDate,
+        name,
+        location: location || undefined,
+        crop,
+        cropVariety: finalVariety || undefined,
+        soilType,
+        area: finalArea,
+        sowingDate,
         expectedHarvest: expectedHarvest || undefined,
-        irrigationMethod, notes: notes || undefined,
+        irrigationMethod: irrigationMethod || undefined,
+        notes: notes || undefined,
       };
-      const { data } = await addFarm(payload);
-      if (data.success && data.farm) {
-        setFarms((prev) => [data.farm, ...prev]);
-        toast.success("Farm registered successfully!");
-        resetForm();
-        setShowForm(false);
+
+      if (editingFarmId) {
+        const { data } = await updateFarm(editingFarmId, payload);
+        if (data.success && data.farm) {
+          setFarms((prev) => prev.map((f) => (f.id === editingFarmId ? data.farm : f)));
+          toast.success("Farm updated successfully!");
+          resetForm();
+          setShowForm(false);
+        }
+      } else {
+        const { data } = await addFarm(payload);
+        if (data.success && data.farm) {
+          setFarms((prev) => [data.farm, ...prev]);
+          toast.success("Farm registered successfully!");
+          resetForm();
+          setShowForm(false);
+        }
       }
     } catch (err: any) {
-      toast.error(err.response?.data?.message || "Failed to create farm.");
+      toast.error(err.response?.data?.message || "Failed to save farm.");
     } finally {
       setLoading(false);
     }
   };
 
+  const handleAddLogEvent = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!logModalFarm || !newEventText.trim()) return;
+
+    const dateStr = new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+    const logEntry = `[${dateStr}] ${newEventText.trim()}`;
+    const updatedNotes = logModalFarm.notes ? `${logModalFarm.notes}\n${logEntry}` : logEntry;
+
+    try {
+      const { data } = await updateFarm(logModalFarm.id!, { notes: updatedNotes });
+      if (data.success && data.farm) {
+        setFarms((prev) => prev.map((f) => (f.id === logModalFarm.id ? data.farm : f)));
+        toast.success("Log entry added!");
+        setLogModalFarm(null);
+        setNewEventText("");
+      }
+    } catch (err: any) {
+      toast.error("Failed to add log entry");
+    }
+  };
+
   const handleDelete = async (id: string) => {
-    if (!window.confirm("Are you sure you want to delete this farm?")) return;
+    if (!window.confirm("Are you sure you want to delete this farm profile?")) return;
     try {
       const { data } = await deleteFarm(id);
       if (data.success) {
@@ -152,7 +277,7 @@ const Farms: React.FC = () => {
     );
   }
 
-  const totalScans = 0; // placeholder until we join disease_reports
+  const availableVarieties = CROP_VARIETIES[crop] || ["Custom / Other"];
 
   return (
     <MainLayout eyebrow="" title="" subtitle="">
@@ -202,28 +327,30 @@ const Farms: React.FC = () => {
               <span className="farms-stat-label">Total Area</span>
               <strong className="farms-stat-value">{farms.map(f => parseFloat(f.area) || 0).reduce((a, b) => a + b, 0).toFixed(1)} acres</strong>
             </div>
-            <div className="farms-stat-divider" />
-            <div className="farms-stat-item">
-              <AlertCircle size={18} className="farms-stat-icon" />
-              <span className="farms-stat-label">Disease Scans</span>
-              <strong className="farms-stat-value">{totalScans}</strong>
-            </div>
           </div>
         )}
 
-        {/* ── Add Farm Form ── */}
+        {/* ── Add / Edit Farm Form ── */}
         {showForm && (
           <div className="farms-form-card">
             <h2 className="farms-form-title">
               <Sprout size={20} />
-              Register New Farm
+              {editingFarmId ? "Update Farm Profile" : "Register New Farm"}
             </h2>
             <form onSubmit={handleSubmit} className="farms-form-grid">
 
               {/* Row 1: Name + Location */}
               <div className="farms-form-group farms-span-2">
-                <label className="farms-form-label">Farm Name *</label>
-                <input className="farms-form-input" value={name} onChange={e => setName(e.target.value)} placeholder="e.g. North Valley Field" required />
+                <label className="farms-form-label">
+                  Farm Name <span className="farms-req-star">*</span>
+                </label>
+                <input
+                  className="farms-form-input"
+                  value={name}
+                  onChange={e => setName(e.target.value)}
+                  placeholder="e.g. North Valley Field"
+                  required
+                />
               </div>
 
               <div className="farms-form-group">
@@ -253,60 +380,127 @@ const Farms: React.FC = () => {
                 </div>
               </div>
 
+              {/* Area in Acres */}
               <div className="farms-form-group">
-                <label className="farms-form-label">Area *</label>
-                <input className="farms-form-input" value={area} onChange={e => setArea(e.target.value)} placeholder="e.g. 4.5 acres" required />
+                <label className="farms-form-label">Area (in Acres)</label>
+                <div className="farms-area-wrapper">
+                  <input
+                    type="number"
+                    step="0.1"
+                    min="0.1"
+                    className="farms-form-input"
+                    value={areaValue}
+                    onChange={e => setAreaValue(e.target.value)}
+                    placeholder="e.g. 4.5"
+                  />
+                  <span className="farms-area-unit-badge">Acres</span>
+                </div>
               </div>
 
               {/* Row 2: Crop + Variety */}
               <div className="farms-form-group">
-                <label className="farms-form-label">Crop Type *</label>
-                <select className="farms-form-input farms-form-select" value={crop} onChange={e => setCrop(e.target.value)}>
+                <label className="farms-form-label">
+                  Crop Type <span className="farms-req-star">*</span>
+                </label>
+                <select
+                  className="farms-form-input farms-form-select"
+                  value={crop}
+                  onChange={e => handleCropChange(e.target.value)}
+                  required
+                >
                   {CROPS.map(c => <option key={c}>{c}</option>)}
                 </select>
               </div>
 
               <div className="farms-form-group">
                 <label className="farms-form-label">Crop Variety</label>
-                <input className="farms-form-input" value={cropVariety} onChange={e => setCropVariety(e.target.value)} placeholder="e.g. Roma VF, Sona Masuri" />
+                <select
+                  className="farms-form-input farms-form-select"
+                  value={cropVariety}
+                  onChange={e => setCropVariety(e.target.value)}
+                >
+                  {availableVarieties.map(v => <option key={v}>{v}</option>)}
+                </select>
+
+                {cropVariety === "Custom / Other" && (
+                  <input
+                    className="farms-form-input"
+                    style={{ marginTop: "6px" }}
+                    value={customVariety}
+                    onChange={e => setCustomVariety(e.target.value)}
+                    placeholder="Type custom crop variety name"
+                  />
+                )}
               </div>
 
               {/* Row 3: Soil + Irrigation */}
               <div className="farms-form-group">
-                <label className="farms-form-label">Soil Type *</label>
-                <select className="farms-form-input farms-form-select" value={soilType} onChange={e => setSoilType(e.target.value)}>
+                <label className="farms-form-label">
+                  Soil Type <span className="farms-req-star">*</span>
+                </label>
+                <select
+                  className="farms-form-input farms-form-select"
+                  value={soilType}
+                  onChange={e => setSoilType(e.target.value)}
+                  required
+                >
                   {SOIL_TYPES.map(s => <option key={s}>{s}</option>)}
                 </select>
               </div>
 
               <div className="farms-form-group">
                 <label className="farms-form-label">Irrigation Method</label>
-                <select className="farms-form-input farms-form-select" value={irrigationMethod} onChange={e => setIrrigationMethod(e.target.value)}>
+                <select
+                  className="farms-form-input farms-form-select"
+                  value={irrigationMethod}
+                  onChange={e => setIrrigationMethod(e.target.value)}
+                >
                   {IRRIGATION_METHODS.map(m => <option key={m}>{m}</option>)}
                 </select>
               </div>
 
               {/* Row 4: Dates */}
               <div className="farms-form-group">
-                <label className="farms-form-label">Sowing Date *</label>
-                <input className="farms-form-input" type="date" value={sowingDate} onChange={e => setSowingDate(e.target.value)} required />
+                <label className="farms-form-label">
+                  Sowing Date <span className="farms-req-star">*</span>
+                </label>
+                <input
+                  className="farms-form-date-input"
+                  type="date"
+                  value={sowingDate}
+                  onChange={e => setSowingDate(e.target.value)}
+                  required
+                />
               </div>
 
               <div className="farms-form-group">
                 <label className="farms-form-label">Expected Harvest Date</label>
-                <input className="farms-form-input" type="date" value={expectedHarvest} onChange={e => setExpectedHarvest(e.target.value)} />
+                <input
+                  className="farms-form-date-input"
+                  type="date"
+                  value={expectedHarvest}
+                  onChange={e => setExpectedHarvest(e.target.value)}
+                />
               </div>
 
               {/* Notes */}
               <div className="farms-form-group farms-span-2">
-                <label className="farms-form-label">Notes</label>
-                <textarea className="farms-form-input" rows={2} value={notes} onChange={e => setNotes(e.target.value)} placeholder="Any special instructions, variety details, or field notes..." />
+                <label className="farms-form-label">Notes & Health Log</label>
+                <textarea
+                  className="farms-form-input"
+                  rows={3}
+                  value={notes}
+                  onChange={e => setNotes(e.target.value)}
+                  placeholder="Field notes, disease history, or fertilizer applications..."
+                />
               </div>
 
               <div className="farms-span-2" style={{ display: "flex", gap: "12px", justifyContent: "flex-end" }}>
-                <button type="button" className="farms-cancel-btn" onClick={() => { resetForm(); setShowForm(false); }}>Cancel</button>
+                <button type="button" className="farms-cancel-btn" onClick={() => { resetForm(); setShowForm(false); }}>
+                  Cancel
+                </button>
                 <button type="submit" disabled={loading} className="farms-submit-btn">
-                  {loading ? "Registering..." : "Register Farm"}
+                  {loading ? (editingFarmId ? "Updating..." : "Registering...") : (editingFarmId ? "Update Farm" : "Register Farm")}
                 </button>
               </div>
             </form>
@@ -320,7 +514,7 @@ const Farms: React.FC = () => {
           </div>
         )}
 
-        {/* ── Farm Cards ── */}
+        {/* ── Farm Cards Grid ── */}
         {fetching ? (
           <div className="farms-loading">
             <div className="farms-spinner" />
@@ -354,9 +548,24 @@ const Farms: React.FC = () => {
                         <span className="farms-card-location"><MapPin size={12} /> {farm.location}</span>
                       )}
                     </div>
-                    <button className="farms-delete-btn" onClick={() => handleDelete(farm.id!)} title="Delete farm">
-                      <Trash2 size={16} />
-                    </button>
+                    <div style={{ display: "flex", gap: "6px" }}>
+                      <button
+                        className="farms-card-edit-btn"
+                        onClick={() => handleStartEdit(farm)}
+                        title="Edit farm details"
+                        type="button"
+                      >
+                        <Edit2 size={15} />
+                      </button>
+                      <button
+                        className="farms-delete-btn"
+                        onClick={() => handleDelete(farm.id!)}
+                        title="Delete farm"
+                        type="button"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
                   </div>
 
                   {/* Crop + Area badges */}
@@ -405,24 +614,45 @@ const Farms: React.FC = () => {
                     <p>{soilInfo.desc}</p>
                   </div>
 
-                  {/* Expand / Collapse additional info */}
-                  {farm.notes && (
-                    <>
+                  {/* Expand / Collapse Notes & Event Tracker */}
+                  <div className="farms-notes-section">
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                       <button
                         className="farms-expand-btn"
                         onClick={() => setExpandedFarm(isExpanded ? null : farm.id!)}
+                        type="button"
                       >
                         {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-                        {isExpanded ? "Hide notes" : "Show notes"}
+                        {isExpanded ? "Hide health tracker" : "View notes & timeline tracker"}
                       </button>
-                      {isExpanded && (
-                        <div className="farms-notes-box">
-                          <span className="farms-section-label">Notes</span>
-                          <p>{farm.notes}</p>
-                        </div>
-                      )}
-                    </>
-                  )}
+                      <button
+                        type="button"
+                        className="farms-log-entry-btn"
+                        onClick={() => setLogModalFarm(farm)}
+                        title="Log a new health event or update note"
+                      >
+                        <FileText size={13} /> + Log Event
+                      </button>
+                    </div>
+
+                    {isExpanded && (
+                      <div className="farms-notes-box">
+                        <span className="farms-section-label">Field Notes & Activity Timeline</span>
+                        {farm.notes ? (
+                          <div className="farms-timeline-entries">
+                            {farm.notes.split("\n").map((line: string, idx: number) => (
+                              <div key={idx} className="farms-timeline-row">
+                                <span className="farms-timeline-dot" />
+                                <span>{line}</span>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <p style={{ fontStyle: "italic", margin: 0 }}>No event notes logged yet. Click "+ Log Event" above to record disease occurrences, fertilizer dates, or field notes.</p>
+                        )}
+                      </div>
+                    )}
+                  </div>
 
                   {/* Dates row */}
                   <div className="farms-card-dates">
@@ -437,12 +667,14 @@ const Farms: React.FC = () => {
                     <button
                       className="farms-action-btn farms-action-weather"
                       onClick={() => navigate(`/weather?city=${encodeURIComponent(farm.location || farm.name)}&farmName=${encodeURIComponent(farm.name)}`)}
+                      type="button"
                     >
                       <CloudSun size={15} /> Weather
                     </button>
                     <button
                       className="farms-action-btn farms-action-scan"
                       onClick={() => navigate(`/disease-detection?farmId=${farm.id}&crop=${encodeURIComponent(farm.crop)}&farmName=${encodeURIComponent(farm.name)}`)}
+                      type="button"
                     >
                       <Microscope size={15} /> Scan Disease
                     </button>
@@ -451,6 +683,39 @@ const Farms: React.FC = () => {
                 </article>
               );
             })}
+          </div>
+        )}
+
+        {/* ── Log Event Modal ── */}
+        {logModalFarm && (
+          <div className="farms-modal-backdrop" onClick={() => setLogModalFarm(null)}>
+            <div className="farms-modal-card" onClick={e => e.stopPropagation()}>
+              <h3 className="farms-modal-title">
+                <FileText size={18} />
+                Log Event for {logModalFarm.name}
+              </h3>
+              <p className="farms-modal-subtitle">Record disease sightings, sprays, fertilizer treatments, or status changes.</p>
+
+              <form onSubmit={handleAddLogEvent}>
+                <textarea
+                  className="farms-form-input"
+                  rows={4}
+                  value={newEventText}
+                  onChange={e => setNewEventText(e.target.value)}
+                  placeholder="e.g. Late blight symptoms observed on bottom leaves. Applied copper fungicide spray."
+                  required
+                  autoFocus
+                />
+                <div className="farms-modal-actions">
+                  <button type="button" className="farms-cancel-btn" onClick={() => setLogModalFarm(null)}>
+                    Cancel
+                  </button>
+                  <button type="submit" className="farms-submit-btn">
+                    Save Log Entry
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
         )}
 
@@ -514,6 +779,24 @@ const Farms: React.FC = () => {
         }
         .farms-add-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(46,125,50,0.3); }
 
+        .farms-cancel-header-btn {
+          padding: 10px 18px; border-radius: 14px; background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+          color: #fff; border: none; font-weight: 700; font-size: 14px; cursor: pointer;
+          box-shadow: 0 4px 14px rgba(239, 68, 68, 0.25); transition: all 0.2s;
+          display: flex; align-items: center; justify-content: center; gap: 6px;
+        }
+        .farms-cancel-header-btn:hover {
+          background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+          transform: translateY(-1px);
+        }
+
+        /* Required Star Indicator */
+        .farms-req-star {
+          color: #ef4444;
+          font-weight: 800;
+          margin-left: 2px;
+        }
+
         /* Stats bar */
         .farms-stats-bar {
           display: flex;
@@ -565,8 +848,9 @@ const Farms: React.FC = () => {
         .farms-span-2 { grid-column: 1 / -1; }
         .farms-form-group { display: flex; flex-direction: column; gap: 6px; }
         .farms-form-label { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--fp-muted); }
+        
         .farms-form-input {
-          background: rgba(255,255,255,0.7);
+          background: rgba(255,255,255,0.75);
           border: 1.5px solid var(--fp-border);
           border-radius: 13px;
           padding: 11px 14px;
@@ -578,19 +862,54 @@ const Farms: React.FC = () => {
           width: 100%;
           box-sizing: border-box;
         }
-        [data-theme="dark"] .farms-form-input { background: rgba(20,32,24,0.7); color: #fff; }
+        [data-theme="dark"] .farms-form-input { background: rgba(20,32,24,0.75); color: #fff; }
         .farms-form-input:focus { border-color: var(--fp); box-shadow: 0 0 0 3px rgba(46,125,50,0.1); }
         .farms-form-select { cursor: pointer; }
-        .farms-cancel-header-btn {
-          padding: 10px 18px; border-radius: 14px; background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-          color: #fff; border: none; font-weight: 700; font-size: 14px; cursor: pointer;
-          box-shadow: 0 4px 14px rgba(239, 68, 68, 0.25); transition: all 0.2s;
-          display: flex; align-items: center; justify-content: center; gap: 6px;
+
+        /* Custom Date Picker Styling */
+        .farms-form-date-input {
+          background: rgba(255, 255, 255, 0.85);
+          border: 1.5px solid var(--fp-border);
+          border-radius: 14px;
+          padding: 10px 14px;
+          font-size: 13.5px;
+          font-weight: 500;
+          color: var(--fp-text);
+          outline: none;
+          font-family: var(--fp-font);
+          width: 100%;
+          box-sizing: border-box;
+          transition: all 0.2s ease;
+          cursor: pointer;
         }
-        .farms-cancel-header-btn:hover {
-          background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
-          transform: translateY(-1px);
+        [data-theme="dark"] .farms-form-date-input {
+          background: rgba(20, 32, 24, 0.85);
+          color: #ffffff;
+          color-scheme: dark;
         }
+        .farms-form-date-input:focus {
+          border-color: #2e7d32;
+          box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.12);
+        }
+
+        /* Area Wrapper & Unit Badge */
+        .farms-area-wrapper {
+          display: flex;
+          align-items: center;
+          position: relative;
+        }
+        .farms-area-unit-badge {
+          position: absolute;
+          right: 12px;
+          font-size: 12px;
+          font-weight: 700;
+          color: var(--fp-muted);
+          background: var(--fp-light);
+          padding: 4px 10px;
+          border-radius: 8px;
+          pointer-events: none;
+        }
+
         .farms-edit-loc-btn {
           display: flex; align-items: center; gap: 6px;
           padding: 11px 16px; border-radius: 13px;
@@ -600,7 +919,7 @@ const Farms: React.FC = () => {
           white-space: nowrap; transition: all 0.2s;
         }
         .farms-edit-loc-btn:hover { background: rgba(59, 130, 246, 0.15); }
-        .farms-coords-badge { font-size: 11px; color: var(--fp); font-weight: 600; margin-top: 4px; }
+
         .farms-soil-preview {
           margin-top: 20px;
           padding: 12px 16px;
@@ -664,6 +983,14 @@ const Farms: React.FC = () => {
         }
         .farms-card-name { font-size: 20px; font-weight: 800; color: var(--fp-text); margin: 0 0 4px; letter-spacing: -0.3px; }
         .farms-card-location { display: flex; align-items: center; gap: 4px; font-size: 12px; color: var(--fp-muted); font-weight: 600; }
+        
+        .farms-card-edit-btn {
+          background: rgba(59,130,246,0.08); border: 1px solid rgba(59,130,246,0.2);
+          color: #3b82f6; border-radius: 10px; padding: 8px; cursor: pointer;
+          display: flex; align-items: center; transition: all 0.2s; flex-shrink: 0;
+        }
+        .farms-card-edit-btn:hover { background: rgba(59,130,246,0.15); }
+
         .farms-delete-btn {
           background: rgba(239,68,68,0.06); border: 1px solid rgba(239,68,68,0.15);
           color: #ef4444; border-radius: 10px; padding: 8px; cursor: pointer;
@@ -703,14 +1030,42 @@ const Farms: React.FC = () => {
         }
         .farms-soil-intel p { margin: 4px 0 0; color: var(--fp-muted); }
 
-        /* Notes */
+        /* Notes & Timeline Tracker */
+        .farms-notes-section { display: flex; flex-direction: column; gap: 8px; }
+        .farms-log-entry-btn {
+          background: var(--fp-light); border: 1px solid rgba(46,125,50,0.2);
+          color: var(--fp); font-size: 11.5px; font-weight: 700; border-radius: 8px;
+          padding: 4px 10px; cursor: pointer; display: flex; align-items: center; gap: 4px;
+          transition: all 0.2s;
+        }
+        .farms-log-entry-btn:hover { background: rgba(46,125,50,0.15); }
+        
         .farms-expand-btn {
           display: flex; align-items: center; gap: 6px;
           background: none; border: none; cursor: pointer;
           font-size: 12px; color: var(--fp); font-weight: 700; padding: 0;
         }
-        .farms-notes-box { padding: 10px 14px; border-radius: 12px; background: rgba(0,0,0,0.02); border: 1px solid var(--fp-border); font-size: 13px; color: var(--fp-muted); line-height: 1.5; }
-        .farms-notes-box p { margin: 4px 0 0; }
+        .farms-notes-box { padding: 12px 14px; border-radius: 12px; background: rgba(0,0,0,0.02); border: 1px solid var(--fp-border); font-size: 13px; color: var(--fp-text); line-height: 1.5; }
+        
+        .farms-timeline-entries { display: flex; flex-direction: column; gap: 8px; margin-top: 6px; }
+        .farms-timeline-row { display: flex; align-items: flex-start; gap: 8px; font-size: 12.5px; color: var(--fp-text); }
+        .farms-timeline-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--fp); margin-top: 6px; flex-shrink: 0; }
+
+        /* Modal Backdrop */
+        .farms-modal-backdrop {
+          position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+          backdrop-filter: blur(4px); z-index: 300; display: flex;
+          align-items: center; justify-content: center; padding: 20px;
+        }
+        .farms-modal-card {
+          background: var(--fp-card); border: 1px solid var(--fp-border);
+          border-radius: 20px; box-shadow: 0 20px 50px rgba(0,0,0,0.2);
+          width: 100%; max-width: 480px; padding: 24px; display: flex;
+          flex-direction: column; gap: 14px; backdrop-filter: blur(20px);
+        }
+        .farms-modal-title { font-size: 18px; font-weight: 800; color: var(--fp-text); margin: 0; display: flex; align-items: center; gap: 8px; }
+        .farms-modal-subtitle { font-size: 13px; color: var(--fp-muted); margin: 0; }
+        .farms-modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 12px; }
 
         /* Dates */
         .farms-card-dates { display: flex; gap: 16px; flex-wrap: wrap; font-size: 12px; color: var(--fp-muted); font-weight: 600; }
