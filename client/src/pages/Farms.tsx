@@ -91,9 +91,10 @@ const Farms: React.FC = () => {
 
   // Sync profile location as default when opening form
   useEffect(() => {
-    if (showForm && !location && profileLocation) {
-      setLocation(profileLocation);
+    if (showForm && profileLocation) {
+      setLocation(prev => prev || profileLocation);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showForm, profileLocation]);
 
   const resetForm = () => {
