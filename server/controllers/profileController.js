@@ -28,6 +28,7 @@ export const getProfile = async (req, res, next) => {
         name: req.user.name,
         email: req.user.email,
         profileImg: req.user.profile_img,
+        pincode: req.user.pincode,
         location: req.user.location,
         farmSize: req.user.farm_size,
         cropsInterested: req.user.crops_interested,
@@ -41,13 +42,14 @@ export const getProfile = async (req, res, next) => {
 
 export const updateProfile = async (req, res, next) => {
   try {
-    const { name, location, farmSize, cropsInterested, profileImg, profile_img } = req.body;
+    const { name, pincode, location, farmSize, cropsInterested, profileImg, profile_img } = req.body;
 
     const updateData = {};
-    if (name) updateData.name = name;
-    if (location) updateData.location = location;
-    if (farmSize) updateData.farm_size = farmSize;
-    if (cropsInterested) updateData.crops_interested = cropsInterested;
+    if (name !== undefined) updateData.name = name;
+    if (pincode !== undefined) updateData.pincode = pincode;
+    if (location !== undefined) updateData.location = location;
+    if (farmSize !== undefined) updateData.farm_size = farmSize;
+    if (cropsInterested !== undefined) updateData.crops_interested = cropsInterested;
     if (profileImg) updateData.profile_img = profileImg;
     if (profile_img) updateData.profile_img = profile_img;
 
@@ -68,6 +70,7 @@ export const updateProfile = async (req, res, next) => {
         name: updatedUser.name,
         email: updatedUser.email,
         profileImg: updatedUser.profile_img,
+        pincode: updatedUser.pincode,
         location: updatedUser.location,
         farmSize: updatedUser.farm_size,
         cropsInterested: updatedUser.crops_interested,

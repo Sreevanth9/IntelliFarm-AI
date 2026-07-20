@@ -3,7 +3,7 @@ import toast from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 import {
   Camera, MapPin, User, Mail, LogOut,
-  AlertTriangle, CheckCircle, Monitor, Smartphone, Search, Sparkles
+  AlertTriangle, CheckCircle, Monitor, Smartphone, Sparkles
 } from "lucide-react";
 
 import MainLayout from "../layouts/MainLayout";
@@ -16,7 +16,6 @@ const Profile = () => {
 
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [lookupLoading, setLookupLoading] = useState(false);
 
   // Edit Profile form state
   const [editMode, setEditMode] = useState(false);
@@ -57,34 +56,9 @@ const Profile = () => {
   const calculateCompletion = () => {
     let score = 0;
     if (name) score += 35;
-    if (location || pincode) score += 40;
+    if (pincode || location) score += 40;
     if (profileImg || (profile && profile.profileImg)) score += 25;
     return Math.min(score, 100);
-  };
-
-  const handlePincodeLookup = async (code) => {
-    const cleanCode = (code || "").toString().trim();
-    if (!cleanCode || cleanCode.length !== 6 || !/^\d+$/.test(cleanCode)) {
-      toast.error("Please enter a valid 6-digit Pincode");
-      return;
-    }
-    setLookupLoading(true);
-    try {
-      const res = await fetch(`https://api.postalpincode.in/pincode/${cleanCode}`);
-      const data = await res.json();
-      if (data && data[0] && data[0].Status === "Success" && data[0].PostOffice?.[0]) {
-        const po = data[0].PostOffice[0];
-        const resolvedLoc = `${po.District}, ${po.State}`;
-        setLocation(resolvedLoc);
-        toast.success(`Location resolved: ${resolvedLoc}`);
-      } else {
-        toast.error("Pincode not found. Please enter city/district manually.");
-      }
-    } catch (err) {
-      toast.error("Could not auto-fetch pincode. Please enter location manually.");
-    } finally {
-      setLookupLoading(false);
-    }
   };
 
   const handleImageChange = (e) => {
@@ -156,7 +130,7 @@ const Profile = () => {
 
   const currentFarmer = profile || farmer || {};
   const completionPercent = calculateCompletion();
-  const isProfileIncomplete = completionPercent < 75 || !location;
+  const isProfileIncomplete = completionPercent < 75 || (!pincode && !location);
 
   // Active sessions without IP addresses
   const activeSessions = [
@@ -176,7 +150,7 @@ const Profile = () => {
               <div>
                 <strong className="profile-alert-title">Complete Your Farmer Profile</strong>
                 <p className="profile-alert-desc">
-                  Please provide your <strong>Pincode / Location</strong> so IntelliFarm AI can deliver accurate weather advisories, spray windows, and crop disease alerts for your region.
+                  Please enter your <strong>Pincode & Farm Area</strong> to enable personalized weather advisories, spray windows, and crop disease alerts for your region.
                 </p>
               </div>
             </div>
@@ -236,10 +210,19 @@ const Profile = () => {
               <div className="profile-summary-list">
                 <div className="profile-summary-item">
                   <span className="profile-summary-label">
-                    <MapPin size={14} /> Location / Pincode
+                    <MapPin size={14} /> Pincode
                   </span>
                   <strong className="profile-summary-val">
-                    {currentFarmer.location || (pincode ? `Pincode ${pincode}` : "Not Specified")}
+                    {pincode || currentFarmer.pincode || "Not Specified"}
+                  </strong>
+                </div>
+
+                <div className="profile-summary-item">
+                  <span className="profile-summary-label">
+                    <MapPin size={14} /> Farm Area / Location
+                  </span>
+                  <strong className="profile-summary-val">
+                    {currentFarmer.location || location || "Not Specified"}
                   </strong>
                 </div>
 
@@ -249,7 +232,7 @@ const Profile = () => {
                   </span>
                   <div className="profile-crop-tags">
                     {(currentFarmer.cropsInterested || selectedCrops).length > 0 ? (
-                      (currentFarmer.cropsInterested || selectedCrops).map((crop: string) => (
+                      (currentFarmer.cropsInterested || selectedCrops).map((crop) => (
                         <span key={crop} className="profile-crop-tag">{crop}</span>
                       ))
                     ) : (
@@ -270,7 +253,7 @@ const Profile = () => {
               <div className="profile-panel-header">
                 <div>
                   <h2 className="profile-panel-title">Personal Information & Location</h2>
-                  <p className="profile-panel-sub">Set your pincode to automatically sync local weather & farm advisories.</p>
+                  <p className="profile-panel-sub">Enter your Pincode and Farm Area for personalized IntelliFarm AI alerts.</p>
                 </div>
                 <button
                   type="button"
@@ -293,11 +276,11 @@ const Profile = () => {
                   </div>
                   <div className="profile-detail-card">
                     <span className="profile-detail-label"><MapPin size={13} /> Pincode</span>
-                    <strong className="profile-detail-val">{pincode || "Not Set"}</strong>
+                    <strong className="profile-detail-val">{pincode || currentFarmer.pincode || "Not Set"}</strong>
                   </div>
                   <div className="profile-detail-card">
-                    <span className="profile-detail-label"><MapPin size={13} /> District & State</span>
-                    <strong className="profile-detail-val">{currentFarmer.location || "Not Set"}</strong>
+                    <span className="profile-detail-label"><MapPin size={13} /> Farm Area / Location</span>
+                    <strong className="profile-detail-val">{currentFarmer.location || location || "Not Set"}</strong>
                   </div>
                 </div>
               ) : (
@@ -318,37 +301,25 @@ const Profile = () => {
 
                     <div className="profile-field-group">
                       <label className="profile-field-label">Pincode (Postal Code)</label>
-                      <div className="profile-pincode-wrapper">
-                        <input
-                          type="text"
-                          maxLength={6}
-                          className="profile-field-input"
-                          value={pincode}
-                          onChange={(e) => setPincode(e.target.value)}
-                          placeholder="e.g. 522002"
-                        />
-                        <button
-                          type="button"
-                          className="profile-pincode-btn"
-                          onClick={() => handlePincodeLookup(pincode)}
-                          disabled={lookupLoading}
-                          title="Lookup city & state from pincode"
-                        >
-                          <Search size={14} />
-                          {lookupLoading ? "..." : "Lookup"}
-                        </button>
-                      </div>
+                      <input
+                        type="text"
+                        maxLength={10}
+                        className="profile-field-input"
+                        value={pincode}
+                        onChange={(e) => setPincode(e.target.value)}
+                        placeholder="e.g. 522002"
+                        required
+                      />
                     </div>
 
                     <div className="profile-field-group profile-span-2">
-                      <label className="profile-field-label">City, District & State</label>
+                      <label className="profile-field-label">Farm Area / Town / District</label>
                       <input
                         type="text"
                         className="profile-field-input"
                         value={location}
                         onChange={(e) => setLocation(e.target.value)}
-                        placeholder="e.g. Guntur, Andhra Pradesh"
-                        required
+                        placeholder="e.g. North Field, Guntur"
                       />
                     </div>
 
@@ -393,7 +364,7 @@ const Profile = () => {
               <div className="profile-panel-header">
                 <div>
                   <h2 className="profile-panel-title">Active Device Sessions</h2>
-                  <p className="profile-panel-sub">Manage where your account is currently signed in.</p>
+                  <p className="profile-panel-sub">Manage active logins across your devices.</p>
                 </div>
               </div>
 
@@ -432,15 +403,17 @@ const Profile = () => {
 
       </div>
 
-      {/* ── Profile Custom Styling ── */}
+      {/* ── Responsive Profile CSS ── */}
       <style>{`
         .profile-container {
           max-width: 1200px;
           margin: 0 auto;
           display: flex;
           flex-direction: column;
-          gap: 24px;
-          padding-bottom: 60px;
+          gap: clamp(16px, 3vw, 24px);
+          padding: 0 16px 60px;
+          box-sizing: border-box;
+          width: 100%;
         }
 
         /* Alert Banner */
@@ -448,7 +421,7 @@ const Profile = () => {
           background: rgba(245, 158, 11, 0.1);
           border: 1.5px solid rgba(245, 158, 11, 0.3);
           border-radius: 18px;
-          padding: 16px 24px;
+          padding: 16px 20px;
           display: flex;
           align-items: center;
           justify-content: space-between;
@@ -458,7 +431,9 @@ const Profile = () => {
         .profile-alert-content {
           display: flex;
           align-items: center;
-          gap: 16px;
+          gap: 14px;
+          flex: 1;
+          min-width: 260px;
         }
         .profile-alert-icon {
           color: #f59e0b;
@@ -474,6 +449,7 @@ const Profile = () => {
           font-size: 13px;
           color: var(--text-main, #4b5563);
           margin: 2px 0 0;
+          line-height: 1.4;
         }
         .profile-alert-btn {
           background: #f59e0b;
@@ -486,18 +462,33 @@ const Profile = () => {
           cursor: pointer;
           white-space: nowrap;
           transition: all 0.2s;
+          flex-shrink: 0;
         }
         .profile-alert-btn:hover { background: #d97706; transform: translateY(-1px); }
 
-        /* Main Grid */
+        /* Main Grid Layout */
         .profile-main-grid {
           display: grid;
           grid-template-columns: 320px 1fr;
-          gap: 24px;
+          gap: clamp(16px, 3vw, 24px);
           align-items: start;
+          width: 100%;
         }
         @media (max-width: 900px) {
-          .profile-main-grid { grid-template-columns: 1fr; }
+          .profile-main-grid {
+            grid-template-columns: 1fr;
+          }
+        }
+
+        .profile-col-left {
+          display: flex;
+          flex-direction: column;
+          gap: 20px;
+        }
+        .profile-col-right {
+          display: flex;
+          flex-direction: column;
+          gap: 20px;
         }
 
         /* Panels */
@@ -505,12 +496,14 @@ const Profile = () => {
           background: var(--glass-bg, rgba(255,255,255,0.72));
           border: 1px solid var(--glass-border, rgba(46,125,50,0.15));
           border-radius: 24px;
-          padding: 24px;
+          padding: clamp(16px, 3vw, 24px);
           box-shadow: var(--glass-shadow, 0 8px 32px rgba(46,125,50,0.06));
           backdrop-filter: blur(16px);
           display: flex;
           flex-direction: column;
           gap: 20px;
+          box-sizing: border-box;
+          width: 100%;
         }
         [data-theme="dark"] .profile-panel {
           background: rgba(20, 32, 24, 0.72);
@@ -524,6 +517,7 @@ const Profile = () => {
         /* Avatar */
         .profile-avatar-wrapper {
           position: relative;
+          display: inline-block;
         }
         .profile-avatar-img {
           width: 110px;
@@ -553,8 +547,8 @@ const Profile = () => {
         .profile-avatar-upload-btn:hover { transform: scale(1.1); }
 
         .profile-user-info { display: flex; flex-direction: column; gap: 4px; }
-        .profile-user-name { font-size: 20px; font-weight: 800; color: var(--body-color); margin: 0; }
-        .profile-user-email { font-size: 13px; color: var(--text-main, #6b7c72); font-weight: 500; }
+        .profile-user-name { font-size: 20px; font-weight: 800; color: var(--body-color); margin: 0; word-break: break-word; }
+        .profile-user-email { font-size: 13px; color: var(--text-main, #6b7c72); font-weight: 500; word-break: break-all; }
 
         /* Completion Bar */
         .profile-completion-box { width: 100%; text-align: left; }
@@ -568,13 +562,13 @@ const Profile = () => {
         .profile-summary-list { width: 100%; display: flex; flex-direction: column; gap: 14px; text-align: left; }
         .profile-summary-item { display: flex; flex-direction: column; gap: 4px; }
         .profile-summary-label { font-size: 11.5px; font-weight: 700; text-transform: uppercase; color: var(--text-main, #6b7c72); display: flex; align-items: center; gap: 6px; }
-        .profile-summary-val { font-size: 14px; font-weight: 800; color: var(--body-color); }
+        .profile-summary-val { font-size: 14px; font-weight: 800; color: var(--body-color); word-break: break-word; }
         .profile-crop-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
         .profile-crop-tag { font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 99px; background: rgba(46,125,50,0.1); color: #2e7d32; }
         .profile-no-tags { font-size: 12px; color: var(--text-main, #6b7c72); font-style: italic; }
 
         /* Panel Header */
-        .profile-panel-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+        .profile-panel-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
         .profile-panel-title { font-size: 18px; font-weight: 800; color: var(--body-color); margin: 0 0 2px; }
         .profile-panel-sub { font-size: 13px; color: var(--text-main, #6b7c72); margin: 0; }
         .profile-edit-toggle-btn {
@@ -592,31 +586,23 @@ const Profile = () => {
           border-radius: 14px; padding: 14px 16px; display: flex; flex-direction: column; gap: 4px;
         }
         .profile-detail-label { font-size: 11.5px; font-weight: 700; text-transform: uppercase; color: var(--text-main, #6b7c72); display: flex; align-items: center; gap: 5px; }
-        .profile-detail-val { font-size: 14.5px; font-weight: 800; color: var(--body-color); }
+        .profile-detail-val { font-size: 14.5px; font-weight: 800; color: var(--body-color); word-break: break-word; }
 
         /* Form */
-        .profile-edit-form { display: flex; flex-direction: column; gap: 18px; }
+        .profile-edit-form { display: flex; flex-direction: column; gap: 18px; width: 100%; }
         .profile-form-two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
         @media (max-width: 600px) { .profile-form-two-col { grid-template-columns: 1fr; } }
         .profile-span-2 { grid-column: 1 / -1; }
+        @media (max-width: 600px) { .profile-span-2 { grid-column: 1; } }
         .profile-field-group { display: flex; flex-direction: column; gap: 6px; }
         .profile-field-label { font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--text-main, #6b7c72); }
         .profile-field-input {
-          background: rgba(255,255,255,0.8); border: 1.5px solid var(--glass-border, rgba(46,125,50,0.2));
+          background: rgba(255,255,255,0.85); border: 1.5px solid var(--glass-border, rgba(46,125,50,0.2));
           border-radius: 13px; padding: 11px 14px; font-size: 14px; color: var(--body-color);
           outline: none; transition: border-color 0.2s; font-family: inherit; width: 100%; box-sizing: border-box;
         }
-        [data-theme="dark"] .profile-field-input { background: rgba(20,32,24,0.8); color: #fff; }
+        [data-theme="dark"] .profile-field-input { background: rgba(20,32,24,0.85); color: #fff; }
         .profile-field-input:focus { border-color: #2e7d32; box-shadow: 0 0 0 3px rgba(46,125,50,0.12); }
-
-        .profile-pincode-wrapper { display: flex; gap: 8px; }
-        .profile-pincode-btn {
-          display: flex; align-items: center; gap: 6px; padding: 11px 16px;
-          border-radius: 13px; background: rgba(59,130,246,0.08); color: #3b82f6;
-          border: 1.5px solid rgba(59,130,246,0.2); font-weight: 700; font-size: 13px;
-          cursor: pointer; white-space: nowrap; transition: all 0.2s;
-        }
-        .profile-pincode-btn:hover { background: rgba(59,130,246,0.15); }
 
         .profile-crop-selector-grid { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
         .profile-crop-btn {
@@ -641,9 +627,10 @@ const Profile = () => {
         .profile-session-card {
           background: rgba(0,0,0,0.02); border: 1px solid var(--glass-border, rgba(0,0,0,0.06));
           border-radius: 14px; padding: 14px 18px; display: flex; justify-content: space-between; align-items: center;
+          flex-wrap: wrap; gap: 8px;
         }
         .profile-session-left { display: flex; align-items: center; gap: 14px; }
-        .profile-session-icon { color: #2e7d32; }
+        .profile-session-icon { color: #2e7d32; flex-shrink: 0; }
         .profile-session-device { font-size: 13.5px; font-weight: 700; color: var(--body-color); display: block; }
         .profile-session-status { font-size: 11.5px; color: var(--text-main, #6b7c72); }
         .profile-session-badge { font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 99px; background: rgba(46,125,50,0.1); color: #2e7d32; }
@@ -654,6 +641,7 @@ const Profile = () => {
           background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color: #fff;
           border: none; font-weight: 700; font-size: 13.5px; cursor: pointer;
           box-shadow: 0 4px 14px rgba(239,68,68,0.25); transition: all 0.2s;
+          width: 100%;
         }
         .profile-logout-all-btn:hover {
           background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%); transform: translateY(-1px);
