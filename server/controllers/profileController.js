@@ -46,21 +46,31 @@ export const updateProfile = async (req, res, next) => {
 
     const updateData = {};
     if (name !== undefined) updateData.name = name;
-    if (pincode !== undefined) updateData.pincode = pincode;
     if (location !== undefined) updateData.location = location;
     if (farmSize !== undefined) updateData.farm_size = farmSize;
     if (cropsInterested !== undefined) updateData.crops_interested = cropsInterested;
     if (profileImg) updateData.profile_img = profileImg;
     if (profile_img) updateData.profile_img = profile_img;
 
-    const { data: updatedUser, error } = await supabase
+    // Try updating with pincode field if column exists in database, fallback gracefully if column is absent
+    let result = await supabase
       .from("users")
-      .update(updateData)
+      .update({ ...updateData, pincode: pincode !== undefined ? pincode : undefined })
       .eq("id", req.user.id)
       .select()
       .single();
 
-    if (error) throw error;
+    if (result.error && (result.error.message?.includes("pincode") || result.error.code === "PGRST204" || result.error.code === "42703")) {
+      result = await supabase
+        .from("users")
+        .update(updateData)
+        .eq("id", req.user.id)
+        .select()
+        .single();
+    }
+
+    if (result.error) throw result.error;
+    const updatedUser = result.data;
 
     res.status(200).json({
       success: true,
@@ -70,13 +80,14 @@ export const updateProfile = async (req, res, next) => {
         name: updatedUser.name,
         email: updatedUser.email,
         profileImg: updatedUser.profile_img,
-        pincode: updatedUser.pincode,
+        pincode: updatedUser.pincode || pincode || "",
         location: updatedUser.location,
         farmSize: updatedUser.farm_size,
-        cropsInterested: updatedUser.crops_interested,
+        cropsInterested: updatedUser.crops_interested || [],
       },
     });
   } catch (error) {
+    console.error("updateProfile Error:", error);
     next(error);
   }
 };

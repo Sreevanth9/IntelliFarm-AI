@@ -282,7 +282,7 @@ const Login: React.FC = () => {
           password: form.password,
           location: form.place,
           pincode: form.pincode,
-          cropsInterested: ["Paddy", "Tomato", "Maize"],
+          cropsInterested: [],
         });
         
         // Show success state for 1 second

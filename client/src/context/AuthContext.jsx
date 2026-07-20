@@ -16,10 +16,10 @@ import { supabase } from "../utils/supabaseClient";
 const AuthContext = createContext(null);
 
 const fallbackFarmer = {
-  name: "Demo Farmer",
-  location: "Hyderabad, Telangana",
-  farmSize: "3 acres",
-  cropsInterested: ["Paddy", "Tomato", "Maize"],
+  name: "",
+  location: "",
+  pincode: "",
+  cropsInterested: [],
 };
 
 export const AuthProvider = ({ children }) => {
@@ -32,11 +32,8 @@ export const AuthProvider = ({ children }) => {
   const applySession = useCallback(
     (user) => {
       setFarmer({
-        ...fallbackFarmer,
         ...user,
-        cropsInterested: user?.cropsInterested?.length
-          ? user.cropsInterested
-          : fallbackFarmer.cropsInterested,
+        cropsInterested: Array.isArray(user?.cropsInterested) ? user.cropsInterested : [],
       });
       setIsAuthenticated(true);
       dispatch(authAction.isLoginHandler({ isLogin: true }));
