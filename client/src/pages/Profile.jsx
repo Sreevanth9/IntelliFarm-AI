@@ -1,45 +1,50 @@
 import React, { useEffect, useState, useCallback } from "react";
 import toast from "react-hot-toast";
-import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
+import {
+  Camera, MapPin, User, Mail, LogOut,
+  AlertTriangle, CheckCircle, Monitor, Smartphone, Search, Sparkles
+} from "lucide-react";
+
 import MainLayout from "../layouts/MainLayout";
 import { useAuth } from "../context/AuthContext";
 import { fetchProfile, updateProfile } from "../services/profileApi";
-import { fetchFarms } from "../services/farmApi";
 
 const Profile = () => {
-  const { farmer, applySession } = useAuth();
+  const { farmer, applySession, logout } = useAuth();
+  const navigate = useNavigate();
+
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(false);
-  
+  const [lookupLoading, setLookupLoading] = useState(false);
+
   // Edit Profile form state
   const [editMode, setEditMode] = useState(false);
   const [name, setName] = useState("");
+  const [pincode, setPincode] = useState("");
   const [location, setLocation] = useState("");
-  const [farmSize, setFarmSize] = useState("");
   const [selectedCrops, setSelectedCrops] = useState([]);
   const [profileImg, setProfileImg] = useState("");
 
-  const availableCrops = ["Paddy", "Tomato", "Maize", "Wheat", "Cotton", "Soybean", "Potato", "Chilli"];
-  const [farms, setFarms] = useState([]);
-  const [farmsLoading, setFarmsLoading] = useState(false);
+  const availableCrops = ["Paddy", "Tomato", "Maize", "Wheat", "Cotton", "Soybean", "Potato", "Chilli", "Sugarcane", "Groundnut"];
 
   const loadProfile = useCallback(async () => {
     try {
       const { data } = await fetchProfile();
       if (data.success && data.profile) {
         setProfile(data.profile);
-        setName(data.profile.name || "");
-        setLocation(data.profile.location || "");
-        setFarmSize(data.profile.farmSize || "3 acres");
-        setSelectedCrops(data.profile.cropsInterested || []);
-        setProfileImg(data.profile.profileImg || "");
+        setName(data.profile.name || farmer?.name || "");
+        setLocation(data.profile.location || farmer?.location || "");
+        setPincode(data.profile.pincode || farmer?.pincode || "");
+        setSelectedCrops(data.profile.cropsInterested || farmer?.cropsInterested || []);
+        setProfileImg(data.profile.profileImg || farmer?.profileImg || "");
       }
     } catch (err) {
       console.error("Failed to load profile:", err);
       const user = farmer || {};
       setName(user.name || "");
       setLocation(user.location || "");
-      setFarmSize(user.farmSize || "3 acres");
+      setPincode(user.pincode || "");
       setSelectedCrops(user.cropsInterested || []);
       setProfileImg(user.profileImg || "");
     }
@@ -49,21 +54,37 @@ const Profile = () => {
     loadProfile();
   }, [loadProfile]);
 
-  useEffect(() => {
-    setFarmsLoading(true);
-    fetchFarms()
-      .then(({ data }) => { if (data.success) setFarms(data.farms || []); })
-      .catch(() => {})
-      .finally(() => setFarmsLoading(false));
-  }, []);
-
   const calculateCompletion = () => {
     let score = 0;
-    if (name) score += 25;
-    if (location) score += 25;
-    if (farmSize) score += 25;
+    if (name) score += 35;
+    if (location || pincode) score += 40;
     if (profileImg || (profile && profile.profileImg)) score += 25;
-    return score;
+    return Math.min(score, 100);
+  };
+
+  const handlePincodeLookup = async (code) => {
+    const cleanCode = (code || "").toString().trim();
+    if (!cleanCode || cleanCode.length !== 6 || !/^\d+$/.test(cleanCode)) {
+      toast.error("Please enter a valid 6-digit Pincode");
+      return;
+    }
+    setLookupLoading(true);
+    try {
+      const res = await fetch(`https://api.postalpincode.in/pincode/${cleanCode}`);
+      const data = await res.json();
+      if (data && data[0] && data[0].Status === "Success" && data[0].PostOffice?.[0]) {
+        const po = data[0].PostOffice[0];
+        const resolvedLoc = `${po.District}, ${po.State}`;
+        setLocation(resolvedLoc);
+        toast.success(`Location resolved: ${resolvedLoc}`);
+      } else {
+        toast.error("Pincode not found. Please enter city/district manually.");
+      }
+    } catch (err) {
+      toast.error("Could not auto-fetch pincode. Please enter location manually.");
+    } finally {
+      setLookupLoading(false);
+    }
   };
 
   const handleImageChange = (e) => {
@@ -80,11 +101,11 @@ const Profile = () => {
         try {
           const { data } = await updateProfile({ profileImg: base64 });
           if (data.success) {
-            toast.success("Profile image updated!");
+            toast.success("Profile photo updated!");
             applySession(data.user);
           }
         } catch (err) {
-          toast.error("Failed to upload image");
+          toast.error("Failed to upload photo");
         }
       };
       reader.readAsDataURL(file);
@@ -97,8 +118,8 @@ const Profile = () => {
     try {
       const { data } = await updateProfile({
         name,
+        pincode,
         location,
-        farmSize,
         cropsInterested: selectedCrops
       });
       if (data.success) {
@@ -121,404 +142,523 @@ const Profile = () => {
     );
   };
 
+  const handleLogoutAllDevices = async () => {
+    if (!window.confirm("Are you sure you want to log out from all devices?")) return;
+    try {
+      if (logout) await logout();
+      toast.success("Logged out from all device sessions.");
+      navigate("/login");
+    } catch (err) {
+      toast.error("Logout failed. Redirecting to login...");
+      navigate("/login");
+    }
+  };
+
   const currentFarmer = profile || farmer || {};
   const completionPercent = calculateCompletion();
+  const isProfileIncomplete = completionPercent < 75 || !location;
 
-  // Mock sessions list
+  // Active sessions without IP addresses
   const activeSessions = [
-    { device: "Chrome (Mac OS Monterey)", ip: "192.168.1.42", status: "Active Now", icon: "💻" },
-    { device: "Mobile App (iPhone 14)", ip: "172.56.21.99", status: "Active 2 hours ago", icon: "📱" }
-  ];
-
-  // Activity log — enrich with farm data
-  const activityLogs = [
-    { title: "Farms Registered", detail: farms.length > 0 ? `${farms.length} farm(s) — ${[...new Set(farms.map(f => f.crop))].join(", ")}` : "No farms yet", time: "Now" },
-    { title: "Leaf Scan Uploaded", detail: "Early Blight spotted on Tomato Crop", time: "2 hours ago" },
-    { title: "Profile Modified", detail: "Updated farm location and interested crops list", time: "3 days ago" }
+    { device: "Chrome Web Browser (Current Session)", status: "Active Now", icon: Monitor },
+    { device: "IntelliFarm Mobile App", status: "Active 2 hours ago", icon: Smartphone }
   ];
 
   return (
-    <MainLayout
-      eyebrow="Farmer Account"
-      title="My Profile"
-      subtitle="Manage your profile information, farm parameters, and active device sessions"
-    >
-      <style>{`
-        .profile-main-grid {
-          display: grid;
-          grid-template-columns: 1fr 2.2fr;
-          gap: 24px;
-          align-items: start;
-        }
-        @media (max-width: 900px) {
-          .profile-main-grid {
-            grid-template-columns: 1fr;
-          }
-        }
-        .profile-form-two-col {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 16px;
-        }
-        @media (max-width: 600px) {
-          .profile-form-two-col {
-            grid-template-columns: 1fr;
-          }
-        }
-      `}</style>
-      <div className="profile-main-grid">
-        
-        {/* Left Column: Avatar, Completion, Quick Summary */}
-        <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
-          
-          <div className="liquid-glass-panel" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "20px", textAlign: "center" }}>
-            <div style={{ position: "relative" }}>
-              <img
-                src={profileImg || currentFarmer.profileImg || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(name || "Farmer")}`}
-                alt="Farmer Profile"
-                style={{
-                  width: "120px",
-                  height: "120px",
-                  borderRadius: "50%",
-                  objectFit: "cover",
-                  border: "3px solid var(--sidebar-active-color, #2e7d32)",
-                  boxShadow: "0 8px 20px rgba(0,0,0,0.25)"
-                }}
-              />
-              <label
-                htmlFor="avatar-upload"
-                style={{
-                  position: "absolute",
-                  bottom: "0",
-                  right: "0",
-                  background: "linear-gradient(135deg, #2e7d32 0%, #1b5e20 100%)",
-                  color: "#fff",
-                  width: "36px",
-                  height: "36px",
-                  borderRadius: "50%",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  cursor: "pointer",
-                  boxShadow: "0 4px 10px rgba(0, 0, 0, 0.2)",
-                  fontSize: "14px",
-                  border: "1px solid rgba(255,255,255,0.15)"
-                }}
-              >
-                📷
-              </label>
-              <input
-                id="avatar-upload"
-                type="file"
-                accept="image/*"
-                style={{ display: "none" }}
-                onChange={handleImageChange}
-              />
-            </div>
+    <MainLayout eyebrow="" title="" subtitle="">
+      <div className="profile-container">
 
-            <div>
-              <h2 style={{ margin: "0 0 4px 0", color: "var(--body-color)" }}>{currentFarmer.name || "Farmer"}</h2>
-              <span style={{ fontSize: "14px", color: "var(--text-main, #5b6b62)" }}>{currentFarmer.email}</span>
-            </div>
-
-            {/* Dynamic Profile Completion % */}
-            <div style={{ width: "100%", marginTop: "8px", textAlign: "left" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", fontSize: "13px", fontWeight: "bold", marginBottom: "6px" }}>
-                <span>Profile Completion</span>
-                <span style={{ color: "#52b788" }}>{completionPercent}% Complete</span>
-              </div>
-              <div style={{ width: "100%", height: "8px", background: "rgba(255,255,255,0.08)", borderRadius: "4px", overflow: "hidden" }}>
-                <div style={{ width: `${completionPercent}%`, height: "100%", background: "#52b788", transition: "width 0.4s ease" }}></div>
+        {/* ── Complete Profile Banner (Shown if Google login / location missing) ── */}
+        {isProfileIncomplete && (
+          <div className="profile-alert-banner">
+            <div className="profile-alert-content">
+              <AlertTriangle size={24} className="profile-alert-icon" />
+              <div>
+                <strong className="profile-alert-title">Complete Your Farmer Profile</strong>
+                <p className="profile-alert-desc">
+                  Please provide your <strong>Pincode / Location</strong> so IntelliFarm AI can deliver accurate weather advisories, spray windows, and crop disease alerts for your region.
+                </p>
               </div>
             </div>
+            <button className="profile-alert-btn" onClick={() => setEditMode(true)}>
+              Complete Profile
+            </button>
+          </div>
+        )}
 
-            <div style={{ width: "100%", height: "1px", background: "rgba(255, 255, 255, 0.08)", margin: "8px 0" }}></div>
+        <div className="profile-main-grid">
 
-            <div style={{ width: "100%", textAlign: "left", display: "flex", flexDirection: "column", gap: "10px" }}>
-              <div>
-                <span style={{ fontSize: "12px", color: "#8e918f", display: "block" }}>Location</span>
-                <strong style={{ color: "var(--body-color)" }}>{currentFarmer.location || "Not Specified"}</strong>
+          {/* ── Left Column: Avatar & Summary ── */}
+          <div className="profile-col-left">
+
+            {/* Avatar Panel */}
+            <div className="profile-panel profile-avatar-panel">
+              <div className="profile-avatar-wrapper">
+                <img
+                  src={profileImg || currentFarmer.profileImg || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(name || "Farmer")}`}
+                  alt="Farmer Profile"
+                  className="profile-avatar-img"
+                />
+                <label htmlFor="avatar-upload" className="profile-avatar-upload-btn" title="Change profile photo">
+                  <Camera size={16} />
+                </label>
+                <input
+                  id="avatar-upload"
+                  type="file"
+                  accept="image/*"
+                  style={{ display: "none" }}
+                  onChange={handleImageChange}
+                />
               </div>
-              <div>
-                <span style={{ fontSize: "12px", color: "#8e918f", display: "block" }}>Farm Size</span>
-                <strong style={{ color: "var(--body-color)" }}>{currentFarmer.farmSize || "Not Specified"}</strong>
+
+              <div className="profile-user-info">
+                <h2 className="profile-user-name">{currentFarmer.name || "Farmer Profile"}</h2>
+                <span className="profile-user-email">{currentFarmer.email}</span>
               </div>
-              <div>
-                <span style={{ fontSize: "12px", color: "#8e918f", display: "block" }}>Crops Interested</span>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", marginTop: "4px" }}>
-                  {(currentFarmer.cropsInterested || []).map((crop) => (
-                    <span
-                      key={crop}
-                      style={{
-                        fontSize: "11px",
-                        fontWeight: 700,
-                        padding: "4px 8px",
-                        borderRadius: "6px",
-                        background: "rgba(82, 183, 136, 0.15)",
-                        color: "#52b788"
-                      }}
-                    >
-                      {crop}
-                    </span>
-                  ))}
+
+              {/* Profile Completion Bar */}
+              <div className="profile-completion-box">
+                <div className="profile-completion-header">
+                  <span>Profile Setup</span>
+                  <span className="profile-completion-pct">{completionPercent}%</span>
+                </div>
+                <div className="profile-completion-track">
+                  <div
+                    className="profile-completion-fill"
+                    style={{ width: `${completionPercent}%` }}
+                  />
                 </div>
               </div>
+
+              <div className="profile-divider" />
+
+              {/* Saved Details List */}
+              <div className="profile-summary-list">
+                <div className="profile-summary-item">
+                  <span className="profile-summary-label">
+                    <MapPin size={14} /> Location / Pincode
+                  </span>
+                  <strong className="profile-summary-val">
+                    {currentFarmer.location || (pincode ? `Pincode ${pincode}` : "Not Specified")}
+                  </strong>
+                </div>
+
+                <div className="profile-summary-item">
+                  <span className="profile-summary-label">
+                    <Sparkles size={14} /> Crops of Interest
+                  </span>
+                  <div className="profile-crop-tags">
+                    {(currentFarmer.cropsInterested || selectedCrops).length > 0 ? (
+                      (currentFarmer.cropsInterested || selectedCrops).map((crop: string) => (
+                        <span key={crop} className="profile-crop-tag">{crop}</span>
+                      ))
+                    ) : (
+                      <span className="profile-no-tags">No crops selected</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+
             </div>
           </div>
 
-          {/* Farm Overview Card */}
-          <div className="liquid-glass-panel" style={{ padding: "20px" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "14px" }}>
-              <h3 style={{ margin: 0, fontSize: "15px", fontWeight: 700, color: "var(--body-color)" }}>🌾 Farm Overview</h3>
-              <Link to="/farms" style={{ fontSize: "12px", fontWeight: 700, color: "#52b788", textDecoration: "none" }}>Manage →</Link>
-            </div>
-            {farmsLoading ? (
-              <p style={{ fontSize: "13px", color: "#8e918f", margin: 0 }}>Loading farms...</p>
-            ) : farms.length === 0 ? (
-              <div style={{ textAlign: "center", padding: "16px 0" }}>
-                <p style={{ fontSize: "13px", color: "#8e918f", margin: "0 0 12px" }}>No farms registered yet.</p>
-                <Link to="/farms" className="glass-btn-primary" style={{ textDecoration: "none", padding: "8px 16px", fontSize: "13px", display: "inline-block", borderRadius: "10px" }}>+ Add Farm</Link>
+          {/* ── Right Column: Settings & Sessions ── */}
+          <div className="profile-col-right">
+
+            {/* Farming Profile Details Form */}
+            <div className="profile-panel">
+              <div className="profile-panel-header">
+                <div>
+                  <h2 className="profile-panel-title">Personal Information & Location</h2>
+                  <p className="profile-panel-sub">Set your pincode to automatically sync local weather & farm advisories.</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setEditMode(!editMode)}
+                  className="profile-edit-toggle-btn"
+                >
+                  {editMode ? "Cancel" : "Edit Profile"}
+                </button>
               </div>
-            ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-                <div className="profile-form-two-col">
-                  <div style={{ background: "rgba(82,183,136,0.06)", borderRadius: "12px", padding: "10px 14px" }}>
-                    <span style={{ fontSize: "10px", color: "#8e918f", fontWeight: 700, textTransform: "uppercase" }}>Total Farms</span>
-                    <strong style={{ display: "block", fontSize: "22px", color: "#52b788", fontWeight: 800 }}>{farms.length}</strong>
+
+              {!editMode ? (
+                <div className="profile-details-grid">
+                  <div className="profile-detail-card">
+                    <span className="profile-detail-label"><User size={13} /> Full Name</span>
+                    <strong className="profile-detail-val">{currentFarmer.name || "N/A"}</strong>
                   </div>
-                  <div style={{ background: "rgba(82,183,136,0.06)", borderRadius: "12px", padding: "10px 14px" }}>
-                    <span style={{ fontSize: "10px", color: "#8e918f", fontWeight: 700, textTransform: "uppercase" }}>Total Area</span>
-                    <strong style={{ display: "block", fontSize: "22px", color: "#52b788", fontWeight: 800 }}>{farms.map(f => parseFloat(f.area) || 0).reduce((a, b) => a + b, 0).toFixed(1)} ac</strong>
+                  <div className="profile-detail-card">
+                    <span className="profile-detail-label"><Mail size={13} /> Email Address</span>
+                    <strong className="profile-detail-val">{currentFarmer.email || "N/A"}</strong>
+                  </div>
+                  <div className="profile-detail-card">
+                    <span className="profile-detail-label"><MapPin size={13} /> Pincode</span>
+                    <strong className="profile-detail-val">{pincode || "Not Set"}</strong>
+                  </div>
+                  <div className="profile-detail-card">
+                    <span className="profile-detail-label"><MapPin size={13} /> District & State</span>
+                    <strong className="profile-detail-val">{currentFarmer.location || "Not Set"}</strong>
                   </div>
                 </div>
-                <div>
-                  <span style={{ fontSize: "10px", color: "#8e918f", fontWeight: 700, textTransform: "uppercase", display: "block", marginBottom: "6px" }}>Active Crops</span>
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: "5px" }}>
-                    {[...new Set(farms.map(f => f.crop))].map(c => (
-                      <span key={c} style={{ fontSize: "11px", fontWeight: 700, padding: "3px 8px", borderRadius: "6px", background: "rgba(82,183,136,0.12)", color: "#52b788" }}>{c}</span>
-                    ))}
-                  </div>
-                </div>
-                <div>
-                  <span style={{ fontSize: "10px", color: "#8e918f", fontWeight: 700, textTransform: "uppercase", display: "block", marginBottom: "6px" }}>Farm Names</span>
-                  {farms.slice(0, 3).map(f => (
-                    <div key={f.id} style={{ fontSize: "12px", color: "var(--body-color)", fontWeight: 600, padding: "3px 0", borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
-                      📍 {f.name} — {f.crop}
+              ) : (
+                <form onSubmit={handleUpdateProfile} className="profile-edit-form">
+                  <div className="profile-form-two-col">
+
+                    <div className="profile-field-group">
+                      <label className="profile-field-label">Full Name</label>
+                      <input
+                        type="text"
+                        className="profile-field-input"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        placeholder="Enter your full name"
+                        required
+                      />
                     </div>
-                  ))}
-                  {farms.length > 3 && <span style={{ fontSize: "11px", color: "#8e918f" }}>+{farms.length - 3} more</span>}
-                </div>
-              </div>
-            )}
-          </div>
 
-          {/* Linked accounts */}
-          <div className="liquid-glass-panel" style={{ padding: "20px" }}>
-            <h3 style={{ margin: "0 0 16px 0", color: "#fff", fontSize: "16px", fontWeight: 700 }}>Linked Accounts</h3>
-            <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
-              
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
-                  <span style={{ fontSize: "20px" }}>👤</span>
-                  <div>
-                    <strong style={{ color: "#fff", display: "block", fontSize: "13px" }}>Email Credentials</strong>
-                    <span style={{ fontSize: "11px", color: "#8e918f" }}>Login via Email/Password</span>
-                  </div>
-                </div>
-                <span style={{ fontSize: "11px", fontWeight: 700, padding: "4px 8px", borderRadius: "6px", background: "rgba(82, 183, 136, 0.15)", color: "#52b788" }}>Connected</span>
-              </div>
-
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
-                  <span style={{ fontSize: "20px" }}>🌐</span>
-                  <div>
-                    <strong style={{ color: "#fff", display: "block", fontSize: "13px" }}>Google Account</strong>
-                    <span style={{ fontSize: "11px", color: "#8e918f" }}>One-click login helper</span>
-                  </div>
-                </div>
-                <span style={{
-                  fontSize: "11px",
-                  fontWeight: 700,
-                  padding: "4px 8px",
-                  borderRadius: "6px",
-                  background: currentFarmer.email?.includes("@gmail.com") ? "rgba(82, 183, 136, 0.15)" : "rgba(255,255,255,0.05)",
-                  color: currentFarmer.email?.includes("@gmail.com") ? "#52b788" : "#8e918f"
-                }}>
-                  {currentFarmer.email?.includes("@gmail.com") ? "Linked" : "Not Linked"}
-                </span>
-              </div>
-
-            </div>
-          </div>
-
-        </div>
-
-        {/* Right Column: Farming details forms & Activities & Sessions */}
-        <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
-          
-          {/* Main Account Settings */}
-          <div className="liquid-glass-panel">
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
-              <h2 style={{ margin: 0, color: "#fff", fontSize: "18px", fontWeight: 700 }}>Farming Profile Details</h2>
-              <button
-                onClick={() => setEditMode(!editMode)}
-                className="glass-btn-secondary"
-                style={{ padding: "6px 14px", fontSize: "13px" }}
-              >
-                {editMode ? "Cancel" : "Edit Profile"}
-              </button>
-            </div>
-
-            {!editMode ? (
-              <div className="profile-form-two-col">
-                <div>
-                  <span style={{ fontSize: "12px", color: "#8e918f", display: "block" }}>Full Name</span>
-                  <p style={{ margin: "4px 0 0 0", fontWeight: 700, color: "var(--body-color)", fontSize: "14px" }}>{currentFarmer.name || "N/A"}</p>
-                </div>
-                <div>
-                  <span style={{ fontSize: "12px", color: "#8e918f", display: "block" }}>Email Address</span>
-                  <p style={{ margin: "4px 0 0 0", fontWeight: 700, color: "var(--body-color)", fontSize: "14px" }}>{currentFarmer.email || "N/A"}</p>
-                </div>
-                <div>
-                  <span style={{ fontSize: "12px", color: "#8e918f", display: "block" }}>Primary Location</span>
-                  <p style={{ margin: "4px 0 0 0", fontWeight: 700, color: "var(--body-color)", fontSize: "14px" }}>{currentFarmer.location || "N/A"}</p>
-                </div>
-                <div>
-                  <span style={{ fontSize: "12px", color: "#8e918f", display: "block" }}>Farming Land Size</span>
-                  <p style={{ margin: "4px 0 0 0", fontWeight: 700, color: "var(--body-color)", fontSize: "14px" }}>{currentFarmer.farmSize || "N/A"}</p>
-                </div>
-              </div>
-            ) : (
-              <form onSubmit={handleUpdateProfile} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-                <div className="profile-form-two-col">
-                  <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                    <label style={{ fontSize: "13px", fontWeight: 600 }}>Name</label>
-                    <input
-                      type="text"
-                      className="liquid-glass-input"
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      required
-                    />
-                  </div>
-                  <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                    <label style={{ fontSize: "13px", fontWeight: 600 }}>Location</label>
-                    <input
-                      type="text"
-                      className="liquid-glass-input"
-                      value={location}
-                      onChange={(e) => setLocation(e.target.value)}
-                      required
-                    />
-                  </div>
-                  <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                    <label style={{ fontSize: "13px", fontWeight: 600 }}>Farm Size</label>
-                    <input
-                      type="text"
-                      className="liquid-glass-input"
-                      value={farmSize}
-                      onChange={(e) => setFarmSize(e.target.value)}
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                  <label style={{ fontSize: "13px", fontWeight: 600 }}>Crops of Interest</label>
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
-                    {availableCrops.map((crop) => {
-                      const active = selectedCrops.includes(crop);
-                      return (
+                    <div className="profile-field-group">
+                      <label className="profile-field-label">Pincode (Postal Code)</label>
+                      <div className="profile-pincode-wrapper">
+                        <input
+                          type="text"
+                          maxLength={6}
+                          className="profile-field-input"
+                          value={pincode}
+                          onChange={(e) => setPincode(e.target.value)}
+                          placeholder="e.g. 522002"
+                        />
                         <button
-                          key={crop}
                           type="button"
-                          onClick={() => handleCropToggle(crop)}
-                          style={{
-                            padding: "6px 12px",
-                            borderRadius: "8px",
-                            border: active ? "1px solid #52b788" : "1px solid rgba(255,255,255,0.08)",
-                            background: active ? "rgba(82, 183, 136, 0.1)" : "transparent",
-                            color: active ? "#52b788" : "#8e918f",
-                            fontWeight: 700,
-                            cursor: "pointer",
-                            fontSize: "12px",
-                            transition: "all 0.2s"
-                          }}
+                          className="profile-pincode-btn"
+                          onClick={() => handlePincodeLookup(pincode)}
+                          disabled={lookupLoading}
+                          title="Lookup city & state from pincode"
                         >
-                          {crop}
+                          <Search size={14} />
+                          {lookupLoading ? "..." : "Lookup"}
                         </button>
-                      );
-                    })}
+                      </div>
+                    </div>
+
+                    <div className="profile-field-group profile-span-2">
+                      <label className="profile-field-label">City, District & State</label>
+                      <input
+                        type="text"
+                        className="profile-field-input"
+                        value={location}
+                        onChange={(e) => setLocation(e.target.value)}
+                        placeholder="e.g. Guntur, Andhra Pradesh"
+                        required
+                      />
+                    </div>
+
                   </div>
+
+                  {/* Crops of Interest */}
+                  <div className="profile-field-group">
+                    <label className="profile-field-label">Crops of Interest</label>
+                    <div className="profile-crop-selector-grid">
+                      {availableCrops.map((crop) => {
+                        const active = selectedCrops.includes(crop);
+                        return (
+                          <button
+                            key={crop}
+                            type="button"
+                            onClick={() => handleCropToggle(crop)}
+                            className={`profile-crop-btn ${active ? "profile-crop-btn-active" : ""}`}
+                          >
+                            {active && <CheckCircle size={13} />}
+                            {crop}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div className="profile-form-actions">
+                    <button
+                      type="submit"
+                      className="profile-save-btn"
+                      disabled={loading}
+                    >
+                      {loading ? "Saving Profile..." : "Save Profile Details"}
+                    </button>
+                  </div>
+                </form>
+              )}
+            </div>
+
+            {/* Active Device Sessions List */}
+            <div className="profile-panel">
+              <div className="profile-panel-header">
+                <div>
+                  <h2 className="profile-panel-title">Active Device Sessions</h2>
+                  <p className="profile-panel-sub">Manage where your account is currently signed in.</p>
                 </div>
+              </div>
+
+              <div className="profile-sessions-list">
+                {activeSessions.map((session, index) => {
+                  const Icon = session.icon;
+                  return (
+                    <div key={index} className="profile-session-card">
+                      <div className="profile-session-left">
+                        <Icon size={20} className="profile-session-icon" />
+                        <div>
+                          <strong className="profile-session-device">{session.device}</strong>
+                          <span className="profile-session-status">{session.status}</span>
+                        </div>
+                      </div>
+                      <span className="profile-session-badge">
+                        {session.status === "Active Now" ? "Current" : "Logged"}
+                      </span>
+                    </div>
+                  );
+                })}
 
                 <button
-                  type="submit"
-                  className="glass-btn-primary"
-                  disabled={loading}
-                  style={{ alignSelf: "flex-start", padding: "10px 24px" }}
+                  type="button"
+                  className="profile-logout-all-btn"
+                  onClick={handleLogoutAllDevices}
                 >
-                  {loading ? "Saving..." : "Save Changes"}
+                  <LogOut size={16} /> Log Out From All Devices
                 </button>
-              </form>
-            )}
-          </div>
-
-          {/* Active Device Sessions List */}
-          <div className="liquid-glass-panel">
-            <h2 style={{ margin: "0 0 16px 0", color: "#fff", fontSize: "18px", fontWeight: 700 }}>Active Sessions</h2>
-            <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-              {activeSessions.map((session, index) => (
-                <div key={index} className="liquid-glass-card" style={{ padding: "14px 18px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <div style={{ display: "flex", gap: "14px", alignItems: "center" }}>
-                    <span style={{ fontSize: "20px" }}>{session.icon}</span>
-                    <div>
-                      <strong style={{ color: "#fff", display: "block", fontSize: "13px" }}>{session.device}</strong>
-                      <span style={{ fontSize: "11px", color: "#8e918f" }}>IP Address: {session.ip}</span>
-                    </div>
-                  </div>
-                  <span style={{
-                    fontSize: "11px",
-                    fontWeight: 700,
-                    color: session.status === "Active Now" ? "#52b788" : "#8e918f"
-                  }}>{session.status}</span>
-                </div>
-              ))}
-              <button
-                className="glass-btn-secondary"
-                style={{
-                  padding: "10px",
-                  fontSize: "12px",
-                  marginTop: "8px",
-                  borderColor: "rgba(211, 47, 47, 0.2)",
-                  color: "#d32f2f"
-                }}
-                onClick={() => toast.success("Revoked all other devices successfully!")}
-              >
-                Logout Other Devices
-              </button>
+              </div>
             </div>
-          </div>
 
-          {/* Recent Activity Log */}
-          <div className="liquid-glass-panel">
-            <h2 style={{ margin: "0 0 16px 0", color: "#fff", fontSize: "18px", fontWeight: 700 }}>Recent Activity</h2>
-            <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-              {activityLogs.map((log, index) => (
-                <div key={index} style={{ borderBottom: "1px solid rgba(255, 255, 255, 0.05)", paddingBottom: "10px" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-                    <strong style={{ color: "#fff", fontSize: "13px" }}>{log.title}</strong>
-                    <span style={{ fontSize: "10px", color: "#8e918f" }}>{log.time}</span>
-                  </div>
-                  <p style={{ margin: "4px 0 0 0", fontSize: "12px", color: "#8e918f" }}>{log.detail}</p>
-                </div>
-              ))}
-            </div>
           </div>
 
         </div>
 
       </div>
+
+      {/* ── Profile Custom Styling ── */}
+      <style>{`
+        .profile-container {
+          max-width: 1200px;
+          margin: 0 auto;
+          display: flex;
+          flex-direction: column;
+          gap: 24px;
+          padding-bottom: 60px;
+        }
+
+        /* Alert Banner */
+        .profile-alert-banner {
+          background: rgba(245, 158, 11, 0.1);
+          border: 1.5px solid rgba(245, 158, 11, 0.3);
+          border-radius: 18px;
+          padding: 16px 24px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 16px;
+          flex-wrap: wrap;
+        }
+        .profile-alert-content {
+          display: flex;
+          align-items: center;
+          gap: 16px;
+        }
+        .profile-alert-icon {
+          color: #f59e0b;
+          flex-shrink: 0;
+        }
+        .profile-alert-title {
+          font-size: 15px;
+          font-weight: 800;
+          color: var(--body-color);
+          display: block;
+        }
+        .profile-alert-desc {
+          font-size: 13px;
+          color: var(--text-main, #4b5563);
+          margin: 2px 0 0;
+        }
+        .profile-alert-btn {
+          background: #f59e0b;
+          color: #fff;
+          border: none;
+          border-radius: 12px;
+          padding: 10px 18px;
+          font-weight: 700;
+          font-size: 13px;
+          cursor: pointer;
+          white-space: nowrap;
+          transition: all 0.2s;
+        }
+        .profile-alert-btn:hover { background: #d97706; transform: translateY(-1px); }
+
+        /* Main Grid */
+        .profile-main-grid {
+          display: grid;
+          grid-template-columns: 320px 1fr;
+          gap: 24px;
+          align-items: start;
+        }
+        @media (max-width: 900px) {
+          .profile-main-grid { grid-template-columns: 1fr; }
+        }
+
+        /* Panels */
+        .profile-panel {
+          background: var(--glass-bg, rgba(255,255,255,0.72));
+          border: 1px solid var(--glass-border, rgba(46,125,50,0.15));
+          border-radius: 24px;
+          padding: 24px;
+          box-shadow: var(--glass-shadow, 0 8px 32px rgba(46,125,50,0.06));
+          backdrop-filter: blur(16px);
+          display: flex;
+          flex-direction: column;
+          gap: 20px;
+        }
+        [data-theme="dark"] .profile-panel {
+          background: rgba(20, 32, 24, 0.72);
+        }
+
+        .profile-avatar-panel {
+          align-items: center;
+          text-align: center;
+        }
+
+        /* Avatar */
+        .profile-avatar-wrapper {
+          position: relative;
+        }
+        .profile-avatar-img {
+          width: 110px;
+          height: 110px;
+          border-radius: 50%;
+          object-fit: cover;
+          border: 3.5px solid #2e7d32;
+          box-shadow: 0 8px 24px rgba(46,125,50,0.2);
+        }
+        .profile-avatar-upload-btn {
+          position: absolute;
+          bottom: 2px;
+          right: 2px;
+          background: linear-gradient(135deg, #2e7d32 0%, #1b5e20 100%);
+          color: #fff;
+          width: 34px;
+          height: 34px;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+          border: 2px solid #fff;
+          transition: transform 0.2s;
+        }
+        .profile-avatar-upload-btn:hover { transform: scale(1.1); }
+
+        .profile-user-info { display: flex; flex-direction: column; gap: 4px; }
+        .profile-user-name { font-size: 20px; font-weight: 800; color: var(--body-color); margin: 0; }
+        .profile-user-email { font-size: 13px; color: var(--text-main, #6b7c72); font-weight: 500; }
+
+        /* Completion Bar */
+        .profile-completion-box { width: 100%; text-align: left; }
+        .profile-completion-header { display: flex; justify-content: space-between; font-size: 12.5px; font-weight: 700; color: var(--body-color); margin-bottom: 6px; }
+        .profile-completion-pct { color: #2e7d32; }
+        .profile-completion-track { width: 100%; height: 8px; background: rgba(46,125,50,0.1); border-radius: 99px; overflow: hidden; }
+        .profile-completion-fill { height: 100%; background: linear-gradient(90deg, #2e7d32, #10b981); border-radius: 99px; transition: width 0.4s ease; }
+
+        .profile-divider { width: 100%; height: 1px; background: var(--glass-border, rgba(0,0,0,0.06)); }
+
+        .profile-summary-list { width: 100%; display: flex; flex-direction: column; gap: 14px; text-align: left; }
+        .profile-summary-item { display: flex; flex-direction: column; gap: 4px; }
+        .profile-summary-label { font-size: 11.5px; font-weight: 700; text-transform: uppercase; color: var(--text-main, #6b7c72); display: flex; align-items: center; gap: 6px; }
+        .profile-summary-val { font-size: 14px; font-weight: 800; color: var(--body-color); }
+        .profile-crop-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+        .profile-crop-tag { font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 99px; background: rgba(46,125,50,0.1); color: #2e7d32; }
+        .profile-no-tags { font-size: 12px; color: var(--text-main, #6b7c72); font-style: italic; }
+
+        /* Panel Header */
+        .profile-panel-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+        .profile-panel-title { font-size: 18px; font-weight: 800; color: var(--body-color); margin: 0 0 2px; }
+        .profile-panel-sub { font-size: 13px; color: var(--text-main, #6b7c72); margin: 0; }
+        .profile-edit-toggle-btn {
+          padding: 8px 16px; border-radius: 12px; background: rgba(46,125,50,0.08);
+          color: #2e7d32; border: 1.5px solid rgba(46,125,50,0.2);
+          font-weight: 700; font-size: 13px; cursor: pointer; transition: all 0.2s; white-space: nowrap;
+        }
+        .profile-edit-toggle-btn:hover { background: rgba(46,125,50,0.15); }
+
+        /* Details Grid */
+        .profile-details-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        @media (max-width: 600px) { .profile-details-grid { grid-template-columns: 1fr; } }
+        .profile-detail-card {
+          background: rgba(0,0,0,0.02); border: 1px solid var(--glass-border, rgba(0,0,0,0.06));
+          border-radius: 14px; padding: 14px 16px; display: flex; flex-direction: column; gap: 4px;
+        }
+        .profile-detail-label { font-size: 11.5px; font-weight: 700; text-transform: uppercase; color: var(--text-main, #6b7c72); display: flex; align-items: center; gap: 5px; }
+        .profile-detail-val { font-size: 14.5px; font-weight: 800; color: var(--body-color); }
+
+        /* Form */
+        .profile-edit-form { display: flex; flex-direction: column; gap: 18px; }
+        .profile-form-two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        @media (max-width: 600px) { .profile-form-two-col { grid-template-columns: 1fr; } }
+        .profile-span-2 { grid-column: 1 / -1; }
+        .profile-field-group { display: flex; flex-direction: column; gap: 6px; }
+        .profile-field-label { font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--text-main, #6b7c72); }
+        .profile-field-input {
+          background: rgba(255,255,255,0.8); border: 1.5px solid var(--glass-border, rgba(46,125,50,0.2));
+          border-radius: 13px; padding: 11px 14px; font-size: 14px; color: var(--body-color);
+          outline: none; transition: border-color 0.2s; font-family: inherit; width: 100%; box-sizing: border-box;
+        }
+        [data-theme="dark"] .profile-field-input { background: rgba(20,32,24,0.8); color: #fff; }
+        .profile-field-input:focus { border-color: #2e7d32; box-shadow: 0 0 0 3px rgba(46,125,50,0.12); }
+
+        .profile-pincode-wrapper { display: flex; gap: 8px; }
+        .profile-pincode-btn {
+          display: flex; align-items: center; gap: 6px; padding: 11px 16px;
+          border-radius: 13px; background: rgba(59,130,246,0.08); color: #3b82f6;
+          border: 1.5px solid rgba(59,130,246,0.2); font-weight: 700; font-size: 13px;
+          cursor: pointer; white-space: nowrap; transition: all 0.2s;
+        }
+        .profile-pincode-btn:hover { background: rgba(59,130,246,0.15); }
+
+        .profile-crop-selector-grid { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+        .profile-crop-btn {
+          display: flex; align-items: center; gap: 6px; padding: 8px 14px;
+          border-radius: 10px; border: 1.5px solid rgba(0,0,0,0.1); background: transparent;
+          color: var(--text-main, #6b7c72); font-weight: 700; font-size: 12.5px; cursor: pointer;
+          transition: all 0.2s;
+        }
+        .profile-crop-btn-active {
+          border-color: #2e7d32; background: rgba(46,125,50,0.1); color: #2e7d32;
+        }
+        .profile-save-btn {
+          align-self: flex-start; padding: 12px 28px; border-radius: 14px;
+          background: linear-gradient(135deg, #2e7d32, #1b5e20); color: #fff;
+          border: none; font-weight: 700; font-size: 14px; cursor: pointer;
+          box-shadow: 0 4px 14px rgba(46,125,50,0.25); transition: all 0.2s;
+        }
+        .profile-save-btn:hover { transform: translateY(-1px); }
+
+        /* Sessions List */
+        .profile-sessions-list { display: flex; flex-direction: column; gap: 12px; }
+        .profile-session-card {
+          background: rgba(0,0,0,0.02); border: 1px solid var(--glass-border, rgba(0,0,0,0.06));
+          border-radius: 14px; padding: 14px 18px; display: flex; justify-content: space-between; align-items: center;
+        }
+        .profile-session-left { display: flex; align-items: center; gap: 14px; }
+        .profile-session-icon { color: #2e7d32; }
+        .profile-session-device { font-size: 13.5px; font-weight: 700; color: var(--body-color); display: block; }
+        .profile-session-status { font-size: 11.5px; color: var(--text-main, #6b7c72); }
+        .profile-session-badge { font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 99px; background: rgba(46,125,50,0.1); color: #2e7d32; }
+
+        .profile-logout-all-btn {
+          display: flex; align-items: center; justify-content: center; gap: 8px;
+          margin-top: 8px; padding: 12px; border-radius: 14px;
+          background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color: #fff;
+          border: none; font-weight: 700; font-size: 13.5px; cursor: pointer;
+          box-shadow: 0 4px 14px rgba(239,68,68,0.25); transition: all 0.2s;
+        }
+        .profile-logout-all-btn:hover {
+          background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%); transform: translateY(-1px);
+        }
+      `}</style>
     </MainLayout>
   );
 };
