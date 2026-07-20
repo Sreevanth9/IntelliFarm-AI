@@ -9,6 +9,7 @@ CREATE TABLE IF NOT EXISTS public.users (
   password TEXT,
   profile_img TEXT,
   location TEXT,
+  pincode TEXT,
   farm_size TEXT DEFAULT '3 acres',
   crops_interested TEXT[] DEFAULT '{}',
   max_rate_limit INTEGER DEFAULT 10,

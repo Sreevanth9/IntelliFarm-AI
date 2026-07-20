@@ -32,7 +32,7 @@ const getAuthenticatedUser = async (token) => {
 
   const { data: userData, error: selectError } = await supabase
     .from("users")
-    .select("id, name, email, profile_img, location, farm_size, crops_interested")
+    .select("*")
     .eq("id", userId)
     .maybeSingle();
 

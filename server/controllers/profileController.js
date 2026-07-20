@@ -21,7 +21,7 @@ export const getProfile = async (req, res, next) => {
       updatedAt: r.updated_at
     }));
 
-    // Parse pincode and location from user's location string if stored as "522002 | Location"
+    // Parse location & pincode cleanly
     const rawLocation = req.user.location || "";
     let parsedPincode = req.user.pincode || "";
     let parsedLocation = rawLocation;
@@ -60,44 +60,65 @@ export const updateProfile = async (req, res, next) => {
 
     const updateData = {};
     if (name !== undefined) updateData.name = name;
-
-    // Store pincode & location together into location text column to ensure 100% database compatibility
-    const cleanPincode = (pincode || "").toString().trim();
-    const cleanLoc = (location || "").toString().trim();
-
-    if (cleanPincode || cleanLoc) {
-      if (cleanPincode && cleanLoc && !cleanLoc.startsWith(cleanPincode)) {
-        updateData.location = `${cleanPincode} | ${cleanLoc}`;
-      } else if (cleanPincode) {
-        updateData.location = cleanPincode;
-      } else {
-        updateData.location = cleanLoc;
-      }
-    }
-
     if (farmSize !== undefined) updateData.farm_size = farmSize;
     if (cropsInterested !== undefined) updateData.crops_interested = cropsInterested;
     if (profileImg) updateData.profile_img = profileImg;
     if (profile_img) updateData.profile_img = profile_img;
 
-    const { data: updatedUser, error } = await supabase
-      .from("users")
-      .update(updateData)
-      .eq("id", req.user.id)
-      .select()
-      .single();
+    const cleanPincode = (pincode || "").toString().trim();
+    const cleanLoc = (location || "").toString().trim();
 
-    if (error) throw error;
+    let formattedLoc = cleanLoc;
+    if (cleanPincode && cleanLoc && !cleanLoc.startsWith(cleanPincode)) {
+      formattedLoc = `${cleanPincode} | ${cleanLoc}`;
+    } else if (cleanPincode) {
+      formattedLoc = cleanPincode;
+    }
+    if (formattedLoc) updateData.location = formattedLoc;
 
-    let resPincode = cleanPincode;
-    let resLocation = cleanLoc;
+    let updatedUser = null;
 
-    if (updatedUser.location && updatedUser.location.includes(" | ")) {
-      const parts = updatedUser.location.split(" | ");
+    // First attempt: try updating with pincode column if column exists in Supabase
+    try {
+      const { data, error } = await supabase
+        .from("users")
+        .update({
+          ...updateData,
+          pincode: cleanPincode || undefined
+        })
+        .eq("id", req.user.id)
+        .select("*")
+        .single();
+
+      if (!error && data) {
+        updatedUser = data;
+      }
+    } catch (e) {
+      // Column 'pincode' may not exist yet in table
+    }
+
+    // Fallback: update standard columns
+    if (!updatedUser) {
+      const { data, error } = await supabase
+        .from("users")
+        .update(updateData)
+        .eq("id", req.user.id)
+        .select("*")
+        .single();
+
+      if (error) throw error;
+      updatedUser = data;
+    }
+
+    let resPincode = updatedUser.pincode || cleanPincode || "";
+    let resLocation = updatedUser.location || cleanLoc || "";
+
+    if (!resPincode && resLocation.includes(" | ")) {
+      const parts = resLocation.split(" | ");
       resPincode = parts[0].trim();
       resLocation = parts.slice(1).join(" | ").trim();
-    } else if (updatedUser.location && /^\d{6}$/.test(updatedUser.location.trim())) {
-      resPincode = updatedUser.location.trim();
+    } else if (!resPincode && /^\d{6}$/.test(resLocation.trim())) {
+      resPincode = resLocation.trim();
       resLocation = "";
     }
 
