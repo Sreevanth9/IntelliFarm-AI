@@ -1349,17 +1349,17 @@ code {
 
 /* --- Top Navigation Bar Classes --- */
 .top-navbar {
-  height: 80px;
+  height: 72px;
   padding: 0 24px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: 16px;
   background: transparent;
   box-sizing: border-box;
   z-index: 90;
   position: relative;
-  animation: navbarSlideDown 0.3s ease-out forwards;
+  width: 100%;
 }
 
 /* Mobile hamburger button */
@@ -1398,100 +1398,86 @@ code {
 
 .search-container {
   position: relative;
-  flex: 1;
-  min-width: 0;
-  max-width: clamp(200px, 50vw, 720px);
-  height: 56px;
+  width: 380px;
+  max-width: clamp(200px, 38vw, 480px);
+  height: 48px;
   display: flex;
   align-items: center;
-  transition: transform 0.3s ease;
+  flex-shrink: 0;
+  transition: all 0.25s ease;
 }
 
-/* Hide search text on very narrow screens, keep icon */
+.search-input-placeholder {
+  width: 100%;
+  height: 100%;
+  border-radius: 16px;
+  background: var(--search-bg, rgba(255, 255, 255, 0.85));
+  border: 1px solid var(--search-border, rgba(0, 0, 0, 0.08));
+  padding: 0 54px 0 46px;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--sidebar-text-color, #64748B);
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+  box-sizing: border-box;
+  opacity: 0.9;
+}
+
+.search-input-placeholder span {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 100%;
+  display: block;
+}
+
+.search-kbd-badge {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 6px;
+  padding: 2px 7px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #64748B;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.navbar-actions-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+/* Hide search on very narrow screens */
 @media (max-width: 480px) {
   .search-container {
     display: none;
   }
 }
 
-.search-input {
-  width: 100%;
-  height: 100%;
-  border-radius: 20px;
-  background: rgba(255, 255, 255, 0.9);
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  padding: 0 56px 0 52px;
-  font-size: 14px;
-  color: #1E293B;
-  box-sizing: border-box;
-  backdrop-filter: blur(8px);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
-  transition: all 0.3s ease;
-}
-
-.search-input:focus {
-  outline: none;
-  background: rgba(255, 255, 255, 0.95);
-  border-color: rgba(47, 184, 107, 0.3);
-  box-shadow: 0 8px 24px rgba(47, 184, 107, 0.12);
-  transform: scale(1.01);
-}
-
-.notification-btn {
+.theme-toggle-btn {
   width: 48px;
   height: 48px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.72);
-  border: 1px solid rgba(255, 255, 255, 0.55);
+  background: rgba(255, 255, 255, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.6);
   display: flex;
   align-items: center;
   justify-content: center;
   color: #64748B;
   cursor: pointer;
-  position: relative;
-  transition: all 0.3s ease;
-  padding: 0;
-}
-
-.notification-btn:hover {
-  box-shadow: 0 4px 15px rgba(47, 184, 107, 0.15);
-  color: #2FB86B;
-}
-
-.notification-btn:hover svg {
-  transform: rotate(5deg);
-}
-
-.notification-badge {
-  position: absolute;
-  top: -2px;
-  right: -2px;
-  background: #FF4D4D;
-  color: #FFFFFF;
-  font-size: 10px;
-  font-weight: 700;
-  border-radius: 50%;
-  min-width: 16px;
-  height: 16px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0 4px;
-  box-shadow: 0 2px 5px rgba(255, 77, 77, 0.3);
-}
-
-.theme-toggle-btn {
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.72);
-  border: 1px solid rgba(255, 255, 255, 0.55);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #64748B;
-  cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.25s ease;
   flex-shrink: 0;
 }
 
@@ -1505,30 +1491,42 @@ code {
   display: flex;
   align-items: center;
   gap: 10px;
-  height: 56px;
+  height: 48px;
   padding: 0 14px;
-  border-radius: 20px;
-  background: rgba(255, 255, 255, 0.74);
-  border: 1px solid rgba(255, 255, 255, 0.7);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.6);
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.25s ease;
   position: relative;
-  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+  box-shadow: 0 4px 20px rgba(15, 23, 42, 0.04);
   white-space: nowrap;
-  min-width: 0;
-  max-width: 320px;
-  width: fit-content;
   flex-shrink: 0;
 }
 
-/* Hide name/role text on small screens — avatar only */
+/* Mobile responsive profile card & navbar elements */
 @media (max-width: 640px) {
+  .search-kbd-badge { display: none !important; }
   .profile-info,
   .profile-chevron { display: none !important; }
   .profile-card {
-    padding: 0 10px;
-    min-width: 0;
+    padding: 0;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    justify-content: center;
     gap: 0;
+  }
+  .theme-toggle-btn {
+    width: 44px;
+    height: 44px;
+  }
+  .search-container {
+    height: 44px;
+    max-width: 180px;
+  }
+  .search-input-placeholder {
+    padding: 0 12px 0 40px;
   }
 }
 

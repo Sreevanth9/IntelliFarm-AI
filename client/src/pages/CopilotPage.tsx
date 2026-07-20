@@ -16,7 +16,7 @@ const CopilotPage: React.FC = () => {
 
   return (
     <CopilotProvider>
-      <MainLayout eyebrow="AI Agronomist" title="Spryzen AI" subtitle="Ask questions, diagnose crop issues, and receive live farm intelligence">
+      <MainLayout>
         <div className="copilot-layout">
           <HistorySidebar />
           <ChatWindow />

@@ -4,7 +4,7 @@ import Footer from "../components/Footer";
 import Navbar from "../components/Navbar";
 import Sidebar from "../components/Sidebar";
 
-const MainLayout = ({ children, eyebrow, title, subtitle, actions = null, isDashboard = false }) => {
+const MainLayout = ({ children, eyebrow = "", title = "", subtitle = "", actions = null, isDashboard = false }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
 

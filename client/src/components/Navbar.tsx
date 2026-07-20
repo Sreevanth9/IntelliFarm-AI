@@ -128,53 +128,20 @@ const Navbar: React.FC<{ onMenuClick?: () => void; sidebarOpen?: boolean }> = ({
             className="search-container" 
             onClick={() => setIsSearchOpen(true)}
             style={{ cursor: "pointer" }}
+            title="Search farms, crops, scanning history (⌘K)"
           >
-            <>
-              <SearchIcon className="sidebar-search-icon" size={18} />
-              <div 
-                className="search-input-placeholder"
-                style={{
-                  width: "100%",
-                  height: "100%",
-                  borderRadius: "20px",
-                  background: "var(--search-bg)",
-                  border: "1px solid var(--search-border)",
-                  padding: "0 56px 0 52px",
-                  fontSize: "14px",
-                  color: "var(--sidebar-text-color)",
-                  display: "flex",
-                  alignItems: "center",
-                  boxShadow: "0 4px 20px rgba(0, 0, 0, 0.03)",
-                  boxSizing: "border-box"
-                }}
-              >
-                Search farms, crops, scanning history...
-              </div>
-              <span style={{
-                position: "absolute",
-                right: "20px",
-                top: "50%",
-                transform: "translateY(-50%)",
-                background: "rgba(0,0,0,0.04)",
-                border: "1px solid rgba(0,0,0,0.08)",
-                borderRadius: "6px",
-                padding: "3px 8px",
-                fontSize: "11px",
-                fontWeight: 600,
-                color: "#64748B",
-                pointerEvents: "none"
-              }}>
-                ⌘ K
-              </span>
-            </>
+            <SearchIcon className="sidebar-search-icon" size={18} />
+            <div className="search-input-placeholder">
+              <span>Search farms, crops, scanning history...</span>
+            </div>
+            <span className="search-kbd-badge">
+              ⌘ K
+            </span>
           </div>
         )}
 
-        {/* Center Spacer */}
-        <div style={{ flex: 1, minWidth: 0 }}></div>
-
         {/* Right Section: Actions */}
-        <div style={{ display: "flex", alignItems: "center", gap: "12px", flexShrink: 0 }}>
+        <div className="navbar-actions-right">
           
           {/* Theme Toggle Button */}
           <button 
