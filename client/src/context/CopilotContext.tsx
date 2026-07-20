@@ -15,6 +15,10 @@ export interface CopilotContextType {
   draft: string;
   suggestions: string[];
   
+  historyOpen: boolean;
+  setHistoryOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  toggleHistory: () => void;
+  
   setDraft: (draft: string) => void;
   setAttachments: React.Dispatch<React.SetStateAction<any[]>>;
   loadConversations: () => Promise<void>;
@@ -81,7 +85,11 @@ export const CopilotProvider: React.FC<{ children: ReactNode }> = ({ children })
     }
   };
 
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const toggleHistory = () => setHistoryOpen(prev => !prev);
+
   const selectConversation = async (conversationId: string | null) => {
+    setHistoryOpen(false);
     setError(null);
     if (!conversationId) {
       setSelectedConversation(null);
@@ -207,6 +215,9 @@ export const CopilotProvider: React.FC<{ children: ReactNode }> = ({ children })
       attachments,
       draft,
       suggestions,
+      historyOpen,
+      setHistoryOpen,
+      toggleHistory,
       setDraft,
       setAttachments,
       loadConversations,

@@ -16,17 +16,8 @@ const CopilotPage: React.FC = () => {
 
   return (
     <CopilotProvider>
-      <MainLayout eyebrow="" title="" subtitle="">
-        <div
-          className="copilot-layout"
-          style={{
-            height: "calc(100vh - 120px)",
-            minHeight: "500px",
-            borderRadius: "16px",
-            border: "1px solid var(--copilot-border)",
-            boxShadow: "var(--copilot-shadow)"
-          }}
-        >
+      <MainLayout eyebrow="AI Agronomist" title="Spryzen AI" subtitle="Ask questions, diagnose crop issues, and receive live farm intelligence">
+        <div className="copilot-layout">
           <HistorySidebar />
           <ChatWindow />
         </div>

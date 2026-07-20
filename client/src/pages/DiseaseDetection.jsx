@@ -1477,25 +1477,63 @@ const DiseaseDetection = () => {
           opacity: 0.6;
         }
 
-        /* Responsive Layouts */
+        /* Comprehensive Responsive Layouts for Mobile and Tablet */
         @media (max-width: 1024px) {
           .dd-grid {
             grid-template-columns: 1fr;
-            gap: 24px;
+            gap: 20px;
           }
           .dd-card-upload, .dd-card-report {
             min-height: auto;
           }
         }
         @media (max-width: 768px) {
+          .dd-page-wrapper {
+            padding: 8px 4px 32px;
+            gap: 20px;
+          }
+          .dd-card {
+            padding: 16px;
+            border-radius: 18px;
+          }
+          .dd-dropzone {
+            padding: 24px 12px;
+          }
           .dd-metrics-grid {
             grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+          }
+          .dd-metric-card {
+            padding: 12px 10px;
           }
           .dd-treatment-grid {
             grid-template-columns: 1fr;
+            gap: 12px;
           }
           .dd-secondary-grid {
             grid-template-columns: 1fr;
+            gap: 12px;
+          }
+          .dd-page-title {
+            font-size: 24px;
+          }
+          .dd-page-subtitle {
+            font-size: 14px;
+          }
+        }
+        @media (max-width: 640px) {
+          .dd-recent-item {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 8px;
+          }
+          .dd-recent-item-right {
+            width: 100%;
+            justify-content: space-between;
+          }
+          .dd-btn-analyze, .dd-btn-camera, .dd-btn-retry {
+            width: 100%;
+            justify-content: center;
           }
         }
       `}</style>

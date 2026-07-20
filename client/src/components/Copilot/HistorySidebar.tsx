@@ -21,7 +21,9 @@ export const HistorySidebar: React.FC = () => {
     renameConversation,
     togglePinConversation,
     toggleFavoriteConversation,
-    deleteConversation
+    deleteConversation,
+    historyOpen,
+    setHistoryOpen
   } = useCopilotContext();
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -113,8 +115,22 @@ export const HistorySidebar: React.FC = () => {
   };
 
   return (
-    <aside className="copilot-sidebar">
-      <div className="copilot-sidebar-header">
+    <>
+      {/* Mobile Backdrop */}
+      <div
+        className={`copilot-sidebar-backdrop${historyOpen ? " visible" : ""}`}
+        onClick={() => setHistoryOpen(false)}
+      />
+      <aside className={`copilot-sidebar${historyOpen ? " copilot-sidebar-open" : ""}`}>
+        <button
+          className="copilot-sidebar-close-btn"
+          onClick={() => setHistoryOpen(false)}
+          type="button"
+          aria-label="Close history"
+        >
+          <X size={18} />
+        </button>
+        <div className="copilot-sidebar-header">
         <button className="copilot-new-chat-btn" onClick={handleNewChat}>
           <Plus size={18} />
           New Chat
@@ -320,6 +336,7 @@ export const HistorySidebar: React.FC = () => {
         )}
       </div>
     </aside>
+    </>
   );
 };
 

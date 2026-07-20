@@ -4,7 +4,7 @@ import { useCopilot } from "../../hooks/useCopilot";
 import ChatInput from "./ChatInput";
 import Suggestions from "./Suggestions";
 import MessageList from "./MessageList";
-import { RefreshCw } from "lucide-react";
+import { RefreshCw, History } from "lucide-react";
 
 export const ChatWindow: React.FC = () => {
   const {
@@ -13,7 +13,8 @@ export const ChatWindow: React.FC = () => {
     isLoadingMessages,
     isStreaming,
     error,
-    setDraft
+    setDraft,
+    toggleHistory
   } = useCopilotContext();
 
   const { sendMessage, stopGeneration } = useCopilot();
@@ -41,9 +42,18 @@ export const ChatWindow: React.FC = () => {
 
   return (
     <div className="copilot-chat-window">
-      {/* Header (Only visible after discussion starts) */}
-      {messages.length > 0 && (
-        <header className="copilot-chat-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 24px" }}>
+      {/* Header bar */}
+      <header className="copilot-chat-header">
+        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+          <button
+            type="button"
+            className="copilot-mobile-history-btn"
+            onClick={toggleHistory}
+            title="Chat History"
+            aria-label="Open chat history"
+          >
+            <History size={18} />
+          </button>
           <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: "2px" }}>
             <div style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "11px", fontWeight: "700", color: "var(--copilot-primary)", textTransform: "uppercase", letterSpacing: "0.8px" }}>
               <span style={{ display: "inline-block", width: "8px", height: "8px", borderRadius: "50%", backgroundColor: "#2fb86b" }}></span>
@@ -55,11 +65,11 @@ export const ChatWindow: React.FC = () => {
                 : "New Chat"}
             </div>
           </div>
-          {isStreaming && (
-            <RefreshCw size={16} className="animate-spin" style={{ color: "var(--copilot-primary)" }} />
-          )}
-        </header>
-      )}
+        </div>
+        {isStreaming && (
+          <RefreshCw size={16} className="animate-spin" style={{ color: "var(--copilot-primary)" }} />
+        )}
+      </header>
 
       {/* Main Workspace Body */}
       {isLoadingMessages ? (
