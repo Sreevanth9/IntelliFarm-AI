@@ -126,7 +126,33 @@ const Settings: React.FC = () => {
       title="Settings"
       subtitle="Manage your platform preferences, account security, and data privacy"
     >
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "24px", width: "100%" }}>
+      <style>{`
+        .settings-main-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 24px;
+          width: 100%;
+        }
+        @media (max-width: 768px) {
+          .settings-main-grid {
+            grid-template-columns: 1fr;
+          }
+        }
+        .settings-farm-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr 1fr;
+          gap: 10px;
+          background: rgba(82,183,136,0.04);
+          border-radius: 14px;
+          padding: 14px;
+        }
+        @media (max-width: 600px) {
+          .settings-farm-grid {
+            grid-template-columns: 1fr 1fr;
+          }
+        }
+      `}</style>
+      <div className="settings-main-grid">
         
         {/* Left column: Theme & Notifications */}
         <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
@@ -188,7 +214,7 @@ const Settings: React.FC = () => {
                 {defaultFarmId && (() => {
                   const sel = farms.find((f: any) => f.id === defaultFarmId);
                   return sel ? (
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "10px", background: "rgba(82,183,136,0.04)", borderRadius: "14px", padding: "14px" }}>
+                    <div className="settings-farm-grid">
                       <div><span style={{ fontSize: "10px", color: "#8e918f", fontWeight: 700, textTransform: "uppercase" }}>Crop</span><strong style={{ display: "block", fontSize: "14px", color: "#52b788" }}>{sel.crop}</strong></div>
                       <div><span style={{ fontSize: "10px", color: "#8e918f", fontWeight: 700, textTransform: "uppercase" }}>Soil</span><strong style={{ display: "block", fontSize: "14px", color: "var(--body-color)" }}>{sel.soilType}</strong></div>
                       <div><span style={{ fontSize: "10px", color: "#8e918f", fontWeight: 700, textTransform: "uppercase" }}>Stage</span><strong style={{ display: "block", fontSize: "14px", color: "var(--body-color)" }}>{sel.stage || "—"}</strong></div>

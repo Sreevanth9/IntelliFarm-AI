@@ -143,7 +143,30 @@ const Profile = () => {
       title="My Profile"
       subtitle="Manage your profile information, farm parameters, and active device sessions"
     >
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 2.2fr", gap: "24px", alignItems: "start" }}>
+      <style>{`
+        .profile-main-grid {
+          display: grid;
+          grid-template-columns: 1fr 2.2fr;
+          gap: 24px;
+          align-items: start;
+        }
+        @media (max-width: 900px) {
+          .profile-main-grid {
+            grid-template-columns: 1fr;
+          }
+        }
+        .profile-form-two-col {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 16px;
+        }
+        @media (max-width: 600px) {
+          .profile-form-two-col {
+            grid-template-columns: 1fr;
+          }
+        }
+      `}</style>
+      <div className="profile-main-grid">
         
         {/* Left Column: Avatar, Completion, Quick Summary */}
         <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
@@ -347,7 +370,7 @@ const Profile = () => {
             </div>
 
             {!editMode ? (
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" }}>
+              <div className="profile-form-two-col">
                 <div>
                   <span style={{ fontSize: "12px", color: "#8e918f", display: "block" }}>Full Name</span>
                   <p style={{ margin: "4px 0 0 0", fontWeight: 700, color: "var(--body-color)", fontSize: "14px" }}>{currentFarmer.name || "N/A"}</p>
@@ -367,7 +390,7 @@ const Profile = () => {
               </div>
             ) : (
               <form onSubmit={handleUpdateProfile} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+                <div className="profile-form-two-col">
                   <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
                     <label style={{ fontSize: "13px", fontWeight: 600 }}>Name</label>
                     <input

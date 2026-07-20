@@ -1,6 +1,7 @@
 import { NavLink, useNavigate } from "react-router-dom";
 import { ROUTES } from "../utils/constants";
 import farmLogo from "../assets/intellifarm-icon.png";
+import { useEffect } from "react";
 
 import { useAuth } from "../context/AuthContext";
 import toast from "react-hot-toast";
@@ -13,10 +14,11 @@ import {
   Settings,
   LogOut,
   ChevronRight,
-  Sparkles
+  Sparkles,
+  X
 } from "lucide-react";
 
-const Sidebar = () => {
+const Sidebar = ({ isOpen, onClose }) => {
   const { logout } = useAuth();
   const navigate = useNavigate();
 
@@ -30,8 +32,6 @@ const Sidebar = () => {
     { label: "My Farms", href: ROUTES.farms, icon: Tractor },
     { label: "Weather", href: ROUTES.weather, icon: CloudSun },
   ];
-
-
 
   const group4 = [
     { label: "Profile", href: ROUTES.profile, icon: User },
@@ -49,6 +49,31 @@ const Sidebar = () => {
       });
   };
 
+  // Close drawer on Escape key
+  useEffect(() => {
+    const handler = (e) => {
+      if (e.key === "Escape" && isOpen) onClose?.();
+    };
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, [isOpen, onClose]);
+
+  // Lock body scroll when drawer is open on mobile
+  useEffect(() => {
+    const isMobileOrTablet = window.innerWidth <= 1024;
+    if (isMobileOrTablet && isOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => { document.body.style.overflow = ""; };
+  }, [isOpen]);
+
+  const handleNavClick = () => {
+    // Close drawer on navigation on mobile/tablet
+    if (window.innerWidth <= 1024) onClose?.();
+  };
+
   const renderMenuItems = (items) => {
     return items.map((item) => {
       const IconComponent = item.icon;
@@ -56,6 +81,7 @@ const Sidebar = () => {
         <NavLink
           key={item.href}
           to={item.href}
+          onClick={handleNavClick}
           className={({ isActive }) =>
             isActive ? "sidebar-item sidebar-item-active" : "sidebar-item"
           }
@@ -76,55 +102,72 @@ const Sidebar = () => {
   };
 
   return (
-    <aside className="sidebar">
-      {/* 1. Fixed Header Area (Logo Only) */}
-      <div className="sidebar-header-fixed" style={{ marginBottom: "16px" }}>
-        <div className="sidebar-header" style={{ marginBottom: "16px" }}>
-          <img src={farmLogo} alt="IntelliFarm AI Logo" className="sidebar-logo-img" />
-          <div className="sidebar-brand">
-            <span className="sidebar-brand-title">IntelliFarm AI</span>
-            <span className="sidebar-brand-subtitle">Smart Farming.<br />Better Decisions.</span>
-          </div>
-        </div>
-        <hr className="sidebar-divider" style={{ margin: 0 }} />
-      </div>
+    <>
+      {/* Backdrop — only visible on mobile/tablet when open */}
+      <div
+        className={`sidebar-backdrop${isOpen ? " visible" : ""}`}
+        onClick={onClose}
+        aria-hidden="true"
+      />
 
-      {/* 2. Scrollable Content Area */}
-      <nav className="sidebar-nav">
-
-        {/* Group 1: Dashboard & AI Services */}
-        <div className="sidebar-menu-group">
-          {renderMenuItems(group1)}
-        </div>
-
-        <hr className="sidebar-divider" />
-
-        {/* Group 2: Farm Ops */}
-        <div className="sidebar-menu-group">
-          {renderMenuItems(group2)}
-        </div>
-
-
-
-        <hr className="sidebar-divider" />
-
-        {/* Group 4: Account / Config */}
-        <div className="sidebar-menu-group">
-          {renderMenuItems(group4)}
-        </div>
-
-        <hr className="sidebar-divider" />
-
-        {/* Section 5: Logout Action */}
-        <button onClick={handleLogout} className="sidebar-logout">
-          <span className="sidebar-icon" style={{ color: "#FF4D4D" }}>
-            <LogOut size={18} strokeWidth={2} />
-          </span>
-          <span className="sidebar-text">Logout</span>
-          <ChevronRight size={16} className="sidebar-chevron" style={{ color: "#FF4D4D" }} />
+      <aside className={`sidebar${isOpen ? " sidebar-open" : ""}`}>
+        {/* Close button — shown inside drawer on ≤1024px */}
+        <button
+          className="sidebar-close-btn"
+          onClick={onClose}
+          aria-label="Close menu"
+          type="button"
+        >
+          <X size={16} />
         </button>
-      </nav>
-    </aside>
+
+        {/* 1. Fixed Header Area (Logo Only) */}
+        <div className="sidebar-header-fixed" style={{ marginBottom: "16px" }}>
+          <div className="sidebar-header" style={{ marginBottom: "16px" }}>
+            <img src={farmLogo} alt="IntelliFarm AI Logo" className="sidebar-logo-img" />
+            <div className="sidebar-brand">
+              <span className="sidebar-brand-title">IntelliFarm AI</span>
+              <span className="sidebar-brand-subtitle">Smart Farming.<br />Better Decisions.</span>
+            </div>
+          </div>
+          <hr className="sidebar-divider" style={{ margin: 0 }} />
+        </div>
+
+        {/* 2. Scrollable Content Area */}
+        <nav className="sidebar-nav">
+
+          {/* Group 1: Dashboard & AI Services */}
+          <div className="sidebar-menu-group">
+            {renderMenuItems(group1)}
+          </div>
+
+          <hr className="sidebar-divider" />
+
+          {/* Group 2: Farm Ops */}
+          <div className="sidebar-menu-group">
+            {renderMenuItems(group2)}
+          </div>
+
+          <hr className="sidebar-divider" />
+
+          {/* Group 4: Account / Config */}
+          <div className="sidebar-menu-group">
+            {renderMenuItems(group4)}
+          </div>
+
+          <hr className="sidebar-divider" />
+
+          {/* Section 5: Logout Action */}
+          <button onClick={handleLogout} className="sidebar-logout">
+            <span className="sidebar-icon" style={{ color: "#FF4D4D" }}>
+              <LogOut size={18} strokeWidth={2} />
+            </span>
+            <span className="sidebar-text">Logout</span>
+            <ChevronRight size={16} className="sidebar-chevron" style={{ color: "#FF4D4D" }} />
+          </button>
+        </nav>
+      </aside>
+    </>
   );
 };
 

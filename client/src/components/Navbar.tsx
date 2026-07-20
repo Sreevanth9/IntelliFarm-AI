@@ -34,7 +34,7 @@ const SEARCHABLE_ITEMS: SearchableItem[] = [
   { title: "Government Schemes", category: "Services", description: "Subsidies, insurance policies & crop support", route: "/schemes" }
 ];
 
-const Navbar: React.FC = () => {
+const Navbar: React.FC<{ onMenuClick?: () => void }> = ({ onMenuClick }) => {
   const { farmer, isAuthenticated, logout } = useAuth() as any;
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -105,7 +105,21 @@ const Navbar: React.FC = () => {
   return (
     <>
       <nav className="top-navbar">
-        
+
+        {/* Hamburger — visible on ≤1024px to open sidebar drawer */}
+        <button
+          type="button"
+          className="navbar-hamburger"
+          onClick={onMenuClick}
+          aria-label="Open navigation menu"
+        >
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+            <line x1="2" y1="5" x2="18" y2="5" />
+            <line x1="2" y1="10" x2="18" y2="10" />
+            <line x1="2" y1="15" x2="18" y2="15" />
+          </svg>
+        </button>
+
         {/* Left Section: Search Trigger */}
         {isAuthenticated && (
           <div 
@@ -155,10 +169,10 @@ const Navbar: React.FC = () => {
         )}
 
         {/* Center Spacer */}
-        <div style={{ flex: 1 }}></div>
+        <div style={{ flex: 1, minWidth: 0 }}></div>
 
         {/* Right Section: Actions */}
-        <div style={{ display: "flex", alignItems: "center", gap: "20px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "12px", flexShrink: 0 }}>
           
           {/* Theme Toggle Button */}
           <button 

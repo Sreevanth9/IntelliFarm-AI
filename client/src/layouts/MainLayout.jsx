@@ -1,3 +1,4 @@
+import { useState } from "react";
 import Footer from "../components/Footer";
 import Navbar from "../components/Navbar";
 import Sidebar from "../components/Sidebar";
@@ -5,13 +6,17 @@ import { NavLink } from "react-router-dom";
 import { SIDEBAR_ITEMS } from "../utils/constants";
 
 const MainLayout = ({ children, eyebrow, title, subtitle, actions = null, isDashboard = false }) => {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
   return (
     <div className="ag-layout-container">
-      <Sidebar />
+      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+
       <div className={`ag-main-container ${isDashboard ? "dashboard-main-container" : ""}`}>
-        <Navbar />
+        <Navbar onMenuClick={() => setSidebarOpen((o) => !o)} />
+
         <main className="ag-page" style={{ flex: 1, display: "flex", flexDirection: "column", background: "transparent", minHeight: "auto" }}>
-          <section className="ag-content app-main-content" style={{ flex: 1, width: "100%", maxWidth: "1600px", margin: "0 auto", padding: "24px 32px 32px 32px" }}>
+          <section className="ag-content app-main-content ag-responsive-content">
             {title && <div className="ag-breadcrumb" style={{ color: "var(--text-main, #5b6b62)" }}>IntelliFarm AI / {title}</div>}
             {title && (
             <div className="ag-page-head" style={{ marginBottom: "20px" }}>
@@ -28,7 +33,8 @@ const MainLayout = ({ children, eyebrow, title, subtitle, actions = null, isDash
           <Footer />
         </main>
       </div>
-      
+
+      {/* Mobile bottom navigation */}
       <div className="mobile-bottom-nav">
         {SIDEBAR_ITEMS.map(([label, href, icon]) => (
           <NavLink
