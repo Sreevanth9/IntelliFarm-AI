@@ -94,7 +94,6 @@ export const detectDisease = async (req, res, next) => {
 
     console.log("Calling detectCropDisease service...");
     const diagnosis = await detectCropDisease({ base64Image: base64Content, weatherData });
-    console.log("[DIAGNOSIS SERVICE RETURNED]:", JSON.stringify(diagnosis, null, 2));
 
     if (diagnosis.status === "invalid") {
       console.log("[VALIDATION REPORT]: Leaf validation failed");
@@ -111,7 +110,6 @@ export const detectDisease = async (req, res, next) => {
     const treatmentCombined = `Organic Methods:\n${organic || "• None specified."}\n\nChemical Methods:\n${chemical || "• None specified."}`;
     const preventionCombined = (diagnosis.prevention || []).map(p => `• ${p}`).join("\n");
 
-    console.log("Inserting report into supabase database...");
     const { data: report, error } = await supabase
       .from("disease_reports")
       .insert({
@@ -157,7 +155,7 @@ export const detectDisease = async (req, res, next) => {
       },
     });
   } catch (error) {
-    console.error("[DISEASE DETECTION CONTROLLER ERROR]:", error.message, error.stack);
+    console.error("[DISEASE DETECTION CONTROLLER ERROR]:", error.message);
     res.status(error.statusCode || 500).json({
       success: false,
       message: error.message || "Internal server error during diagnosis",
