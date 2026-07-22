@@ -36,7 +36,8 @@ const safeUser = (user) => ({
   pincode: user.pincode || "",
   location: user.location || "",
   farmSize: user.farm_size || user.farmSize || "",
-  cropsInterested: Array.isArray(user.crops_interested) ? user.crops_interested : (Array.isArray(user.cropsInterested) ? user.cropsInterested : []),
+  cropsInterested: Array.isArray(user.crops_interested) ? user.crops_interested : [],
+  cropsConfirmed: Boolean(user.crops_confirmed),
 });
 
 const setSessionCookies = (res, user, sessionId, refreshToken) => {
@@ -106,6 +107,7 @@ export const register = async (req, res, next) => {
       location: location || null,
       pincode: pincode || null,
       crops_interested: Array.isArray(cropsInterested) ? cropsInterested.slice(0, 20) : [],
+      crops_confirmed: false,
       profile_img: `https://api.dicebear.com/9.x/initials/svg?seed=${encodeURIComponent(name)}`,
       is_email_verified: false,
       email_verification_token: hashedVerificationToken,
@@ -247,7 +249,7 @@ export const oauthLogin = async (req, res, next) => {
       } else {
         const placeholderPassword = await bcrypt.hash(crypto.randomBytes(48).toString("base64url"), 12);
         const { data, error } = await supabase.from("users").insert({
-          auth_user_id: authUser.id, name, email: normalizedEmail, password: placeholderPassword, profile_img: profileImage, crops_interested: [], is_email_verified: true,
+          auth_user_id: authUser.id, name, email: normalizedEmail, password: placeholderPassword, profile_img: profileImage, crops_interested: [], crops_confirmed: false, is_email_verified: true,
         }).select("*").single();
         if (error) throw error;
         user = data;

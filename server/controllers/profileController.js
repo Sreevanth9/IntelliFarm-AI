@@ -8,7 +8,9 @@ export const getProfile = async (req, res, next) => {
       .eq("user_id", req.user.id)
       .order("created_at", { ascending: false });
 
-    if (error) throw error;
+    if (error && error.code !== "PGRST116") {
+      console.warn("[profileController] saved_recommendations fetch warning:", error.message);
+    }
 
     const formattedRecs = (recommendations || []).map(r => ({
       _id: r.id,
@@ -21,12 +23,16 @@ export const getProfile = async (req, res, next) => {
       updatedAt: r.updated_at
     }));
 
-    let pincode = req.user.pincode || "";
-    let location = req.user.location || "";
+    let pincode = req.user?.pincode || "";
+    let location = req.user?.location || "";
+
     if (!pincode && location.includes(" | ")) {
       const parts = location.split(" | ");
       pincode = parts[0].trim();
       location = parts.slice(1).join(" | ").trim();
+    } else if (!pincode && /^\d{6}$/.test(location.trim())) {
+      pincode = location.trim();
+      location = "";
     }
 
     res.status(200).json({
@@ -39,11 +45,13 @@ export const getProfile = async (req, res, next) => {
         pincode,
         location,
         farmSize: req.user.farm_size,
-        cropsInterested: req.user.crops_interested || [],
+        cropsInterested: Array.isArray(req.user.crops_interested) ? req.user.crops_interested : [],
+        cropsConfirmed: Boolean(req.user.crops_confirmed),
         savedRecommendations: formattedRecs,
       },
     });
   } catch (error) {
+    console.error("[profileController] getProfile error:", error);
     next(error);
   }
 };
@@ -52,25 +60,88 @@ export const updateProfile = async (req, res, next) => {
   try {
     const { name, pincode, location, farmSize, cropsInterested, profileImg, profile_img } = req.body;
 
-    const updateData = {};
-    if (name !== undefined) updateData.name = name;
-    if (pincode !== undefined) updateData.pincode = (pincode || "").toString().trim();
-    if (location !== undefined) updateData.location = (location || "").toString().trim();
-    if (farmSize !== undefined) updateData.farm_size = farmSize;
-    if (cropsInterested !== undefined) updateData.crops_interested = Array.isArray(cropsInterested) ? cropsInterested : [];
-    if (profileImg) updateData.profile_img = profileImg;
-    if (profile_img) updateData.profile_img = profile_img;
+    const cleanPincode = (pincode !== undefined && pincode !== null ? pincode : "").toString().trim();
+    const cleanLocation = (location !== undefined && location !== null ? location : "").toString().trim();
 
-    const { data: updatedUser, error } = await supabase
-      .from("users")
-      .update(updateData)
-      .eq("id", req.user.id)
-      .select("*")
-      .single();
+    const baseUpdate = {
+      crops_confirmed: true
+    };
+    if (name !== undefined && name !== null) baseUpdate.name = String(name).trim();
+    if (farmSize !== undefined && farmSize !== null) baseUpdate.farm_size = String(farmSize);
+    if (cropsInterested !== undefined) baseUpdate.crops_interested = Array.isArray(cropsInterested) ? cropsInterested : [];
+    if (profileImg) baseUpdate.profile_img = profileImg;
+    if (profile_img) baseUpdate.profile_img = profile_img;
 
-    if (error) throw error;
+    let updatedUser = null;
 
-    res.status(200).json({
+    // Attempt 1: Try updating with pincode column directly
+    try {
+      const fullUpdate = {
+        ...baseUpdate,
+        ...(location !== undefined ? { location: cleanLocation } : {}),
+        ...(pincode !== undefined ? { pincode: cleanPincode } : {}),
+      };
+
+      const res1 = await supabase
+        .from("users")
+        .update(fullUpdate)
+        .eq("id", req.user.id)
+        .select("*")
+        .maybeSingle();
+
+      if (!res1.error && res1.data) {
+        updatedUser = res1.data;
+      }
+    } catch (e1) {
+      // Column pincode might not exist in target database
+    }
+
+    // Attempt 2: Fallback if pincode column is absent in Supabase
+    if (!updatedUser) {
+      let combinedLocation = cleanLocation;
+      if (cleanPincode && cleanLocation && !cleanLocation.startsWith(cleanPincode)) {
+        combinedLocation = `${cleanPincode} | ${cleanLocation}`;
+      } else if (cleanPincode && !cleanLocation) {
+        combinedLocation = cleanPincode;
+      }
+
+      const fallbackUpdate = {
+        ...baseUpdate,
+        ...(combinedLocation ? { location: combinedLocation } : {}),
+      };
+
+      const res2 = await supabase
+        .from("users")
+        .update(fallbackUpdate)
+        .eq("id", req.user.id)
+        .select("*")
+        .maybeSingle();
+
+      if (!res2.error && res2.data) {
+        updatedUser = res2.data;
+      } else if (res2.error) {
+        console.error("[profileController] Supabase update fallback error:", res2.error);
+        throw res2.error;
+      }
+    }
+
+    if (!updatedUser) {
+      throw new Error("Unable to update profile record in database");
+    }
+
+    let resPincode = updatedUser.pincode || cleanPincode || "";
+    let resLocation = updatedUser.location || cleanLocation || "";
+
+    if (!resPincode && resLocation.includes(" | ")) {
+      const parts = resLocation.split(" | ");
+      resPincode = parts[0].trim();
+      resLocation = parts.slice(1).join(" | ").trim();
+    } else if (!resPincode && /^\d{6}$/.test(resLocation.trim())) {
+      resPincode = resLocation.trim();
+      resLocation = "";
+    }
+
+    return res.status(200).json({
       success: true,
       message: "Profile updated successfully",
       user: {
@@ -78,10 +149,11 @@ export const updateProfile = async (req, res, next) => {
         name: updatedUser.name,
         email: updatedUser.email,
         profileImg: updatedUser.profile_img,
-        pincode: updatedUser.pincode || "",
-        location: updatedUser.location || "",
+        pincode: resPincode,
+        location: resLocation,
         farmSize: updatedUser.farm_size,
         cropsInterested: updatedUser.crops_interested || [],
+        cropsConfirmed: true,
       },
     });
   } catch (error) {

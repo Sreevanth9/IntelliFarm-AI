@@ -23,6 +23,7 @@ const Profile = () => {
   const [pincode, setPincode] = useState("");
   const [location, setLocation] = useState("");
   const [selectedCrops, setSelectedCrops] = useState([]);
+  const [cropsConfirmed, setCropsConfirmed] = useState(false);
   const [profileImg, setProfileImg] = useState("");
 
   const availableCrops = ["Paddy", "Tomato", "Maize", "Wheat", "Cotton", "Soybean", "Potato", "Chilli", "Sugarcane", "Groundnut"];
@@ -35,7 +36,12 @@ const Profile = () => {
         setName(data.profile.name || farmer?.name || "");
         setLocation(data.profile.location || farmer?.location || "");
         setPincode(data.profile.pincode || farmer?.pincode || "");
-        setSelectedCrops(data.profile.cropsInterested || farmer?.cropsInterested || []);
+        setSelectedCrops(
+          Array.isArray(data.profile.cropsInterested)
+            ? data.profile.cropsInterested
+            : []
+        );
+        setCropsConfirmed(Boolean(data.profile.cropsConfirmed));
         setProfileImg(data.profile.profileImg || farmer?.profileImg || "");
       }
     } catch (err) {
@@ -44,7 +50,12 @@ const Profile = () => {
       setName(user.name || "");
       setLocation(user.location || "");
       setPincode(user.pincode || "");
-      setSelectedCrops(user.cropsInterested || []);
+      setSelectedCrops(
+        Array.isArray(user.cropsInterested)
+          ? user.cropsInterested
+          : []
+      );
+      setCropsConfirmed(Boolean(user.cropsConfirmed));
       setProfileImg(user.profileImg || "");
     }
   }, [farmer]);
@@ -54,13 +65,13 @@ const Profile = () => {
   }, [loadProfile]);
 
   // Strict Profile Completion calculation:
-  // Name: 25%, Pincode: 25%, Location: 25%, At least 1 Crop: 25% = 100%
+  // Name: 25%, Pincode: 25%, Location: 25%, Confirmed Crop: 25% = 100%
   const calculateCompletion = () => {
     let score = 0;
     if (name && name.trim()) score += 25;
     if (pincode && pincode.trim()) score += 25;
     if (location && location.trim()) score += 25;
-    if (selectedCrops && selectedCrops.length > 0) score += 25;
+    if (cropsConfirmed && selectedCrops && selectedCrops.length > 0) score += 25;
     return score;
   };
 
@@ -79,7 +90,7 @@ const Profile = () => {
           const { data } = await updateProfile({ profileImg: base64 });
           if (data.success) {
             toast.success("Profile photo updated!");
-            applySession(data.user);
+            if (typeof applySession === "function") applySession(data.user);
           }
         } catch (err) {
           toast.error("Failed to upload photo");
@@ -104,21 +115,32 @@ const Profile = () => {
 
     setLoading(true);
     try {
-      const { data } = await updateProfile({
+      const res = await updateProfile({
         name: name.trim(),
         pincode: pincode.trim(),
         location: location.trim(),
         cropsInterested: selectedCrops
       });
-      if (data.success) {
-        toast.success("Profile updated successfully!");
-        setProfile(data.user);
-        applySession(data.user);
+
+      if (res?.data?.success && res?.data?.user) {
+        const updatedUser = res.data.user;
+        setProfile(updatedUser);
+        setCropsConfirmed(true);
+        if (typeof applySession === "function") {
+          try {
+            applySession(updatedUser);
+          } catch (sessionErr) {
+            console.warn("Session sync warning:", sessionErr);
+          }
+        }
         setEditMode(false);
+        toast.success("Profile updated successfully!");
+      } else {
+        toast.error(res?.data?.message || "Failed to update profile");
       }
     } catch (err) {
-      console.error(err);
-      toast.error(err.response?.data?.message || "Failed to update profile");
+      console.error("[Profile.jsx] handleUpdateProfile error:", err);
+      toast.error(err.response?.data?.message || err.message || "Failed to update profile");
     } finally {
       setLoading(false);
     }
@@ -165,7 +187,7 @@ const Profile = () => {
                 <strong className="profile-alert-title">Profile Setup Incomplete ({completionPercent}%)</strong>
                 <p className="profile-alert-desc">
                   {!pincode?.trim() ? "Pincode is missing. " : ""}
-                  {selectedCrops.length === 0 ? "Select at least 1 crop of interest. " : ""}
+                  {!cropsConfirmed || selectedCrops.length === 0 ? "Select the crops you grow or are interested in. " : ""}
                   Provide all details so IntelliFarm AI & Spryzen can accurately personalize weather, farm recommendations, and disease advisories.
                 </p>
               </div>
@@ -247,12 +269,12 @@ const Profile = () => {
                     <Sparkles size={14} /> Crops of Interest
                   </span>
                   <div className="profile-crop-tags">
-                    {selectedCrops.length > 0 ? (
+                    {cropsConfirmed && selectedCrops.length > 0 ? (
                       selectedCrops.map((crop) => (
                         <span key={crop} className="profile-crop-tag">{crop}</span>
                       ))
                     ) : (
-                      <span className="profile-no-tags">No crops selected (At least 1 required)</span>
+                      <span className="profile-no-tags">Select the crops you grow or are interested in</span>
                     )}
                   </div>
                 </div>
@@ -346,6 +368,11 @@ const Profile = () => {
                     <label className="profile-field-label">
                       Crops of Interest * <span style={{ textTransform: "none", fontWeight: 400, color: "#ef4444" }}>(Select at least 1)</span>
                     </label>
+                    {(!cropsConfirmed || selectedCrops.length === 0) && (
+                      <p style={{ fontSize: "12.5px", color: "#f59e0b", margin: "2px 0 6px", fontWeight: 600 }}>
+                        Select the crops you grow or are interested in
+                      </p>
+                    )}
                     <div className="profile-crop-selector-grid">
                       {availableCrops.map((crop) => {
                         const active = selectedCrops.includes(crop);

@@ -13,6 +13,7 @@ CREATE TABLE IF NOT EXISTS public.users (
   pincode TEXT,
   farm_size TEXT DEFAULT '3 acres',
   crops_interested TEXT[] DEFAULT '{}',
+  crops_confirmed BOOLEAN DEFAULT false,
   is_email_verified BOOLEAN DEFAULT false,
   email_verification_token TEXT,
   email_verification_expires TIMESTAMP WITH TIME ZONE,
