@@ -30,12 +30,13 @@ const safeEqual = (left, right) => {
 
 const safeUser = (user) => ({
   id: user.id || user._id,
-  name: user.name,
-  email: user.email,
-  profileImg: user.profile_img || user.profileImg,
-  location: user.location,
-  farmSize: user.farm_size || user.farmSize,
-  cropsInterested: user.crops_interested || user.cropsInterested || [],
+  name: user.name || "",
+  email: user.email || "",
+  profileImg: user.profile_img || user.profileImg || "",
+  pincode: user.pincode || "",
+  location: user.location || "",
+  farmSize: user.farm_size || user.farmSize || "",
+  cropsInterested: Array.isArray(user.crops_interested) ? user.crops_interested : (Array.isArray(user.cropsInterested) ? user.cropsInterested : []),
 });
 
 const setSessionCookies = (res, user, sessionId, refreshToken) => {
@@ -83,7 +84,7 @@ export const getCsrfToken = (req, res) => {
 
 export const register = async (req, res, next) => {
   try {
-    const { name, email, password, location, cropsInterested = [] } = req.body;
+    const { name, email, password, location, pincode, cropsInterested = [] } = req.body;
     const normalizedEmail = email.toLowerCase();
     if (!PASSWORD_PATTERN.test(password)) throw passwordError();
 
@@ -103,12 +104,13 @@ export const register = async (req, res, next) => {
       email: normalizedEmail,
       password: passwordHash,
       location: location || null,
+      pincode: pincode || null,
       crops_interested: Array.isArray(cropsInterested) ? cropsInterested.slice(0, 20) : [],
       profile_img: `https://api.dicebear.com/9.x/initials/svg?seed=${encodeURIComponent(name)}`,
       is_email_verified: false,
       email_verification_token: hashedVerificationToken,
       email_verification_expires: verificationExpires,
-    }).select("id, name, email, profile_img, location, farm_size, crops_interested").single();
+    }).select("*").single();
     if (insertError) throw insertError;
 
     const { error: historyError } = await supabase.from("password_history").insert({ user_id: newUser.id, password_hash: passwordHash });
@@ -132,7 +134,7 @@ export const login = async (req, res, next) => {
   try {
     const normalizedEmail = req.body.email.toLowerCase();
     const { data: user, error: selectError } = await supabase.from("users")
-      .select("id, name, email, password, profile_img, location, farm_size, crops_interested, failed_login_attempts, locked_until, is_email_verified")
+      .select("*")
       .eq("email", normalizedEmail).maybeSingle();
     if (selectError) throw selectError;
     if (!user?.password) {
@@ -184,7 +186,7 @@ export const refreshSession = async (req, res, next) => {
     }
 
     const { data: user, error: userError } = await supabase.from("users")
-      .select("id, name, email, profile_img, location, farm_size, crops_interested").eq("id", decoded.sub).maybeSingle();
+      .select("*").eq("id", decoded.sub).maybeSingle();
     if (userError) throw userError;
     if (!user) throw Object.assign(new Error("User not found"), { statusCode: 401 });
 
@@ -226,12 +228,12 @@ export const oauthLogin = async (req, res, next) => {
       : `https://api.dicebear.com/9.x/initials/svg?seed=${encodeURIComponent(name)}`;
 
     let { data: user, error: selectError } = await supabase.from("users")
-      .select("id, name, email, profile_img, location, farm_size, crops_interested, auth_user_id")
+      .select("*")
       .eq("auth_user_id", authUser.id).maybeSingle();
     if (selectError) throw selectError;
     if (!user) {
       const { data: emailUser, error: emailError } = await supabase.from("users")
-        .select("id, name, email, profile_img, location, farm_size, crops_interested, auth_user_id")
+        .select("*")
         .eq("email", normalizedEmail).maybeSingle();
       if (emailError) throw emailError;
       if (emailUser?.auth_user_id && emailUser.auth_user_id !== authUser.id) {
@@ -239,14 +241,14 @@ export const oauthLogin = async (req, res, next) => {
       }
       if (emailUser) {
         const { data, error } = await supabase.from("users").update({ auth_user_id: authUser.id, profile_img: emailUser.profile_img || profileImage, is_email_verified: true })
-          .eq("id", emailUser.id).select("id, name, email, profile_img, location, farm_size, crops_interested, auth_user_id").single();
+          .eq("id", emailUser.id).select("*").single();
         if (error) throw error;
         user = data;
       } else {
         const placeholderPassword = await bcrypt.hash(crypto.randomBytes(48).toString("base64url"), 12);
         const { data, error } = await supabase.from("users").insert({
           auth_user_id: authUser.id, name, email: normalizedEmail, password: placeholderPassword, profile_img: profileImage, crops_interested: [], is_email_verified: true,
-        }).select("id, name, email, profile_img, location, farm_size, crops_interested, auth_user_id").single();
+        }).select("*").single();
         if (error) throw error;
         user = data;
       }

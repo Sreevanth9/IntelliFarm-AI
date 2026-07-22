@@ -4,6 +4,7 @@
 -- 1. Users Table
 CREATE TABLE IF NOT EXISTS public.users (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  auth_user_id UUID,
   name TEXT NOT NULL,
   email TEXT UNIQUE NOT NULL,
   password TEXT,
@@ -12,6 +13,11 @@ CREATE TABLE IF NOT EXISTS public.users (
   pincode TEXT,
   farm_size TEXT DEFAULT '3 acres',
   crops_interested TEXT[] DEFAULT '{}',
+  is_email_verified BOOLEAN DEFAULT false,
+  email_verification_token TEXT,
+  email_verification_expires TIMESTAMP WITH TIME ZONE,
+  password_reset_token TEXT,
+  password_reset_expires TIMESTAMP WITH TIME ZONE,
   max_rate_limit INTEGER DEFAULT 10,
   current_limit INTEGER DEFAULT 0,
   recent_rate_limit_time BIGINT DEFAULT 0,
@@ -151,6 +157,7 @@ CREATE TABLE IF NOT EXISTS public.farms (
   farm_name TEXT NOT NULL,
   location TEXT,
   crop TEXT NOT NULL,
+  crop_variety TEXT,
   soil_type TEXT NOT NULL,
   area TEXT NOT NULL,
   sowing_date DATE NOT NULL,
