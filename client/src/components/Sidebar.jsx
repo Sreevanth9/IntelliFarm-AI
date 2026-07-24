@@ -144,15 +144,21 @@ const Sidebar = ({ isOpen, onClose }) => {
           <X size={16} />
         </button>
 
-        {/* Logo / Brand */}
+        {/* Logo / Brand — Clicking logo navigates to Dashboard */}
         <div className="sidebar-header-fixed" style={{ marginBottom: "16px" }}>
-          <div className="sidebar-header" style={{ marginBottom: "16px" }}>
+          <NavLink
+            to={ROUTES.dashboard}
+            onClick={handleNavClick}
+            className="sidebar-header"
+            style={{ marginBottom: "16px", textDecoration: "none", color: "inherit", cursor: "pointer", display: "flex" }}
+            title="Go to Dashboard"
+          >
             <img src={farmLogo} alt="IntelliFarm AI Logo" className="sidebar-logo-img" />
             <div className="sidebar-brand">
               <span className="sidebar-brand-title">IntelliFarm AI</span>
               <span className="sidebar-brand-subtitle">Smart Farming.<br />Better Decisions.</span>
             </div>
-          </div>
+          </NavLink>
           <hr className="sidebar-divider" style={{ margin: 0 }} />
         </div>
 
