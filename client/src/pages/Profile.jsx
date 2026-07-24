@@ -3,7 +3,7 @@ import toast from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 import {
   Camera, MapPin, User, Mail, LogOut,
-  AlertTriangle, CheckCircle, Monitor, Smartphone, Sparkles
+  AlertTriangle, CheckCircle, Monitor, Smartphone, Sparkles, ShieldCheck
 } from "lucide-react";
 
 import MainLayout from "../layouts/MainLayout";
@@ -236,11 +236,49 @@ const Profile = () => {
   const completionPercent = calculateCompletion();
   const isProfileIncomplete = completionPercent < 100;
 
-  // Active sessions without IP addresses
-  const activeSessions = [
-    { device: "Chrome Web Browser (Current Session)", status: "Active Now", icon: Monitor },
-    { device: "IntelliFarm Mobile App", status: "Active 2 hours ago", icon: Smartphone }
-  ];
+  // Dynamic Browser & OS detection for current session
+  const getDeviceInfo = () => {
+    const ua = typeof navigator !== "undefined" ? navigator.userAgent : "";
+    let browser = "Web Browser";
+    let os = "Desktop";
+    let Icon = Monitor;
+
+    if (ua.includes("Mac OS X") || ua.includes("Macintosh")) {
+      os = "macOS";
+    } else if (ua.includes("Windows")) {
+      os = "Windows";
+    } else if (ua.includes("Android")) {
+      os = "Android";
+      Icon = Smartphone;
+    } else if (ua.includes("iPhone") || ua.includes("iPad") || ua.includes("iPod")) {
+      os = "iOS";
+      Icon = Smartphone;
+    } else if (ua.includes("Linux")) {
+      os = "Linux";
+    }
+
+    if (ua.includes("Edg/")) {
+      browser = "Microsoft Edge";
+    } else if (ua.includes("Chrome/") && !ua.includes("Edg/")) {
+      browser = "Google Chrome";
+    } else if (ua.includes("Firefox/")) {
+      browser = "Mozilla Firefox";
+    } else if (ua.includes("Safari/") && !ua.includes("Chrome/")) {
+      browser = "Apple Safari";
+    } else if (ua.includes("Opera") || ua.includes("OPR/")) {
+      browser = "Opera";
+    }
+
+    return {
+      browser,
+      os,
+      deviceName: `${browser} on ${os}`,
+      icon: Icon,
+    };
+  };
+
+  const deviceInfo = getDeviceInfo();
+  const DeviceIcon = deviceInfo.icon;
 
   return (
     <MainLayout eyebrow="" title="" subtitle="">
@@ -479,40 +517,46 @@ const Profile = () => {
               )}
             </div>
 
-            {/* Active Device Sessions List */}
+            {/* Account Security & Active Session */}
             <div className="profile-panel">
               <div className="profile-panel-header">
                 <div>
-                  <h2 className="profile-panel-title">Active Device Sessions</h2>
-                  <p className="profile-panel-sub">Manage active logins across your devices.</p>
+                  <h2 className="profile-panel-title">Account Security & Session</h2>
+                  <p className="profile-panel-sub">Manage your active web session and account security.</p>
                 </div>
               </div>
 
               <div className="profile-sessions-list">
-                {activeSessions.map((session, index) => {
-                  const Icon = session.icon;
-                  return (
-                    <div key={index} className="profile-session-card">
-                      <div className="profile-session-left">
-                        <Icon size={20} className="profile-session-icon" />
-                        <div>
-                          <strong className="profile-session-device">{session.device}</strong>
-                          <span className="profile-session-status">{session.status}</span>
-                        </div>
-                      </div>
-                      <span className="profile-session-badge">
-                        {session.status === "Active Now" ? "Current" : "Logged"}
+                <div className="profile-session-card">
+                  <div className="profile-session-left">
+                    <DeviceIcon size={20} className="profile-session-icon" />
+                    <div>
+                      <strong className="profile-session-device">{deviceInfo.deviceName}</strong>
+                      <span className="profile-session-status">Active Now • Web Client Session</span>
+                    </div>
+                  </div>
+                  <span className="profile-session-badge">Current Session</span>
+                </div>
+
+                <div className="profile-session-card">
+                  <div className="profile-session-left">
+                    <ShieldCheck size={20} className="profile-session-icon" />
+                    <div>
+                      <strong className="profile-session-device">Authentication Method</strong>
+                      <span className="profile-session-status">
+                        {currentFarmer.email ? `Signed in as ${currentFarmer.email}` : "SSL Encrypted Web Session"}
                       </span>
                     </div>
-                  );
-                })}
+                  </div>
+                  <span className="profile-session-badge">Secured</span>
+                </div>
 
                 <button
                   type="button"
                   className="profile-logout-all-btn"
                   onClick={handleLogoutAllDevices}
                 >
-                  <LogOut size={16} /> Log Out From All Devices
+                  <LogOut size={16} /> Sign Out of Current Session
                 </button>
               </div>
             </div>
