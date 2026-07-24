@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import toast from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 import {
@@ -22,6 +22,9 @@ const Profile = () => {
   const [name, setName] = useState("");
   const [pincode, setPincode] = useState("");
   const [location, setLocation] = useState("");
+  const [locationLoading, setLocationLoading] = useState(false);
+  const [locationError, setLocationError] = useState("");
+  const pincodeRef = useRef("");
   const [selectedCrops, setSelectedCrops] = useState([]);
   const [cropsConfirmed, setCropsConfirmed] = useState(false);
   const [profileImg, setProfileImg] = useState("");
@@ -36,12 +39,14 @@ const Profile = () => {
         setName(data.profile.name || farmer?.name || "");
         setLocation(data.profile.location || farmer?.location || "");
         setPincode(data.profile.pincode || farmer?.pincode || "");
+        pincodeRef.current = data.profile.pincode || farmer?.pincode || "";
+        const confirmed = Boolean(data.profile.cropsConfirmed);
         setSelectedCrops(
-          Array.isArray(data.profile.cropsInterested)
+          confirmed && Array.isArray(data.profile.cropsInterested)
             ? data.profile.cropsInterested
             : []
         );
-        setCropsConfirmed(Boolean(data.profile.cropsConfirmed));
+        setCropsConfirmed(confirmed);
         setProfileImg(data.profile.profileImg || farmer?.profileImg || "");
       }
     } catch (err) {
@@ -50,19 +55,72 @@ const Profile = () => {
       setName(user.name || "");
       setLocation(user.location || "");
       setPincode(user.pincode || "");
+      pincodeRef.current = user.pincode || "";
+      const confirmed = Boolean(user.cropsConfirmed);
       setSelectedCrops(
-        Array.isArray(user.cropsInterested)
+        confirmed && Array.isArray(user.cropsInterested)
           ? user.cropsInterested
           : []
       );
-      setCropsConfirmed(Boolean(user.cropsConfirmed));
+      setCropsConfirmed(confirmed);
       setProfileImg(user.profileImg || "");
     }
   }, [farmer]);
 
+  const lookupLocation = async (postalCode) => {
+    if (!/^\d{6}$/.test(postalCode)) return;
+
+    setLocationLoading(true);
+    setLocationError("");
+    setLocation("");
+
+    try {
+      const response = await fetch(`https://api.postalpincode.in/pincode/${postalCode}`);
+      if (!response.ok) throw new Error("Pincode lookup failed");
+
+      const data = await response.json();
+      const postOffice = data?.[0]?.PostOffice?.[0];
+      if (!postOffice?.District || !postOffice?.State) {
+        throw new Error("No location found for this pincode");
+      }
+
+      // Ignore a slow result if the user has already entered another pincode.
+      if (pincodeRef.current === postalCode) {
+        setLocation(`${postOffice.District}, ${postOffice.State}`);
+      }
+    } catch (error) {
+      if (pincodeRef.current === postalCode) {
+        setLocationError("We could not find a location for this pincode. Please check the number.");
+      }
+    } finally {
+      if (pincodeRef.current === postalCode) setLocationLoading(false);
+    }
+  };
+
+  const handlePincodeChange = (event) => {
+    const nextPincode = event.target.value.replace(/\D/g, "").slice(0, 6);
+    setPincode(nextPincode);
+    pincodeRef.current = nextPincode;
+    setLocationError("");
+
+    if (nextPincode.length !== 6) {
+      setLocation("");
+      setLocationLoading(false);
+      return;
+    }
+
+    lookupLocation(nextPincode);
+  };
+
   useEffect(() => {
     loadProfile();
   }, [loadProfile]);
+
+  // Never present an old stored crop list as a default choice. Users must
+  // explicitly choose and save their crops before they appear as selected.
+  useEffect(() => {
+    if (!cropsConfirmed) setSelectedCrops([]);
+  }, [cropsConfirmed]);
 
   // Strict Profile Completion calculation:
   // Name: 25%, Pincode: 25%, Location: 25%, Confirmed Crop: 25% = 100%
@@ -103,8 +161,18 @@ const Profile = () => {
   const handleUpdateProfile = async (e) => {
     e.preventDefault();
 
-    if (!pincode || !pincode.trim()) {
+    if (!/^\d{6}$/.test(pincode)) {
       toast.error("Please enter your 6-digit Pincode.");
+      return;
+    }
+
+    if (locationLoading) {
+      toast.error("Please wait while we find your farm location.");
+      return;
+    }
+
+    if (!location.trim()) {
+      toast.error("Enter a valid pincode so we can find your farm location.");
       return;
     }
 
@@ -291,11 +359,14 @@ const Profile = () => {
               <div className="profile-panel-header">
                 <div>
                   <h2 className="profile-panel-title">Personal Information & Location</h2>
-                  <p className="profile-panel-sub">Enter your Pincode and Farm Area for personalized IntelliFarm AI alerts.</p>
+                  <p className="profile-panel-sub">Enter your pincode and we will automatically find your farm area for personalized IntelliFarm AI alerts.</p>
                 </div>
                 <button
                   type="button"
-                  onClick={() => setEditMode(!editMode)}
+                  onClick={() => {
+                    if (editMode) loadProfile();
+                    setEditMode(!editMode);
+                  }}
                   className="profile-edit-toggle-btn"
                 >
                   {editMode ? "Cancel" : "Edit Profile"}
@@ -341,24 +412,28 @@ const Profile = () => {
                       <label className="profile-field-label">Pincode (Postal Code) *</label>
                       <input
                         type="text"
-                        maxLength={10}
+                        inputMode="numeric"
+                        pattern="[0-9]{6}"
+                        maxLength={6}
                         className="profile-field-input"
                         value={pincode}
-                        onChange={(e) => setPincode(e.target.value)}
+                        onChange={handlePincodeChange}
                         placeholder="e.g. 522002"
                         required
                       />
                     </div>
 
                     <div className="profile-field-group profile-span-2">
-                      <label className="profile-field-label">Farm Area / Town / District</label>
+                      <label className="profile-field-label">Farm Area / Location (from pincode)</label>
                       <input
                         type="text"
                         className="profile-field-input"
                         value={location}
-                        onChange={(e) => setLocation(e.target.value)}
-                        placeholder="e.g. North Field, Guntur"
+                        readOnly
+                        aria-busy={locationLoading}
+                        placeholder={locationLoading ? "Finding your location…" : "Enter a valid six-digit pincode"}
                       />
+                      {locationError && <p className="profile-field-error" role="alert">{locationError}</p>}
                     </div>
 
                   </div>

@@ -63,12 +63,14 @@ export const updateProfile = async (req, res, next) => {
     const cleanPincode = (pincode !== undefined && pincode !== null ? pincode : "").toString().trim();
     const cleanLocation = (location !== undefined && location !== null ? location : "").toString().trim();
 
-    const baseUpdate = {
-      crops_confirmed: true
-    };
+    const baseUpdate = {};
     if (name !== undefined && name !== null) baseUpdate.name = String(name).trim();
     if (farmSize !== undefined && farmSize !== null) baseUpdate.farm_size = String(farmSize);
-    if (cropsInterested !== undefined) baseUpdate.crops_interested = Array.isArray(cropsInterested) ? cropsInterested : [];
+    if (cropsInterested !== undefined) {
+      baseUpdate.crops_interested = Array.isArray(cropsInterested) ? cropsInterested : [];
+      // A crop list is only considered chosen after the user explicitly saves it.
+      baseUpdate.crops_confirmed = true;
+    }
     if (profileImg) baseUpdate.profile_img = profileImg;
     if (profile_img) baseUpdate.profile_img = profile_img;
 
@@ -153,7 +155,7 @@ export const updateProfile = async (req, res, next) => {
         location: resLocation,
         farmSize: updatedUser.farm_size,
         cropsInterested: updatedUser.crops_interested || [],
-        cropsConfirmed: true,
+        cropsConfirmed: Boolean(updatedUser.crops_confirmed),
       },
     });
   } catch (error) {

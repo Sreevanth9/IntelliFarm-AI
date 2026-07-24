@@ -23,9 +23,9 @@ router.put(
   requireAuth,
   [
     body("name").optional().isString().trim().isLength({ min: 2, max: 100 }).withMessage("Name must be 2-100 characters"),
-    body("pincode").optional({ checkFalsy: true }).isString().trim().isLength({ max: 20 }),
-    body("location").optional({ checkFalsy: true }).isString().trim().isLength({ max: 200 }),
-    body("farmSize").optional({ checkFalsy: true }).isString().trim().isLength({ max: 50 }),
+    body("pincode").optional().isString().trim().matches(/^\d{6}$/).withMessage("Pincode must be exactly 6 digits"),
+    body("location").optional().isString().trim().isLength({ min: 2, max: 200 }).withMessage("Location must be 2-200 characters"),
+    body("farmSize").optional({ checkFalsy: true }).customSanitizer(val => val !== undefined && val !== null ? String(val).trim() : ""),
     body("cropsInterested").optional().isArray(),
     body("cropsInterested.*").isString().trim().isLength({ max: 50 }),
     body("profileImg").optional({ checkFalsy: true }).isString(),

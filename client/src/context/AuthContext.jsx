@@ -216,6 +216,7 @@ export const AuthProvider = ({ children }) => {
       farmer,
       isAuthenticated,
       loading,
+      applySession,
       login,
       logout,
       register,
@@ -223,7 +224,7 @@ export const AuthProvider = ({ children }) => {
       loginWithGithub,
       completeOAuthRedirect,
     }),
-    [farmer, isAuthenticated, loading, login, logout, register, loginWithGoogle, loginWithGithub, completeOAuthRedirect]
+    [farmer, isAuthenticated, loading, applySession, login, logout, register, loginWithGoogle, loginWithGithub, completeOAuthRedirect]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
