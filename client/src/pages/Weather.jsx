@@ -426,10 +426,11 @@ const Weather = () => {
 
       </div>
 
-      {/* Simplified, Clean CSS */}
+      {/* Simplified, Clean & Mobile Responsive CSS */}
       <style>{`
         .weather-wrapper {
           max-width: 1050px;
+          width: 100%;
           margin: 0 auto;
           padding: 0 12px 60px;
           display: flex;
@@ -437,10 +438,12 @@ const Weather = () => {
           gap: 20px;
           box-sizing: border-box;
           font-family: inherit;
+          overflow-x: hidden;
         }
 
         .weather-header {
           text-align: center;
+          padding: 0 8px;
         }
 
         .weather-title {
@@ -472,6 +475,8 @@ const Weather = () => {
           color: #2e7d32;
           font-size: 12.5px;
           font-weight: 700;
+          max-width: 100%;
+          word-break: break-word;
         }
 
         [data-theme="dark"] .weather-farm-badge {
@@ -486,6 +491,7 @@ const Weather = () => {
           max-width: 600px;
           margin: 0 auto;
           width: 100%;
+          box-sizing: border-box;
         }
 
         .weather-search-input-group {
@@ -493,12 +499,14 @@ const Weather = () => {
           flex: 1;
           display: flex;
           align-items: center;
+          width: 100%;
         }
 
         .weather-search-icon {
           position: absolute;
           left: 14px;
           color: var(--text-main, #6b7c72);
+          pointer-events: none;
         }
 
         .weather-search-input {
@@ -535,6 +543,10 @@ const Weather = () => {
           font-size: 14px;
           cursor: pointer;
           white-space: nowrap;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          box-shadow: 0 4px 12px rgba(46, 125, 50, 0.2);
         }
 
         .weather-search-btn:disabled {
@@ -545,12 +557,14 @@ const Weather = () => {
           background: rgba(255, 255, 255, 0.85);
           border: 1px solid rgba(46, 125, 50, 0.14);
           border-radius: 20px;
-          padding: 32px;
+          padding: 32px 16px;
           text-align: center;
           display: flex;
           flex-direction: column;
           align-items: center;
           gap: 12px;
+          box-sizing: border-box;
+          width: 100%;
         }
 
         [data-theme="dark"] .weather-state-card {
@@ -569,7 +583,9 @@ const Weather = () => {
           color: #dc2626;
           font-weight: 600;
           max-width: 600px;
+          width: 100%;
           margin: 0 auto;
+          box-sizing: border-box;
         }
 
         /* Weather Main Layout */
@@ -577,6 +593,8 @@ const Weather = () => {
           display: flex;
           flex-direction: column;
           gap: 20px;
+          width: 100%;
+          box-sizing: border-box;
         }
 
         /* 1. Hero Card */
@@ -591,6 +609,9 @@ const Weather = () => {
           align-items: center;
           justify-content: space-between;
           gap: 20px;
+          width: 100%;
+          box-sizing: border-box;
+          overflow: hidden;
         }
 
         [data-theme="dark"] .weather-hero-card {
@@ -602,6 +623,7 @@ const Weather = () => {
           display: flex;
           flex-direction: column;
           gap: 8px;
+          min-width: 0;
         }
 
         .weather-location-row {
@@ -620,6 +642,7 @@ const Weather = () => {
           font-size: 22px;
           font-weight: 800;
           color: var(--body-color, #183d24);
+          word-break: break-word;
         }
 
         [data-theme="dark"] .weather-location-row h2 {
@@ -630,6 +653,7 @@ const Weather = () => {
           display: flex;
           align-items: baseline;
           gap: 16px;
+          flex-wrap: wrap;
         }
 
         .weather-big-temp {
@@ -667,6 +691,7 @@ const Weather = () => {
           display: grid;
           grid-template-columns: repeat(4, 1fr);
           gap: 12px;
+          min-width: 0;
         }
 
         .weather-metric-pill {
@@ -677,6 +702,8 @@ const Weather = () => {
           border-radius: 16px;
           background: rgba(0, 0, 0, 0.025);
           border: 1px solid rgba(0, 0, 0, 0.05);
+          min-width: 0;
+          box-sizing: border-box;
         }
 
         [data-theme="dark"] .weather-metric-pill {
@@ -684,16 +711,18 @@ const Weather = () => {
           border-color: rgba(255, 255, 255, 0.08);
         }
 
-        .metric-icon.humidity { color: #0284c7; }
-        .metric-icon.wind { color: #10b981; }
-        .metric-icon.sunrise { color: #f59e0b; }
-        .metric-icon.sunset { color: #8b5cf6; }
+        .metric-icon.humidity { color: #0284c7; flex-shrink: 0; }
+        .metric-icon.wind { color: #10b981; flex-shrink: 0; }
+        .metric-icon.sunrise { color: #f59e0b; flex-shrink: 0; }
+        .metric-icon.sunset { color: #8b5cf6; flex-shrink: 0; }
 
         .metric-val {
           display: block;
           font-size: 14px;
           font-weight: 800;
           color: var(--body-color, #183d24);
+          white-space: nowrap;
+
         }
 
         [data-theme="dark"] .metric-val {
@@ -703,6 +732,8 @@ const Weather = () => {
         .metric-lbl {
           font-size: 11px;
           color: var(--text-main, #6b7c72);
+          white-space: nowrap;
+
         }
 
         /* 2. Spryzen AI Card */
@@ -715,6 +746,8 @@ const Weather = () => {
           flex-direction: column;
           gap: 8px;
           box-shadow: 0 6px 20px rgba(0, 0, 0, 0.03);
+          box-sizing: border-box;
+          width: 100%;
         }
 
         [data-theme="dark"] .weather-ai-card {
@@ -726,6 +759,7 @@ const Weather = () => {
           display: flex;
           align-items: center;
           gap: 8px;
+          flex-wrap: wrap;
         }
 
         .weather-ai-sparkle {
@@ -737,6 +771,7 @@ const Weather = () => {
           display: flex;
           align-items: center;
           justify-content: center;
+          flex-shrink: 0;
         }
 
         [data-theme="dark"] .weather-ai-sparkle {
@@ -760,6 +795,7 @@ const Weather = () => {
           font-size: 14px;
           line-height: 1.55;
           color: var(--body-color, #183d24);
+          word-break: break-word;
         }
 
         [data-theme="dark"] .weather-ai-text {
@@ -771,6 +807,8 @@ const Weather = () => {
           display: grid;
           grid-template-columns: repeat(3, 1fr);
           gap: 16px;
+          width: 100%;
+          box-sizing: border-box;
         }
 
         .weather-action-card {
@@ -781,6 +819,8 @@ const Weather = () => {
           display: flex;
           flex-direction: column;
           gap: 6px;
+          box-sizing: border-box;
+          width: 100%;
         }
 
         [data-theme="dark"] .weather-action-card {
@@ -819,6 +859,7 @@ const Weather = () => {
           gap: 6px;
           font-size: 12.5px;
           font-weight: 700;
+          word-break: break-word;
         }
 
         .weather-action-card.safe .action-status {
@@ -834,6 +875,8 @@ const Weather = () => {
           display: grid;
           grid-template-columns: 1fr 1fr;
           gap: 20px;
+          width: 100%;
+          box-sizing: border-box;
         }
 
         .weather-section-card {
@@ -844,6 +887,9 @@ const Weather = () => {
           display: flex;
           flex-direction: column;
           gap: 14px;
+          box-sizing: border-box;
+          width: 100%;
+          min-width: 0;
         }
 
         [data-theme="dark"] .weather-section-card {
@@ -878,7 +924,10 @@ const Weather = () => {
           display: flex;
           gap: 10px;
           overflow-x: auto;
-          padding-bottom: 6px;
+          padding-bottom: 8px;
+          width: 100%;
+          box-sizing: border-box;
+          -webkit-overflow-scrolling: touch;
         }
 
         .weather-hourly-pill {
@@ -926,16 +975,20 @@ const Weather = () => {
           display: flex;
           flex-direction: column;
           gap: 8px;
+          width: 100%;
         }
 
         .weather-weekly-row {
           display: flex;
           align-items: center;
           justify-content: space-between;
-          padding: 8px 12px;
+          padding: 10px 12px;
           border-radius: 12px;
           background: rgba(0, 0, 0, 0.02);
           font-size: 13px;
+          gap: 8px;
+          box-sizing: border-box;
+          width: 100%;
         }
 
         [data-theme="dark"] .weather-weekly-row {
@@ -944,7 +997,8 @@ const Weather = () => {
 
         .weekly-day-name {
           font-weight: 800;
-          width: 50px;
+          width: 45px;
+          flex-shrink: 0;
           color: var(--body-color, #183d24);
         }
 
@@ -957,12 +1011,19 @@ const Weather = () => {
           align-items: center;
           gap: 6px;
           flex: 1;
+          min-width: 0;
+        }
+
+        .weekly-condition span {
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
         }
 
         .weekly-pop {
           font-weight: 700;
           color: #0284c7;
-          width: 60px;
+          flex-shrink: 0;
           text-align: right;
         }
 
@@ -970,7 +1031,7 @@ const Weather = () => {
           display: flex;
           gap: 6px;
           font-weight: 700;
-          width: 60px;
+          flex-shrink: 0;
           justify-content: flex-end;
         }
 
@@ -996,11 +1057,12 @@ const Weather = () => {
           to { transform: rotate(360deg); }
         }
 
-        /* Responsive Breakpoints */
+        /* ── Robust Mobile Responsive Breakpoints ── */
         @media (max-width: 850px) {
           .weather-hero-card {
             flex-direction: column;
-            align-items: flex-start;
+            align-items: stretch;
+            padding: 20px;
           }
 
           .weather-metrics-bar {
@@ -1014,6 +1076,76 @@ const Weather = () => {
 
           .weather-forecast-grid {
             grid-template-columns: 1fr;
+          }
+        }
+
+        @media (max-width: 580px) {
+          .weather-wrapper {
+            padding: 0 8px 40px;
+          }
+
+          .weather-title {
+            font-size: 24px;
+          }
+
+          .weather-search-box {
+            flex-direction: column;
+            gap: 8px;
+          }
+
+          .weather-search-btn {
+            width: 100%;
+            padding: 12px;
+          }
+
+          .weather-hero-card {
+            padding: 16px;
+            border-radius: 20px;
+          }
+
+          .weather-big-temp {
+            font-size: 38px;
+          }
+
+          .weather-metrics-bar {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+          }
+
+          .weather-metric-pill {
+            padding: 8px 10px;
+            gap: 6px;
+          }
+
+          .metric-val {
+            font-size: 13px;
+          }
+
+          .metric-lbl {
+            font-size: 10px;
+          }
+
+          .weather-ai-card {
+            padding: 16px;
+          }
+
+          .weather-section-card {
+            padding: 16px;
+          }
+
+          .weather-weekly-row {
+            padding: 8px 10px;
+            font-size: 12px;
+          }
+        }
+
+        @media (max-width: 380px) {
+          .weather-metrics-bar {
+            grid-template-columns: 1fr 1fr;
+          }
+
+          .weekly-condition span {
+            display: none;
           }
         }
       `}</style>
