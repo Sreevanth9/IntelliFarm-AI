@@ -52,7 +52,6 @@ const Dashboard: React.FC = () => {
 
   // Weather state
   const [weatherData, setWeatherData] = useState<any>(null);
-  const [forecastData, setForecastData] = useState<any>(null);
   const [loadingWeather, setLoadingWeather] = useState(false);
 
   // Spryzen AI Reminders & Advisory
@@ -95,6 +94,7 @@ const Dashboard: React.FC = () => {
     };
 
     loadFarmsAndData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Compute Weather & Spryzen AI Reminders for selected farm
@@ -112,7 +112,6 @@ const Dashboard: React.FC = () => {
       const f = fRes.data?.data;
 
       setWeatherData(w);
-      setForecastData(f);
 
       // Analyze weather variables
       const temp = Math.round(w?.main?.temp || 28);
