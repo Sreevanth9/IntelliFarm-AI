@@ -219,8 +219,8 @@ const Navbar: React.FC<{ onMenuClick?: () => void; sidebarOpen?: boolean }> = ({
                   <button 
                     type="button"
                     onClick={() => {
-                      toast("Help & Documentation center coming soon!");
                       setProfileDropdownOpen(false);
+                      navigate(ROUTES.settings + "?openModal=help-center");
                     }}
                     className="profile-dropdown-item"
                     role="menuitem"

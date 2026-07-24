@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import toast from "react-hot-toast";
 import {
   User,
@@ -16,12 +16,20 @@ import {
   MessageCircle,
   Info,
   ChevronRight,
+  ChevronLeft,
   Trash2,
   CheckCircle,
   Activity,
   X,
   Send,
-  Loader2
+  Loader2,
+  Search,
+  AlertTriangle,
+  Layers,
+  Sparkles,
+  MapPin,
+  Stethoscope,
+  CloudSun
 } from "lucide-react";
 
 import MainLayout from "../layouts/MainLayout";
@@ -32,18 +40,58 @@ import { sendSupportMessageApi } from "../services/supportApi";
 const Settings: React.FC = () => {
   const { farmer, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   // Active modal name state
   const [activeModal, setActiveModal] = useState<string | null>(null);
+
+  // Auto-open modal from query param (e.g. /settings?openModal=help-center)
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const modalParam = params.get("openModal");
+    if (modalParam) {
+      setActiveModal(modalParam);
+    }
+  }, [location.search]);
 
   // Delete account confirmation state
   const [deleteConfirmInput, setDeleteConfirmInput] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
 
-  // Support / Contact message form state
-  const [supportSubject, setSupportSubject] = useState("");
-  const [supportMessage, setSupportMessage] = useState("");
+  // Common support sending state
   const [isSendingSupport, setIsSendingSupport] = useState(false);
+
+  // 1. Contact Support Form state
+  const [contactCategory, setContactCategory] = useState("General Question");
+  const [contactPriority, setContactPriority] = useState("Normal");
+  const [contactSubject, setContactSubject] = useState("");
+  const [contactMessage, setContactMessage] = useState("");
+
+  // 2. Bug Report Form state
+  const [bugTitle, setBugTitle] = useState("");
+  const [bugModule, setBugModule] = useState("Disease Detection");
+  const [bugSeverity, setBugSeverity] = useState("Medium");
+  const [bugSteps, setBugSteps] = useState("");
+
+  // 3. Suggest Feature Form state
+  const [featureTitle, setFeatureTitle] = useState("");
+  const [featureCategory, setFeatureCategory] = useState("Disease Diagnostics");
+  const [featureDescription, setFeatureDescription] = useState("");
+
+  // 4. Rate App Form state
+  const [ratingStars, setRatingStars] = useState(5);
+  const [ratingComment, setRatingComment] = useState("");
+
+  // 5. Share Feedback Form state
+  const [feedbackCategory, setFeedbackCategory] = useState("AI Accuracy");
+  const [feedbackMessage, setFeedbackMessage] = useState("");
+
+  // Help Center Search & Accordion State
+  const [helpSearch, setHelpSearch] = useState("");
+  const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(0);
+
+  // User Guide Active Step State (1 to 5)
+  const [guideStep, setGuideStep] = useState(1);
 
   const handleDownloadJSON = () => {
     const dataObj = {
@@ -66,7 +114,7 @@ const Settings: React.FC = () => {
     document.body.appendChild(anchor);
     anchor.click();
     anchor.remove();
-    toast.success("Profile data downloaded successfully!");
+    toast.success("Profile data exported successfully!");
   };
 
   const handleExportCSV = () => {
@@ -111,9 +159,10 @@ const Settings: React.FC = () => {
     }
   };
 
-  const handleSupportSubmit = async (e: React.FormEvent, categoryName: string) => {
+  // Submit Handlers for individual support modalities
+  const handleContactSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!supportMessage.trim()) {
+    if (!contactMessage.trim()) {
       toast.error("Please write a message before sending.");
       return;
     }
@@ -121,13 +170,13 @@ const Settings: React.FC = () => {
     setIsSendingSupport(true);
     try {
       await sendSupportMessageApi({
-        type: categoryName,
-        subject: supportSubject.trim() || `${categoryName} Message`,
-        message: supportMessage.trim(),
+        type: `Contact Support [${contactCategory} - ${contactPriority} Priority]`,
+        subject: contactSubject.trim() || `${contactCategory} Inquiry from ${farmer?.name || 'Farmer'}`,
+        message: `Priority: ${contactPriority}\nCategory: ${contactCategory}\n\nMessage:\n${contactMessage.trim()}`
       });
-      toast.success("Your message has been sent successfully! Our team will review it promptly.");
-      setSupportMessage("");
-      setSupportSubject("");
+      toast.success("Support message sent successfully! Our team will respond shortly.");
+      setContactSubject("");
+      setContactMessage("");
       setActiveModal(null);
     } catch (err: any) {
       toast.error(err?.response?.data?.message || "Failed to send message. Please try again.");
@@ -135,6 +184,135 @@ const Settings: React.FC = () => {
       setIsSendingSupport(false);
     }
   };
+
+  const handleBugSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!bugTitle.trim() || !bugSteps.trim()) {
+      toast.error("Please provide a title and steps to reproduce.");
+      return;
+    }
+
+    setIsSendingSupport(true);
+    try {
+      await sendSupportMessageApi({
+        type: `Bug Report [${bugModule} - ${bugSeverity} Severity]`,
+        subject: `[BUG] ${bugTitle.trim()}`,
+        message: `Module: ${bugModule}\nSeverity: ${bugSeverity}\nBrowser User Agent: ${navigator.userAgent}\n\nSteps to Reproduce / Details:\n${bugSteps.trim()}`
+      });
+      toast.success("Bug report submitted successfully! Thank you for helping us improve.");
+      setBugTitle("");
+      setBugSteps("");
+      setActiveModal(null);
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || "Failed to submit bug report.");
+    } finally {
+      setIsSendingSupport(false);
+    }
+  };
+
+  const handleFeatureSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!featureTitle.trim() || !featureDescription.trim()) {
+      toast.error("Please enter a title and description for your feature suggestion.");
+      return;
+    }
+
+    setIsSendingSupport(true);
+    try {
+      await sendSupportMessageApi({
+        type: `Feature Suggestion [${featureCategory}]`,
+        subject: `[FEATURE REQUEST] ${featureTitle.trim()}`,
+        message: `Category: ${featureCategory}\n\nFeature Description & Business Value:\n${featureDescription.trim()}`
+      });
+      toast.success("Feature suggestion submitted! Our product team will review it.");
+      setFeatureTitle("");
+      setFeatureDescription("");
+      setActiveModal(null);
+    } catch (err: any) {
+      toast.error("Failed to submit feature suggestion.");
+    } finally {
+      setIsSendingSupport(false);
+    }
+  };
+
+  const handleRatingSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSendingSupport(true);
+    try {
+      await sendSupportMessageApi({
+        type: `App Rating [${ratingStars}/5 Stars]`,
+        subject: `[RATING] ${ratingStars} Stars from ${farmer?.name || 'Farmer'}`,
+        message: `Rating: ${ratingStars} / 5 Stars\n\nFarmer Review & Feedback:\n${ratingComment.trim() || 'No written comment provided.'}`
+      });
+      toast.success(`Thank you for rating us ${ratingStars} stars!`);
+      setRatingComment("");
+      setActiveModal(null);
+    } catch (err: any) {
+      toast.error("Failed to submit rating.");
+    } finally {
+      setIsSendingSupport(false);
+    }
+  };
+
+  const handleFeedbackSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!feedbackMessage.trim()) {
+      toast.error("Please write your feedback before submitting.");
+      return;
+    }
+
+    setIsSendingSupport(true);
+    try {
+      await sendSupportMessageApi({
+        type: `General Feedback [${feedbackCategory}]`,
+        subject: `[FEEDBACK] ${feedbackCategory}`,
+        message: `Category: ${feedbackCategory}\n\nFeedback Details:\n${feedbackMessage.trim()}`
+      });
+      toast.success("Thank you for your feedback!");
+      setFeedbackMessage("");
+      setActiveModal(null);
+    } catch (err: any) {
+      toast.error("Failed to submit feedback.");
+    } finally {
+      setIsSendingSupport(false);
+    }
+  };
+
+  // FAQ Database
+  const FAQ_ITEMS = [
+    {
+      q: "How does Disease Detection work?",
+      cat: "Diagnostics",
+      a: "Go to the Disease Detection page, upload or snap a photo of an affected crop leaf. Qwen2.5-VL and Spryzen AI analyze leaf symptoms to identify diseases and recommend organic & chemical treatments."
+    },
+    {
+      q: "How do I update my farm location & weather alerts?",
+      cat: "Weather",
+      a: "In your Profile page, update your 6-digit Pincode. IntelliFarm AI automatically resolves your State, District, and fetches hyper-local OpenWeather forecast bulletins."
+    },
+    {
+      q: "Can I manage multiple farm fields?",
+      cat: "My Farms",
+      a: "Yes! In My Farms, click '+ Add Farm' to specify your field name, acreage, soil type, irrigation setup, and active crops."
+    },
+    {
+      q: "What is Spryzen AI Copilot?",
+      cat: "AI Assistant",
+      a: "Spryzen AI is an intelligent agricultural copilot. You can ask questions about crop health, fertilizer dosages, government schemes, or pest control in plain English or local languages."
+    },
+    {
+      q: "Is my farm data secure and private?",
+      cat: "Privacy",
+      a: "Yes. Your land coordinates, crop history, and diagnostics are strictly private and never shared with third parties. You can export or delete your account data anytime."
+    }
+  ];
+
+  const filteredFaqs = FAQ_ITEMS.filter(
+    (item) =>
+      item.q.toLowerCase().includes(helpSearch.toLowerCase()) ||
+      item.a.toLowerCase().includes(helpSearch.toLowerCase()) ||
+      item.cat.toLowerCase().includes(helpSearch.toLowerCase())
+  );
 
   const initialLetter = farmer?.name
     ? farmer.name.charAt(0).toUpperCase()
@@ -194,8 +372,8 @@ const Settings: React.FC = () => {
                 type="button"
                 className="settings-row-item"
                 onClick={() => {
-                  setSupportSubject("Help Center Inquiry");
-                  setSupportMessage("");
+                  setHelpSearch("");
+                  setOpenFaqIndex(0);
                   setActiveModal("help-center");
                 }}
               >
@@ -203,7 +381,7 @@ const Settings: React.FC = () => {
                   <HelpCircle size={18} className="settings-row-icon" />
                   <div className="settings-row-text">
                     <strong>Help Center</strong>
-                    <span>Browse FAQs or submit a help query</span>
+                    <span>Search searchable FAQs & knowledge base</span>
                   </div>
                 </div>
                 <ChevronRight size={18} className="settings-row-arrow" />
@@ -213,8 +391,10 @@ const Settings: React.FC = () => {
                 type="button"
                 className="settings-row-item"
                 onClick={() => {
-                  setSupportSubject("Contact Support Request");
-                  setSupportMessage("");
+                  setContactCategory("General Question");
+                  setContactPriority("Normal");
+                  setContactSubject("");
+                  setContactMessage("");
                   setActiveModal("contact-support");
                 }}
               >
@@ -222,7 +402,7 @@ const Settings: React.FC = () => {
                   <MessageSquare size={18} className="settings-row-icon" />
                   <div className="settings-row-text">
                     <strong>Contact Support</strong>
-                    <span>Send a direct message to our support team</span>
+                    <span>Send a direct message with priority options</span>
                   </div>
                 </div>
                 <ChevronRight size={18} className="settings-row-arrow" />
@@ -232,8 +412,10 @@ const Settings: React.FC = () => {
                 type="button"
                 className="settings-row-item"
                 onClick={() => {
-                  setSupportSubject("Bug Report");
-                  setSupportMessage("");
+                  setBugTitle("");
+                  setBugModule("Disease Detection");
+                  setBugSeverity("Medium");
+                  setBugSteps("");
                   setActiveModal("report-bug");
                 }}
               >
@@ -241,7 +423,7 @@ const Settings: React.FC = () => {
                   <Bug size={18} className="settings-row-icon" />
                   <div className="settings-row-text">
                     <strong>Report a Bug</strong>
-                    <span>Help us improve IntelliFarm AI performance</span>
+                    <span>Submit steps to reproduce and severity details</span>
                   </div>
                 </div>
                 <ChevronRight size={18} className="settings-row-arrow" />
@@ -251,6 +433,7 @@ const Settings: React.FC = () => {
                 type="button"
                 className="settings-row-item"
                 onClick={() => {
+                  setGuideStep(1);
                   setActiveModal("user-guide");
                 }}
               >
@@ -258,7 +441,7 @@ const Settings: React.FC = () => {
                   <BookOpen size={18} className="settings-row-icon" />
                   <div className="settings-row-text">
                     <strong>User Guide</strong>
-                    <span>Learn how to use crop advisory and disease detection</span>
+                    <span>Interactive 5-step handbook & feature walkthrough</span>
                   </div>
                 </div>
                 <ChevronRight size={18} className="settings-row-arrow" />
@@ -358,8 +541,8 @@ const Settings: React.FC = () => {
                 type="button"
                 className="settings-row-item"
                 onClick={() => {
-                  setSupportSubject("App Rating & Feedback");
-                  setSupportMessage("");
+                  setRatingStars(5);
+                  setRatingComment("");
                   setActiveModal("rate-app");
                 }}
               >
@@ -367,7 +550,7 @@ const Settings: React.FC = () => {
                   <Star size={18} className="settings-row-icon" />
                   <div className="settings-row-text">
                     <strong>Rate IntelliFarm AI</strong>
-                    <span>Share your rating and overall experience</span>
+                    <span>Interactive 5-star rating & review</span>
                   </div>
                 </div>
                 <ChevronRight size={18} className="settings-row-arrow" />
@@ -377,8 +560,9 @@ const Settings: React.FC = () => {
                 type="button"
                 className="settings-row-item"
                 onClick={() => {
-                  setSupportSubject("Feature Suggestion");
-                  setSupportMessage("");
+                  setFeatureTitle("");
+                  setFeatureCategory("Disease Diagnostics");
+                  setFeatureDescription("");
                   setActiveModal("suggest-feature");
                 }}
               >
@@ -386,7 +570,7 @@ const Settings: React.FC = () => {
                   <Lightbulb size={18} className="settings-row-icon" />
                   <div className="settings-row-text">
                     <strong>Suggest a Feature</strong>
-                    <span>Tell us what features you would like to see</span>
+                    <span>Propose new features or AI capabilities</span>
                   </div>
                 </div>
                 <ChevronRight size={18} className="settings-row-arrow" />
@@ -396,8 +580,8 @@ const Settings: React.FC = () => {
                 type="button"
                 className="settings-row-item"
                 onClick={() => {
-                  setSupportSubject("General Feedback");
-                  setSupportMessage("");
+                  setFeedbackCategory("AI Accuracy");
+                  setFeedbackMessage("");
                   setActiveModal("share-feedback");
                 }}
               >
@@ -511,9 +695,713 @@ const Settings: React.FC = () => {
 
         </div>
 
-        {/* ── Modals ── */}
+        {/* ── MODALS (Each modal is 100% unique & custom) ── */}
 
-        {/* Delete Account Modal */}
+        {/* MODAL 1: SEARCHABLE HELP CENTER (KNOWLEDGE BASE) */}
+        {activeModal === "help-center" && (
+          <div className="settings-modal-backdrop" onClick={() => setActiveModal(null)}>
+            <div className="settings-modal-card settings-modal-large" onClick={(e) => e.stopPropagation()}>
+              <div className="settings-modal-header">
+                <div className="settings-badge settings-badge-blue">
+                  <HelpCircle size={22} />
+                </div>
+                <div>
+                  <h3 className="settings-modal-title">Help Center & Knowledge Base</h3>
+                  <p className="settings-modal-sub">Search FAQs or browse common questions across IntelliFarm AI</p>
+                </div>
+                <button type="button" className="settings-modal-close-icon" onClick={() => setActiveModal(null)}>
+                  <X size={18} />
+                </button>
+              </div>
+
+              {/* Help Center Search Bar */}
+              <div className="settings-search-wrapper">
+                <Search size={18} className="settings-search-icon" />
+                <input
+                  type="text"
+                  value={helpSearch}
+                  onChange={(e) => setHelpSearch(e.target.value)}
+                  placeholder="Search topics (e.g. disease, pincode, farms, copilot)..."
+                  className="settings-search-input"
+                  autoFocus
+                />
+                {helpSearch && (
+                  <button type="button" className="settings-search-clear" onClick={() => setHelpSearch("")}>
+                    <X size={14} />
+                  </button>
+                )}
+              </div>
+
+              {/* Accordion FAQ List */}
+              <div className="settings-faq-list">
+                {filteredFaqs.length === 0 ? (
+                  <div className="settings-no-faq">
+                    <AlertTriangle size={24} style={{ opacity: 0.6, marginBottom: "6px" }} />
+                    <p>No questions matched "{helpSearch}".</p>
+                  </div>
+                ) : (
+                  filteredFaqs.map((item, idx) => (
+                    <div
+                      key={idx}
+                      className={`settings-faq-card ${openFaqIndex === idx ? "expanded" : ""}`}
+                    >
+                      <div
+                        className="settings-faq-question"
+                        onClick={() => setOpenFaqIndex(openFaqIndex === idx ? null : idx)}
+                      >
+                        <div className="settings-faq-q-left">
+                          <span className="settings-faq-tag">{item.cat}</span>
+                          <strong>{item.q}</strong>
+                        </div>
+                        <ChevronRight
+                          size={18}
+                          className={`settings-faq-arrow ${openFaqIndex === idx ? "rotated" : ""}`}
+                        />
+                      </div>
+                      {openFaqIndex === idx && (
+                        <div className="settings-faq-answer">
+                          <p>{item.a}</p>
+                        </div>
+                      )}
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {/* Bottom Support Callout */}
+              <div className="settings-help-callout">
+                <div className="settings-help-callout-text">
+                  <strong>Still need help?</strong>
+                  <span>Send a direct message to our support team.</span>
+                </div>
+                <button
+                  type="button"
+                  className="settings-btn-callout"
+                  onClick={() => {
+                    setContactCategory("Help Inquiry");
+                    setContactPriority("Normal");
+                    setContactSubject(helpSearch ? `Query regarding: ${helpSearch}` : "");
+                    setContactMessage("");
+                    setActiveModal("contact-support");
+                  }}
+                >
+                  <MessageSquare size={16} />
+                  <span>Contact Support</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* MODAL 2: DIRECT CONTACT SUPPORT FORM */}
+        {activeModal === "contact-support" && (
+          <div className="settings-modal-backdrop" onClick={() => setActiveModal(null)}>
+            <div className="settings-modal-card" onClick={(e) => e.stopPropagation()}>
+              <div className="settings-modal-header">
+                <div className="settings-badge settings-badge-blue">
+                  <MessageSquare size={22} />
+                </div>
+                <div>
+                  <h3 className="settings-modal-title">Contact Support Team</h3>
+                  <p className="settings-modal-sub">Send a direct priority message to our agronomy & technical support.</p>
+                </div>
+                <button type="button" className="settings-modal-close-icon" onClick={() => setActiveModal(null)}>
+                  <X size={18} />
+                </button>
+              </div>
+
+              <form onSubmit={handleContactSubmit} className="settings-support-form">
+                {/* Priority Selector */}
+                <div className="settings-form-group">
+                  <label className="settings-form-label">Priority Level</label>
+                  <div className="settings-priority-pills">
+                    {["Normal", "Urgent", "Critical"].map((p) => (
+                      <button
+                        key={p}
+                        type="button"
+                        className={`settings-priority-pill ${contactPriority === p ? "active " + p.toLowerCase() : ""}`}
+                        onClick={() => setContactPriority(p)}
+                      >
+                        {p}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Category Dropdown */}
+                <div className="settings-form-group">
+                  <label className="settings-form-label">Inquiry Category</label>
+                  <select
+                    value={contactCategory}
+                    onChange={(e) => setContactCategory(e.target.value)}
+                    className="settings-form-input"
+                  >
+                    <option value="General Question">General Question</option>
+                    <option value="Technical Support">Technical Support</option>
+                    <option value="Crop Advisory Query">Crop Advisory Query</option>
+                    <option value="Disease Diagnostics">Disease Diagnostics</option>
+                    <option value="Account & Billing">Account & Security</option>
+                  </select>
+                </div>
+
+                <div className="settings-form-group">
+                  <label className="settings-form-label">Subject</label>
+                  <input
+                    type="text"
+                    value={contactSubject}
+                    onChange={(e) => setContactSubject(e.target.value)}
+                    placeholder="Brief subject of your question..."
+                    className="settings-form-input"
+                  />
+                </div>
+
+                <div className="settings-form-group">
+                  <label className="settings-form-label">Detailed Message *</label>
+                  <textarea
+                    rows={4}
+                    value={contactMessage}
+                    onChange={(e) => setContactMessage(e.target.value)}
+                    placeholder="Describe your issue or request in detail..."
+                    className="settings-form-textarea"
+                    required
+                  />
+                </div>
+
+                <div className="settings-modal-footer">
+                  <button
+                    type="submit"
+                    className="settings-btn-modal-submit"
+                    disabled={isSendingSupport || !contactMessage.trim()}
+                  >
+                    {isSendingSupport ? (
+                      <>
+                        <Loader2 size={16} className="settings-spinner" />
+                        <span>Sending Message...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Send size={16} />
+                        <span>Send Support Message</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* MODAL 3: REPORT A BUG TRACKER */}
+        {activeModal === "report-bug" && (
+          <div className="settings-modal-backdrop" onClick={() => setActiveModal(null)}>
+            <div className="settings-modal-card" onClick={(e) => e.stopPropagation()}>
+              <div className="settings-modal-header">
+                <div className="settings-badge settings-badge-red">
+                  <Bug size={22} />
+                </div>
+                <div>
+                  <h3 className="settings-modal-title">Report a Bug</h3>
+                  <p className="settings-modal-sub">Help us identify software issues so we can fix them quickly.</p>
+                </div>
+                <button type="button" className="settings-modal-close-icon" onClick={() => setActiveModal(null)}>
+                  <X size={18} />
+                </button>
+              </div>
+
+              <form onSubmit={handleBugSubmit} className="settings-support-form">
+                <div className="settings-form-group">
+                  <label className="settings-form-label">Bug Summary / Title *</label>
+                  <input
+                    type="text"
+                    value={bugTitle}
+                    onChange={(e) => setBugTitle(e.target.value)}
+                    placeholder="e.g. Disease leaf scan button unresponsive on mobile"
+                    className="settings-form-input"
+                    required
+                  />
+                </div>
+
+                <div className="settings-form-row" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+                  <div className="settings-form-group">
+                    <label className="settings-form-label">Affected Module</label>
+                    <select
+                      value={bugModule}
+                      onChange={(e) => setBugModule(e.target.value)}
+                      className="settings-form-input"
+                    >
+                      <option value="Disease Detection">Disease Detection</option>
+                      <option value="Weather Bulletins">Weather Bulletins</option>
+                      <option value="My Farms / Land">My Farms / Land</option>
+                      <option value="Spryzen AI Chat">Spryzen AI Chat</option>
+                      <option value="Profile / Settings">Profile / Settings</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </div>
+
+                  <div className="settings-form-group">
+                    <label className="settings-form-label">Severity</label>
+                    <select
+                      value={bugSeverity}
+                      onChange={(e) => setBugSeverity(e.target.value)}
+                      className="settings-form-input"
+                    >
+                      <option value="Low">Low (Cosmetic / Text)</option>
+                      <option value="Medium">Medium (Feature Impaired)</option>
+                      <option value="High">High (Page Crash / Freeze)</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="settings-form-group">
+                  <label className="settings-form-label">Steps to Reproduce & Details *</label>
+                  <textarea
+                    rows={4}
+                    value={bugSteps}
+                    onChange={(e) => setBugSteps(e.target.value)}
+                    placeholder="1. Clicked on Disease Detection&#10;2. Selected Rice leaf image&#10;3. Screen showed error..."
+                    className="settings-form-textarea"
+                    required
+                  />
+                </div>
+
+                <div className="settings-modal-footer">
+                  <button
+                    type="submit"
+                    className="settings-btn-modal-submit settings-btn-red"
+                    disabled={isSendingSupport || !bugTitle.trim() || !bugSteps.trim()}
+                  >
+                    {isSendingSupport ? (
+                      <>
+                        <Loader2 size={16} className="settings-spinner" />
+                        <span>Submitting Bug Report...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Bug size={16} />
+                        <span>Submit Bug Report</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* MODAL 4: INTERACTIVE 5-STEP USER GUIDE HANDBOOK */}
+        {activeModal === "user-guide" && (
+          <div className="settings-modal-backdrop" onClick={() => setActiveModal(null)}>
+            <div className="settings-modal-card settings-modal-large" onClick={(e) => e.stopPropagation()}>
+              <div className="settings-modal-header">
+                <div className="settings-badge settings-badge-blue">
+                  <BookOpen size={22} />
+                </div>
+                <div>
+                  <h3 className="settings-modal-title">IntelliFarm AI Interactive User Guide</h3>
+                  <p className="settings-modal-sub">Step {guideStep} of 5 — Master your smart farming toolkit</p>
+                </div>
+                <button type="button" className="settings-modal-close-icon" onClick={() => setActiveModal(null)}>
+                  <X size={18} />
+                </button>
+              </div>
+
+              {/* Progress Stepper Bar */}
+              <div className="settings-guide-stepper">
+                {[1, 2, 3, 4, 5].map((stepNum) => (
+                  <button
+                    key={stepNum}
+                    type="button"
+                    className={`settings-guide-step-dot ${guideStep === stepNum ? "active" : ""} ${guideStep > stepNum ? "completed" : ""}`}
+                    onClick={() => setGuideStep(stepNum)}
+                  >
+                    {guideStep > stepNum ? <CheckCircle size={14} /> : stepNum}
+                  </button>
+                ))}
+              </div>
+
+              {/* Guide Content Display */}
+              <div className="settings-guide-card-content">
+                {guideStep === 1 && (
+                  <div className="settings-guide-step-body">
+                    <div className="settings-guide-step-icon"><MapPin size={28} /></div>
+                    <h4>Step 1: Set Up Profile & Location Pincode</h4>
+                    <p>
+                      Enter your 6-digit Pincode in your <strong>Profile</strong>. This allows IntelliFarm AI to auto-detect your State and District location to fetch hyper-local rain bulletins, humidity, and temperature forecasts.
+                    </p>
+                    <div className="settings-guide-tip">
+                      <Sparkles size={16} /> <span>Tip: Select your primary crops to receive tailored advisory alerts!</span>
+                    </div>
+                  </div>
+                )}
+
+                {guideStep === 2 && (
+                  <div className="settings-guide-step-body">
+                    <div className="settings-guide-step-icon"><Stethoscope size={28} /></div>
+                    <h4>Step 2: Run Vision AI Leaf Diagnostics</h4>
+                    <p>
+                      Navigate to <strong>Disease Detection</strong>, upload or take a clear photo of an infected plant leaf. Qwen2.5-VL vision model identifies fungal, bacterial, or viral diseases and displays instant organic & chemical spray remedies.
+                    </p>
+                    <div className="settings-guide-tip">
+                      <Sparkles size={16} /> <span>Tip: Ensure good daylight and close-up focus on leaf spots for highest accuracy.</span>
+                    </div>
+                  </div>
+                )}
+
+                {guideStep === 3 && (
+                  <div className="settings-guide-step-body">
+                    <div className="settings-guide-step-icon"><CloudSun size={28} /></div>
+                    <h4>Step 3: Monitor Weather & Irrigation Bulletins</h4>
+                    <p>
+                      Check the <strong>Weather</strong> page to view hourly rain predictions, soil moisture advice, wind speeds, and smart irrigation recommendations tailored to prevent overwatering.
+                    </p>
+                    <div className="settings-guide-tip">
+                      <Sparkles size={16} /> <span>Tip: Avoid pesticide spraying on high-wind or heavy-rain forecast days!</span>
+                    </div>
+                  </div>
+                )}
+
+                {guideStep === 4 && (
+                  <div className="settings-guide-step-body">
+                    <div className="settings-guide-step-icon"><Layers size={28} /></div>
+                    <h4>Step 4: Register Farm Fields in My Farms</h4>
+                    <p>
+                      Add your land parcels in <strong>My Farms</strong>. Track total acreage, soil pH, irrigation source (borewell/canal), and active crop growth stages across all your fields.
+                    </p>
+                    <div className="settings-guide-tip">
+                      <Sparkles size={16} /> <span>Tip: Categorize fields by crop type for organized record keeping!</span>
+                    </div>
+                  </div>
+                )}
+
+                {guideStep === 5 && (
+                  <div className="settings-guide-step-body">
+                    <div className="settings-guide-step-icon"><Sparkles size={28} /></div>
+                    <h4>Step 5: Consult Spryzen AI Copilot</h4>
+                    <p>
+                      Ask <strong>Spryzen AI</strong> anything — from fertilizer dosage calculations to government subsidy schemes. Spryzen understands voice input and regional languages to assist you 24/7.
+                    </p>
+                    <div className="settings-guide-tip">
+                      <Sparkles size={16} /> <span>Tip: You can ask Spryzen to explain disease report treatments in simple terms!</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Guide Footer Controls */}
+              <div className="settings-modal-footer" style={{ justifyContent: "space-between" }}>
+                <button
+                  type="button"
+                  className="settings-btn-cancel"
+                  onClick={() => setGuideStep(Math.max(1, guideStep - 1))}
+                  disabled={guideStep === 1}
+                  style={{ width: "auto", padding: "10px 18px", opacity: guideStep === 1 ? 0.4 : 1 }}
+                >
+                  <ChevronLeft size={16} />
+                  <span>Previous</span>
+                </button>
+
+                {guideStep < 5 ? (
+                  <button
+                    type="button"
+                    className="settings-btn-modal-submit"
+                    onClick={() => setGuideStep(guideStep + 1)}
+                    style={{ width: "auto", padding: "10px 22px" }}
+                  >
+                    <span>Next Step</span>
+                    <ChevronRight size={16} />
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    className="settings-btn-modal-submit"
+                    onClick={() => setActiveModal(null)}
+                    style={{ width: "auto", padding: "10px 22px" }}
+                  >
+                    <CheckCircle size={16} />
+                    <span>Got It & Finish</span>
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* MODAL 5: SUGGEST A FEATURE */}
+        {activeModal === "suggest-feature" && (
+          <div className="settings-modal-backdrop" onClick={() => setActiveModal(null)}>
+            <div className="settings-modal-card" onClick={(e) => e.stopPropagation()}>
+              <div className="settings-modal-header">
+                <div className="settings-badge settings-badge-amber">
+                  <Lightbulb size={22} />
+                </div>
+                <div>
+                  <h3 className="settings-modal-title">Suggest a Feature</h3>
+                  <p className="settings-modal-sub">Tell us what new features or improvements you want to see.</p>
+                </div>
+                <button type="button" className="settings-modal-close-icon" onClick={() => setActiveModal(null)}>
+                  <X size={18} />
+                </button>
+              </div>
+
+              <form onSubmit={handleFeatureSubmit} className="settings-support-form">
+                <div className="settings-form-group">
+                  <label className="settings-form-label">Feature Title *</label>
+                  <input
+                    type="text"
+                    value={featureTitle}
+                    onChange={(e) => setFeatureTitle(e.target.value)}
+                    placeholder="e.g. Export disease report as PDF certificate"
+                    className="settings-form-input"
+                    required
+                  />
+                </div>
+
+                <div className="settings-form-group">
+                  <label className="settings-form-label">Target Module</label>
+                  <select
+                    value={featureCategory}
+                    onChange={(e) => setFeatureCategory(e.target.value)}
+                    className="settings-form-input"
+                  >
+                    <option value="Disease Diagnostics">Disease Diagnostics</option>
+                    <option value="Weather & Irrigation">Weather & Irrigation</option>
+                    <option value="My Farms / Land Mapping">My Farms / Land Mapping</option>
+                    <option value="Spryzen AI Copilot">Spryzen AI Copilot</option>
+                    <option value="Mobile / Offline Mode">Mobile / Offline Mode</option>
+                  </select>
+                </div>
+
+                <div className="settings-form-group">
+                  <label className="settings-form-label">Description & How It Helps You *</label>
+                  <textarea
+                    rows={4}
+                    value={featureDescription}
+                    onChange={(e) => setFeatureDescription(e.target.value)}
+                    placeholder="Describe how this feature would work and why it would be helpful for your farm..."
+                    className="settings-form-textarea"
+                    required
+                  />
+                </div>
+
+                <div className="settings-modal-footer">
+                  <button
+                    type="submit"
+                    className="settings-btn-modal-submit"
+                    disabled={isSendingSupport || !featureTitle.trim() || !featureDescription.trim()}
+                  >
+                    {isSendingSupport ? (
+                      <>
+                        <Loader2 size={16} className="settings-spinner" />
+                        <span>Submitting Feature...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Lightbulb size={16} />
+                        <span>Submit Feature Suggestion</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* MODAL 6: INTERACTIVE RATE APP (5-STAR RATING) */}
+        {activeModal === "rate-app" && (
+          <div className="settings-modal-backdrop" onClick={() => setActiveModal(null)}>
+            <div className="settings-modal-card" onClick={(e) => e.stopPropagation()}>
+              <div className="settings-modal-header">
+                <div className="settings-badge settings-badge-amber">
+                  <Star size={22} />
+                </div>
+                <div>
+                  <h3 className="settings-modal-title">Rate IntelliFarm AI</h3>
+                  <p className="settings-modal-sub">How was your experience using IntelliFarm AI?</p>
+                </div>
+                <button type="button" className="settings-modal-close-icon" onClick={() => setActiveModal(null)}>
+                  <X size={18} />
+                </button>
+              </div>
+
+              <form onSubmit={handleRatingSubmit} className="settings-support-form">
+                {/* Star Picker */}
+                <div className="settings-rating-picker">
+                  {[1, 2, 3, 4, 5].map((starNum) => (
+                    <button
+                      key={starNum}
+                      type="button"
+                      className={`settings-star-btn ${ratingStars >= starNum ? "active" : ""}`}
+                      onClick={() => setRatingStars(starNum)}
+                    >
+                      <Star size={32} fill={ratingStars >= starNum ? "#f59e0b" : "transparent"} />
+                    </button>
+                  ))}
+                </div>
+                <div style={{ textAlign: "center", fontSize: "14px", fontWeight: "700", color: "#f59e0b", margin: "-6px 0 10px" }}>
+                  {ratingStars === 5 && "⭐ Excellent - Love it!"}
+                  {ratingStars === 4 && "👍 Very Good - Very helpful!"}
+                  {ratingStars === 3 && "👌 Good - Could be better"}
+                  {ratingStars === 2 && "⚠️ Fair - Encountered issues"}
+                  {ratingStars === 1 && "👎 Poor - Needs major fixes"}
+                </div>
+
+                <div className="settings-form-group">
+                  <label className="settings-form-label">Review / Written Comments (Optional)</label>
+                  <textarea
+                    rows={3}
+                    value={ratingComment}
+                    onChange={(e) => setRatingComment(e.target.value)}
+                    placeholder="Tell us what you liked or what we can improve..."
+                    className="settings-form-textarea"
+                  />
+                </div>
+
+                <div className="settings-modal-footer">
+                  <button
+                    type="submit"
+                    className="settings-btn-modal-submit"
+                    disabled={isSendingSupport}
+                  >
+                    {isSendingSupport ? (
+                      <>
+                        <Loader2 size={16} className="settings-spinner" />
+                        <span>Submitting Rating...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Star size={16} />
+                        <span>Submit Rating</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* MODAL 7: SHARE FEEDBACK */}
+        {activeModal === "share-feedback" && (
+          <div className="settings-modal-backdrop" onClick={() => setActiveModal(null)}>
+            <div className="settings-modal-card" onClick={(e) => e.stopPropagation()}>
+              <div className="settings-modal-header">
+                <div className="settings-badge settings-badge-amber">
+                  <MessageCircle size={22} />
+                </div>
+                <div>
+                  <h3 className="settings-modal-title">Share Feedback</h3>
+                  <p className="settings-modal-sub">Help us improve crop advisory and overall usability.</p>
+                </div>
+                <button type="button" className="settings-modal-close-icon" onClick={() => setActiveModal(null)}>
+                  <X size={18} />
+                </button>
+              </div>
+
+              <form onSubmit={handleFeedbackSubmit} className="settings-support-form">
+                <div className="settings-form-group">
+                  <label className="settings-form-label">Feedback Focus Area</label>
+                  <select
+                    value={feedbackCategory}
+                    onChange={(e) => setFeedbackCategory(e.target.value)}
+                    className="settings-form-input"
+                  >
+                    <option value="AI Accuracy">Disease Diagnosis Accuracy</option>
+                    <option value="Weather Accuracy">Weather Forecast Accuracy</option>
+                    <option value="UI & Ease of Use">UI & Ease of Use</option>
+                    <option value="Performance & Speed">Performance & Speed</option>
+                  </select>
+                </div>
+
+                <div className="settings-form-group">
+                  <label className="settings-form-label">Your Feedback *</label>
+                  <textarea
+                    rows={4}
+                    value={feedbackMessage}
+                    onChange={(e) => setFeedbackMessage(e.target.value)}
+                    placeholder="Share your thoughts, praise, or criticism..."
+                    className="settings-form-textarea"
+                    required
+                  />
+                </div>
+
+                <div className="settings-modal-footer">
+                  <button
+                    type="submit"
+                    className="settings-btn-modal-submit"
+                    disabled={isSendingSupport || !feedbackMessage.trim()}
+                  >
+                    {isSendingSupport ? (
+                      <>
+                        <Loader2 size={16} className="settings-spinner" />
+                        <span>Sending Feedback...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Send size={16} />
+                        <span>Send Feedback</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* MODAL 8: PRIVACY POLICY */}
+        {activeModal === "privacy-policy" && (
+          <div className="settings-modal-backdrop" onClick={() => setActiveModal(null)}>
+            <div className="settings-modal-card" onClick={(e) => e.stopPropagation()}>
+              <div className="settings-modal-header">
+                <div className="settings-badge settings-badge-green">
+                  <FileText size={20} />
+                </div>
+                <h3 className="settings-modal-title">Privacy Policy</h3>
+                <button type="button" className="settings-modal-close-icon" onClick={() => setActiveModal(null)}><X size={18} /></button>
+              </div>
+              <div className="settings-modal-body">
+                <p>IntelliFarm AI prioritizes your data confidentiality:</p>
+                <ul>
+                  <li><strong>Data Confidentiality:</strong> Your farm location and crop data are used strictly for personalized advisories.</li>
+                  <li><strong>No Third-Party Sharing:</strong> Your personal information is never sold or shared with third parties.</li>
+                  <li><strong>Data Rights:</strong> You can export or delete your account data anytime from this settings page.</li>
+                </ul>
+              </div>
+              <div className="settings-modal-footer">
+                <button type="button" className="settings-btn-modal-close" onClick={() => setActiveModal(null)}><CheckCircle size={16} /> Close Privacy Policy</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* MODAL 9: TERMS & CONDITIONS */}
+        {activeModal === "terms" && (
+          <div className="settings-modal-backdrop" onClick={() => setActiveModal(null)}>
+            <div className="settings-modal-card" onClick={(e) => e.stopPropagation()}>
+              <div className="settings-modal-header">
+                <div className="settings-badge settings-badge-green">
+                  <ShieldCheck size={20} />
+                </div>
+                <h3 className="settings-modal-title">Terms & Conditions</h3>
+                <button type="button" className="settings-modal-close-icon" onClick={() => setActiveModal(null)}><X size={18} /></button>
+              </div>
+              <div className="settings-modal-body">
+                <p>By accessing IntelliFarm AI, you agree to:</p>
+                <ul>
+                  <li>Use recommendations as agricultural guidance alongside expert agronomy advice.</li>
+                  <li>Provide accurate pincode details for reliable weather alerts.</li>
+                  <li>Respect intellectual property rights of Spryzen AI and IntelliFarm AI models.</li>
+                </ul>
+              </div>
+              <div className="settings-modal-footer">
+                <button type="button" className="settings-btn-modal-close" onClick={() => setActiveModal(null)}><CheckCircle size={16} /> Accept & Close</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* MODAL 10: DELETE ACCOUNT */}
         {activeModal === "delete-account" && (
           <div className="settings-modal-backdrop" onClick={() => setActiveModal(null)}>
             <div className="settings-modal-card" onClick={(e) => e.stopPropagation()}>
@@ -582,186 +1470,6 @@ const Settings: React.FC = () => {
                     </button>
                   </div>
                 </form>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Contact / Help / Bug Report / Feedback Message Box Modals */}
-        {(activeModal === "help-center" ||
-          activeModal === "contact-support" ||
-          activeModal === "report-bug" ||
-          activeModal === "suggest-feature" ||
-          activeModal === "share-feedback" ||
-          activeModal === "rate-app") && (
-          <div className="settings-modal-backdrop" onClick={() => setActiveModal(null)}>
-            <div className="settings-modal-card" onClick={(e) => e.stopPropagation()}>
-              <div className="settings-modal-header">
-                <div className="settings-badge settings-badge-blue">
-                  {activeModal === "report-bug" ? <Bug size={20} /> : <MessageSquare size={20} />}
-                </div>
-                <div>
-                  <h3 className="settings-modal-title">
-                    {activeModal === "help-center" && "Help & Support Request"}
-                    {activeModal === "contact-support" && "Contact Support"}
-                    {activeModal === "report-bug" && "Report a Bug"}
-                    {activeModal === "suggest-feature" && "Suggest a Feature"}
-                    {activeModal === "share-feedback" && "Share Feedback"}
-                    {activeModal === "rate-app" && "Rate IntelliFarm AI"}
-                  </h3>
-                  <p className="settings-modal-sub">
-                    Write your message below. Our support team will review and respond directly.
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  className="settings-modal-close-icon"
-                  onClick={() => setActiveModal(null)}
-                >
-                  <X size={18} />
-                </button>
-              </div>
-
-              <form
-                onSubmit={(e) =>
-                  handleSupportSubmit(
-                    e,
-                    activeModal === "help-center"
-                      ? "Help Center Inquiry"
-                      : activeModal === "contact-support"
-                      ? "Contact Support"
-                      : activeModal === "report-bug"
-                      ? "Bug Report"
-                      : activeModal === "suggest-feature"
-                      ? "Feature Suggestion"
-                      : activeModal === "share-feedback"
-                      ? "User Feedback"
-                      : "App Rating"
-                  )
-                }
-                className="settings-support-form"
-              >
-                <div className="settings-form-group">
-                  <label className="settings-form-label">Subject / Topic</label>
-                  <input
-                    type="text"
-                    value={supportSubject}
-                    onChange={(e) => setSupportSubject(e.target.value)}
-                    placeholder="Enter subject..."
-                    className="settings-form-input"
-                  />
-                </div>
-
-                <div className="settings-form-group">
-                  <label className="settings-form-label">Message *</label>
-                  <textarea
-                    rows={5}
-                    value={supportMessage}
-                    onChange={(e) => setSupportMessage(e.target.value)}
-                    placeholder="Write your message here..."
-                    className="settings-form-textarea"
-                    required
-                  />
-                </div>
-
-                <div className="settings-modal-footer" style={{ marginTop: "12px" }}>
-                  <button
-                    type="submit"
-                    className="settings-btn-modal-submit"
-                    disabled={isSendingSupport || !supportMessage.trim()}
-                  >
-                    {isSendingSupport ? (
-                      <>
-                        <Loader2 size={16} className="settings-spinner" />
-                        <span>Sending Message...</span>
-                      </>
-                    ) : (
-                      <>
-                        <Send size={16} />
-                        <span>Send Message</span>
-                      </>
-                    )}
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
-
-        {/* User Guide Modal */}
-        {activeModal === "user-guide" && (
-          <div className="settings-modal-backdrop" onClick={() => setActiveModal(null)}>
-            <div className="settings-modal-card" onClick={(e) => e.stopPropagation()}>
-              <div className="settings-modal-header">
-                <div className="settings-badge settings-badge-blue">
-                  <BookOpen size={20} />
-                </div>
-                <h3 className="settings-modal-title">IntelliFarm AI User Guide</h3>
-                <button type="button" className="settings-modal-close-icon" onClick={() => setActiveModal(null)}><X size={18} /></button>
-              </div>
-              <div className="settings-modal-body">
-                <p>Welcome to IntelliFarm AI! Follow these steps to maximize your yield:</p>
-                <ol style={{ paddingLeft: "20px", display: "flex", flexDirection: "column", gap: "8px", fontSize: "13.5px" }}>
-                  <li><strong>Complete Profile:</strong> Enter your 6-digit pincode and select the crops you grow.</li>
-                  <li><strong>Check Weather Bulletins:</strong> Review hyper-local rain and temperature forecasts.</li>
-                  <li><strong>Run Disease Diagnostics:</strong> Scan affected leaves for instant organic & chemical treatments.</li>
-                  <li><strong>Consult Spryzen Copilot:</strong> Ask AI any farming question in plain English or local languages.</li>
-                </ol>
-              </div>
-              <div className="settings-modal-footer">
-                <button type="button" className="settings-btn-modal-close" onClick={() => setActiveModal(null)}><CheckCircle size={16} /> Got It</button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Privacy Policy Modal */}
-        {activeModal === "privacy-policy" && (
-          <div className="settings-modal-backdrop" onClick={() => setActiveModal(null)}>
-            <div className="settings-modal-card" onClick={(e) => e.stopPropagation()}>
-              <div className="settings-modal-header">
-                <div className="settings-badge settings-badge-green">
-                  <FileText size={20} />
-                </div>
-                <h3 className="settings-modal-title">Privacy Policy</h3>
-                <button type="button" className="settings-modal-close-icon" onClick={() => setActiveModal(null)}><X size={18} /></button>
-              </div>
-              <div className="settings-modal-body">
-                <p>IntelliFarm AI prioritizes your data confidentiality:</p>
-                <ul>
-                  <li><strong>Data Confidentiality:</strong> Your farm location and crop data are used strictly for personalized advisories.</li>
-                  <li><strong>No Third-Party Sharing:</strong> Your personal information is never sold or shared with third parties.</li>
-                  <li><strong>Data Rights:</strong> You can export or delete your account data anytime from this settings page.</li>
-                </ul>
-              </div>
-              <div className="settings-modal-footer">
-                <button type="button" className="settings-btn-modal-close" onClick={() => setActiveModal(null)}><CheckCircle size={16} /> Close Privacy Policy</button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Terms & Conditions Modal */}
-        {activeModal === "terms" && (
-          <div className="settings-modal-backdrop" onClick={() => setActiveModal(null)}>
-            <div className="settings-modal-card" onClick={(e) => e.stopPropagation()}>
-              <div className="settings-modal-header">
-                <div className="settings-badge settings-badge-green">
-                  <ShieldCheck size={20} />
-                </div>
-                <h3 className="settings-modal-title">Terms & Conditions</h3>
-                <button type="button" className="settings-modal-close-icon" onClick={() => setActiveModal(null)}><X size={18} /></button>
-              </div>
-              <div className="settings-modal-body">
-                <p>By accessing IntelliFarm AI, you agree to:</p>
-                <ul>
-                  <li>Use recommendations as agricultural guidance alongside expert agronomy advice.</li>
-                  <li>Provide accurate pincode details for reliable weather alerts.</li>
-                  <li>Respect intellectual property rights of Spryzen AI and IntelliFarm AI models.</li>
-                </ul>
-              </div>
-              <div className="settings-modal-footer">
-                <button type="button" className="settings-btn-modal-close" onClick={() => setActiveModal(null)}><CheckCircle size={16} /> Accept & Close</button>
               </div>
             </div>
           </div>
@@ -1159,7 +1867,7 @@ const Settings: React.FC = () => {
           box-shadow: 0 0 8px rgba(16, 185, 129, 0.5);
         }
 
-        /* Modals */
+        /* Modals Base */
         .settings-modal-backdrop {
           position: fixed;
           top: 0;
@@ -1188,6 +1896,12 @@ const Settings: React.FC = () => {
           gap: 16px;
           box-sizing: border-box;
           animation: settingsFadeSlide 0.3s ease;
+          max-height: 90vh;
+          overflow-y: auto;
+        }
+
+        .settings-modal-large {
+          max-width: 680px;
         }
 
         [data-theme="dark"] .settings-modal-card {
@@ -1230,44 +1944,316 @@ const Settings: React.FC = () => {
           background: rgba(0, 0, 0, 0.05);
         }
 
-        .settings-modal-body p {
-          font-size: 13.5px;
-          line-height: 1.5;
-        }
-
-        .settings-modal-warning {
-          font-weight: 800;
-          font-size: 15px;
-          color: #dc2626;
-          margin: 0 0 8px;
-        }
-
-        .settings-modal-desc {
-          margin: 0 0 8px;
-          font-size: 13.5px;
-          color: var(--body-color, #183d24);
-        }
-
-        [data-theme="dark"] .settings-modal-desc {
-          color: #f0fdf4;
-        }
-
-        .settings-delete-list {
-          margin: 0 0 12px;
-          padding-left: 20px;
+        /* 1. Searchable Help Center Styles */
+        .settings-search-wrapper {
+          position: relative;
           display: flex;
-          flex-direction: column;
-          gap: 6px;
-          font-size: 13px;
+          align-items: center;
+          width: 100%;
+        }
+
+        .settings-search-icon {
+          position: absolute;
+          left: 14px;
           color: var(--text-main, #6b7c72);
         }
 
-        .settings-modal-notice {
-          font-size: 13px;
-          color: #dc2626;
-          margin: 0 0 16px;
+        .settings-search-input {
+          width: 100%;
+          padding: 12px 38px 12px 42px;
+          border-radius: 14px;
+          border: 1.5px solid var(--settings-card-border, rgba(46, 125, 50, 0.2));
+          background: rgba(0, 0, 0, 0.02);
+          font-size: 14px;
+          outline: none;
+          color: var(--body-color, #183d24);
         }
 
+        [data-theme="dark"] .settings-search-input {
+          background: rgba(255, 255, 255, 0.04);
+          color: #f0fdf4;
+        }
+
+        .settings-search-clear {
+          position: absolute;
+          right: 12px;
+          background: transparent;
+          border: none;
+          color: var(--text-main, #6b7c72);
+          cursor: pointer;
+        }
+
+        .settings-faq-list {
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+          max-height: 340px;
+          overflow-y: auto;
+          padding-right: 4px;
+        }
+
+        .settings-faq-card {
+          border-radius: 14px;
+          border: 1px solid rgba(0, 0, 0, 0.06);
+          background: rgba(0, 0, 0, 0.015);
+          overflow: hidden;
+          transition: all 0.2s ease;
+        }
+
+        [data-theme="dark"] .settings-faq-card {
+          background: rgba(255, 255, 255, 0.02);
+          border-color: rgba(255, 255, 255, 0.05);
+        }
+
+        .settings-faq-question {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 14px 16px;
+          cursor: pointer;
+        }
+
+        .settings-faq-q-left {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          font-size: 14px;
+        }
+
+        .settings-faq-tag {
+          font-size: 10px;
+          font-weight: 800;
+          text-transform: uppercase;
+          padding: 3px 8px;
+          border-radius: 6px;
+          background: rgba(2, 132, 199, 0.12);
+          color: #0284c7;
+        }
+
+        .settings-faq-arrow {
+          transition: transform 0.2s ease;
+          color: var(--text-main, #6b7c72);
+        }
+
+        .settings-faq-arrow.rotated {
+          transform: rotate(90deg);
+          color: #2e7d32;
+        }
+
+        .settings-faq-answer {
+          padding: 0 16px 14px;
+          font-size: 13px;
+          line-height: 1.55;
+          color: var(--text-main, #5b6b62);
+          border-top: 1px dashed rgba(0, 0, 0, 0.06);
+          margin-top: 4px;
+          padding-top: 10px;
+        }
+
+        [data-theme="dark"] .settings-faq-answer {
+          color: #d1fae5;
+          border-top-color: rgba(255, 255, 255, 0.06);
+        }
+
+        .settings-help-callout {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 14px 18px;
+          border-radius: 16px;
+          background: rgba(46, 125, 50, 0.08);
+          border: 1px solid rgba(46, 125, 50, 0.2);
+          margin-top: 6px;
+        }
+
+        .settings-help-callout-text {
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+          font-size: 13px;
+        }
+
+        .settings-help-callout-text strong {
+          color: #2e7d32;
+        }
+
+        [data-theme="dark"] .settings-help-callout-text strong {
+          color: #4ade80;
+        }
+
+        .settings-btn-callout {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          padding: 8px 14px;
+          border-radius: 10px;
+          background: #2e7d32;
+          color: #ffffff;
+          border: none;
+          font-size: 12.5px;
+          font-weight: 700;
+          cursor: pointer;
+        }
+
+        /* 2. Priority Pills for Contact Form */
+        .settings-priority-pills {
+          display: flex;
+          gap: 8px;
+        }
+
+        .settings-priority-pill {
+          flex: 1;
+          padding: 8px;
+          border-radius: 10px;
+          border: 1.5px solid rgba(0, 0, 0, 0.1);
+          background: rgba(0, 0, 0, 0.03);
+          font-size: 12.5px;
+          font-weight: 700;
+          cursor: pointer;
+          color: var(--body-color, #183d24);
+        }
+
+        [data-theme="dark"] .settings-priority-pill {
+          background: rgba(255, 255, 255, 0.05);
+          color: #f0fdf4;
+          border-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .settings-priority-pill.active.normal { background: rgba(16, 185, 129, 0.15); border-color: #10b981; color: #047857; }
+        .settings-priority-pill.active.urgent { background: rgba(245, 158, 11, 0.15); border-color: #f59e0b; color: #b45309; }
+        .settings-priority-pill.active.critical { background: rgba(239, 68, 68, 0.15); border-color: #ef4444; color: #b91c1c; }
+
+        /* 3. 5-Step User Guide Stepper */
+        .settings-guide-stepper {
+          display: flex;
+          align-items: center;
+          justify-content: space-around;
+          margin: 4px 0 12px;
+          position: relative;
+        }
+
+        .settings-guide-step-dot {
+          width: 32px;
+          height: 32px;
+          border-radius: 50%;
+          border: 2px solid rgba(46, 125, 50, 0.2);
+          background: rgba(0, 0, 0, 0.04);
+          color: var(--text-main, #6b7c72);
+          font-weight: 800;
+          font-size: 13px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+
+        .settings-guide-step-dot.active {
+          border-color: #2e7d32;
+          background: #2e7d32;
+          color: #ffffff;
+          transform: scale(1.15);
+          box-shadow: 0 4px 12px rgba(46, 125, 50, 0.3);
+        }
+
+        .settings-guide-step-dot.completed {
+          background: rgba(16, 185, 129, 0.2);
+          border-color: #10b981;
+          color: #10b981;
+        }
+
+        .settings-guide-card-content {
+          background: rgba(46, 125, 50, 0.04);
+          border: 1px solid rgba(46, 125, 50, 0.15);
+          border-radius: 18px;
+          padding: 20px;
+          min-height: 170px;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+        }
+
+        .settings-guide-step-body {
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+        }
+
+        .settings-guide-step-icon {
+          width: 48px;
+          height: 48px;
+          border-radius: 14px;
+          background: #2e7d32;
+          color: #ffffff;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .settings-guide-step-body h4 {
+          margin: 0;
+          font-size: 16px;
+          font-weight: 800;
+          color: var(--body-color, #183d24);
+        }
+
+        [data-theme="dark"] .settings-guide-step-body h4 {
+          color: #f0fdf4;
+        }
+
+        .settings-guide-step-body p {
+          margin: 0;
+          font-size: 13.5px;
+          line-height: 1.5;
+          color: var(--text-main, #5b6b62);
+        }
+
+        [data-theme="dark"] .settings-guide-step-body p {
+          color: #d1fae5;
+        }
+
+        .settings-guide-tip {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 8px 12px;
+          border-radius: 10px;
+          background: rgba(245, 158, 11, 0.12);
+          color: #b45309;
+          font-size: 12px;
+          font-weight: 700;
+        }
+
+        [data-theme="dark"] .settings-guide-tip {
+          color: #fbbf24;
+        }
+
+        /* 4. Rating Stars Picker */
+        .settings-rating-picker {
+          display: flex;
+          justify-content: center;
+          gap: 8px;
+          margin: 8px 0;
+        }
+
+        .settings-star-btn {
+          background: transparent;
+          border: none;
+          cursor: pointer;
+          color: #d1d5db;
+          transition: transform 0.15s ease;
+          padding: 4px;
+        }
+
+        .settings-star-btn:hover {
+          transform: scale(1.2);
+        }
+
+        .settings-star-btn.active {
+          color: #f59e0b;
+        }
+
+        /* Forms & Inputs */
         .settings-delete-form, .settings-support-form {
           display: flex;
           flex-direction: column;
@@ -1313,75 +2299,11 @@ const Settings: React.FC = () => {
           box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.12);
         }
 
-        .settings-input-label {
-          font-size: 13px;
-          color: var(--body-color, #183d24);
-        }
-
-        [data-theme="dark"] .settings-input-label {
-          color: #f0fdf4;
-        }
-
-        .settings-delete-input {
-          padding: 12px 14px;
-          border-radius: 12px;
-          border: 1.5px solid rgba(239, 68, 68, 0.3);
-          font-size: 14px;
-          font-weight: 700;
-          outline: none;
-          color: #dc2626;
-          background: rgba(239, 68, 68, 0.03);
-          width: 100%;
-          box-sizing: border-box;
-        }
-
-        .settings-delete-input:focus {
-          border-color: #dc2626;
-          box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15);
-        }
-
-        .settings-modal-actions {
+        .settings-modal-footer {
           display: flex;
+          align-items: center;
           gap: 12px;
-          margin-top: 8px;
-        }
-
-        .settings-btn-cancel {
-          flex: 1;
-          padding: 12px;
-          border-radius: 14px;
-          background: rgba(0, 0, 0, 0.05);
-          border: 1px solid rgba(0, 0, 0, 0.1);
-          color: var(--body-color, #183d24);
-          font-weight: 700;
-          font-size: 14px;
-          cursor: pointer;
-        }
-
-        [data-theme="dark"] .settings-btn-cancel {
-          background: rgba(255, 255, 255, 0.08);
-          border-color: rgba(255, 255, 255, 0.15);
-          color: #f0fdf4;
-        }
-
-        .settings-btn-delete-confirm {
-          flex: 1;
-          padding: 12px;
-          border-radius: 14px;
-          background: linear-gradient(135deg, #ef4444, #dc2626);
-          color: #ffffff;
-          border: none;
-          font-weight: 700;
-          font-size: 14px;
-          cursor: pointer;
-          box-shadow: 0 4px 14px rgba(239, 68, 68, 0.25);
-          transition: all 0.2s ease;
-        }
-
-        .settings-btn-delete-confirm:disabled {
-          opacity: 0.4;
-          cursor: not-allowed;
-          box-shadow: none;
+          margin-top: 12px;
         }
 
         .settings-btn-modal-submit {
@@ -1402,18 +2324,14 @@ const Settings: React.FC = () => {
           transition: all 0.2s ease;
         }
 
+        .settings-btn-red {
+          background: linear-gradient(135deg, #ef4444, #dc2626) !important;
+          box-shadow: 0 4px 14px rgba(239, 68, 68, 0.25) !important;
+        }
+
         .settings-btn-modal-submit:disabled {
           opacity: 0.5;
           cursor: not-allowed;
-        }
-
-        .settings-spinner {
-          animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
         }
 
         .settings-btn-modal-close {
@@ -1430,6 +2348,15 @@ const Settings: React.FC = () => {
           align-items: center;
           justify-content: center;
           gap: 6px;
+        }
+
+        .settings-spinner {
+          animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
         }
 
         /* Responsive Layout Adjustments for Mobile & Tablet */
