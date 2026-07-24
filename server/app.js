@@ -11,6 +11,7 @@ import farmRoutes from "./routes/farmRoutes.js";
 import profileRoutes from "./routes/profile.js";
 import weatherRoutes from "./routes/weatherRoutes.js";
 import copilotRoutes from "./routes/copilot.js";
+import supportRoutes from "./routes/supportRoutes.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 import { sanitizeBody } from "./middleware/sanitizeInput.js";
 import { allowedOrigins } from "./config/security.js";
@@ -83,6 +84,7 @@ app.use("/api/weather", weatherRoutes);
 app.use("/api/crops", cropRoutes);
 app.use("/api/farms", farmRoutes);
 app.use("/api/copilot", copilotRoutes);
+app.use("/api/support", supportRoutes);
 
 app.use(errorHandler);
 

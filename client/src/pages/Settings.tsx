@@ -20,26 +20,30 @@ import {
   CheckCircle,
   Activity,
   X,
-  Send
+  Send,
+  Loader2
 } from "lucide-react";
 
 import MainLayout from "../layouts/MainLayout";
 import { useAuth } from "../context/AuthContext";
 import { deleteAccountApi } from "../services/profileApi";
+import { sendSupportMessageApi } from "../services/supportApi";
 
 const Settings: React.FC = () => {
   const { farmer, logout } = useAuth();
   const navigate = useNavigate();
 
-  // Modals state
+  // Active modal name state
   const [activeModal, setActiveModal] = useState<string | null>(null);
 
   // Delete account confirmation state
   const [deleteConfirmInput, setDeleteConfirmInput] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
 
-  // Generic modal form state (feedback/bug/contact)
-  const [modalText, setModalText] = useState("");
+  // Support / Contact message form state
+  const [supportSubject, setSupportSubject] = useState("");
+  const [supportMessage, setSupportMessage] = useState("");
+  const [isSendingSupport, setIsSendingSupport] = useState(false);
 
   const handleDownloadJSON = () => {
     const dataObj = {
@@ -107,10 +111,29 @@ const Settings: React.FC = () => {
     }
   };
 
-  const handleGenericSubmit = (type: string) => {
-    toast.success(`Thank you! Your ${type} has been submitted.`);
-    setModalText("");
-    setActiveModal(null);
+  const handleSupportSubmit = async (e: React.FormEvent, categoryName: string) => {
+    e.preventDefault();
+    if (!supportMessage.trim()) {
+      toast.error("Please write a message before sending.");
+      return;
+    }
+
+    setIsSendingSupport(true);
+    try {
+      await sendSupportMessageApi({
+        type: categoryName,
+        subject: supportSubject.trim() || `${categoryName} Message`,
+        message: supportMessage.trim(),
+      });
+      toast.success("Your message has been sent successfully! Our team will review it promptly.");
+      setSupportMessage("");
+      setSupportSubject("");
+      setActiveModal(null);
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || "Failed to send message. Please try again.");
+    } finally {
+      setIsSendingSupport(false);
+    }
   };
 
   const initialLetter = farmer?.name
@@ -124,6 +147,7 @@ const Settings: React.FC = () => {
       eyebrow=""
       title="Account & Settings"
       subtitle="Manage your account, application preferences, and support."
+      showBreadcrumb={false}
     >
       <div className="settings-container">
 
@@ -169,13 +193,17 @@ const Settings: React.FC = () => {
               <button
                 type="button"
                 className="settings-row-item"
-                onClick={() => setActiveModal("help-center")}
+                onClick={() => {
+                  setSupportSubject("Help Center Inquiry");
+                  setSupportMessage("");
+                  setActiveModal("help-center");
+                }}
               >
                 <div className="settings-row-left">
                   <HelpCircle size={18} className="settings-row-icon" />
                   <div className="settings-row-text">
                     <strong>Help Center</strong>
-                    <span>Browse user guides and FAQs</span>
+                    <span>Browse FAQs or submit a help query</span>
                   </div>
                 </div>
                 <ChevronRight size={18} className="settings-row-arrow" />
@@ -184,7 +212,11 @@ const Settings: React.FC = () => {
               <button
                 type="button"
                 className="settings-row-item"
-                onClick={() => setActiveModal("contact-support")}
+                onClick={() => {
+                  setSupportSubject("Contact Support Request");
+                  setSupportMessage("");
+                  setActiveModal("contact-support");
+                }}
               >
                 <div className="settings-row-left">
                   <MessageSquare size={18} className="settings-row-icon" />
@@ -199,7 +231,11 @@ const Settings: React.FC = () => {
               <button
                 type="button"
                 className="settings-row-item"
-                onClick={() => setActiveModal("report-bug")}
+                onClick={() => {
+                  setSupportSubject("Bug Report");
+                  setSupportMessage("");
+                  setActiveModal("report-bug");
+                }}
               >
                 <div className="settings-row-left">
                   <Bug size={18} className="settings-row-icon" />
@@ -214,7 +250,9 @@ const Settings: React.FC = () => {
               <button
                 type="button"
                 className="settings-row-item"
-                onClick={() => setActiveModal("user-guide")}
+                onClick={() => {
+                  setActiveModal("user-guide");
+                }}
               >
                 <div className="settings-row-left">
                   <BookOpen size={18} className="settings-row-icon" />
@@ -319,7 +357,11 @@ const Settings: React.FC = () => {
               <button
                 type="button"
                 className="settings-row-item"
-                onClick={() => setActiveModal("rate-app")}
+                onClick={() => {
+                  setSupportSubject("App Rating & Feedback");
+                  setSupportMessage("");
+                  setActiveModal("rate-app");
+                }}
               >
                 <div className="settings-row-left">
                   <Star size={18} className="settings-row-icon" />
@@ -334,7 +376,11 @@ const Settings: React.FC = () => {
               <button
                 type="button"
                 className="settings-row-item"
-                onClick={() => setActiveModal("suggest-feature")}
+                onClick={() => {
+                  setSupportSubject("Feature Suggestion");
+                  setSupportMessage("");
+                  setActiveModal("suggest-feature");
+                }}
               >
                 <div className="settings-row-left">
                   <Lightbulb size={18} className="settings-row-icon" />
@@ -349,7 +395,11 @@ const Settings: React.FC = () => {
               <button
                 type="button"
                 className="settings-row-item"
-                onClick={() => setActiveModal("share-feedback")}
+                onClick={() => {
+                  setSupportSubject("General Feedback");
+                  setSupportMessage("");
+                  setActiveModal("share-feedback");
+                }}
               >
                 <div className="settings-row-left">
                   <MessageCircle size={18} className="settings-row-icon" />
@@ -537,28 +587,103 @@ const Settings: React.FC = () => {
           </div>
         )}
 
-        {/* Help Center Modal */}
-        {activeModal === "help-center" && (
+        {/* Contact / Help / Bug Report / Feedback Message Box Modals */}
+        {(activeModal === "help-center" ||
+          activeModal === "contact-support" ||
+          activeModal === "report-bug" ||
+          activeModal === "suggest-feature" ||
+          activeModal === "share-feedback" ||
+          activeModal === "rate-app") && (
           <div className="settings-modal-backdrop" onClick={() => setActiveModal(null)}>
             <div className="settings-modal-card" onClick={(e) => e.stopPropagation()}>
               <div className="settings-modal-header">
                 <div className="settings-badge settings-badge-blue">
-                  <HelpCircle size={20} />
+                  {activeModal === "report-bug" ? <Bug size={20} /> : <MessageSquare size={20} />}
                 </div>
-                <h3 className="settings-modal-title">IntelliFarm AI Help Center</h3>
-                <button type="button" className="settings-modal-close-icon" onClick={() => setActiveModal(null)}><X size={18} /></button>
+                <div>
+                  <h3 className="settings-modal-title">
+                    {activeModal === "help-center" && "Help & Support Request"}
+                    {activeModal === "contact-support" && "Contact Support"}
+                    {activeModal === "report-bug" && "Report a Bug"}
+                    {activeModal === "suggest-feature" && "Suggest a Feature"}
+                    {activeModal === "share-feedback" && "Share Feedback"}
+                    {activeModal === "rate-app" && "Rate IntelliFarm AI"}
+                  </h3>
+                  <p className="settings-modal-sub">
+                    Write your message below. Our support team will review and respond directly.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  className="settings-modal-close-icon"
+                  onClick={() => setActiveModal(null)}
+                >
+                  <X size={18} />
+                </button>
               </div>
-              <div className="settings-modal-body">
-                <p><strong>Frequently Asked Questions:</strong></p>
-                <ul>
-                  <li><strong>How does disease detection work?</strong> Upload or photograph a crop leaf in the Disease Detection page. Qwen2.5-VL and Spryzen AI analyze leaf symptoms.</li>
-                  <li><strong>How do I set my location?</strong> Edit your profile pincode to automatically fetch your District and State location.</li>
-                  <li><strong>Can I register multiple farms?</strong> Yes! Go to My Farms to add and manage field boundaries.</li>
-                </ul>
-              </div>
-              <div className="settings-modal-footer">
-                <button type="button" className="settings-btn-modal-close" onClick={() => setActiveModal(null)}><CheckCircle size={16} /> Close Help Center</button>
-              </div>
+
+              <form
+                onSubmit={(e) =>
+                  handleSupportSubmit(
+                    e,
+                    activeModal === "help-center"
+                      ? "Help Center Inquiry"
+                      : activeModal === "contact-support"
+                      ? "Contact Support"
+                      : activeModal === "report-bug"
+                      ? "Bug Report"
+                      : activeModal === "suggest-feature"
+                      ? "Feature Suggestion"
+                      : activeModal === "share-feedback"
+                      ? "User Feedback"
+                      : "App Rating"
+                  )
+                }
+                className="settings-support-form"
+              >
+                <div className="settings-form-group">
+                  <label className="settings-form-label">Subject / Topic</label>
+                  <input
+                    type="text"
+                    value={supportSubject}
+                    onChange={(e) => setSupportSubject(e.target.value)}
+                    placeholder="Enter subject..."
+                    className="settings-form-input"
+                  />
+                </div>
+
+                <div className="settings-form-group">
+                  <label className="settings-form-label">Message *</label>
+                  <textarea
+                    rows={5}
+                    value={supportMessage}
+                    onChange={(e) => setSupportMessage(e.target.value)}
+                    placeholder="Write your message here..."
+                    className="settings-form-textarea"
+                    required
+                  />
+                </div>
+
+                <div className="settings-modal-footer" style={{ marginTop: "12px" }}>
+                  <button
+                    type="submit"
+                    className="settings-btn-modal-submit"
+                    disabled={isSendingSupport || !supportMessage.trim()}
+                  >
+                    {isSendingSupport ? (
+                      <>
+                        <Loader2 size={16} className="settings-spinner" />
+                        <span>Sending Message...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Send size={16} />
+                        <span>Send Message</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
             </div>
           </div>
         )}
@@ -642,58 +767,9 @@ const Settings: React.FC = () => {
           </div>
         )}
 
-        {/* Contact Support / Report Bug / Feedback Generic Form Modals */}
-        {(activeModal === "contact-support" || activeModal === "report-bug" || activeModal === "suggest-feature" || activeModal === "share-feedback" || activeModal === "rate-app") && (
-          <div className="settings-modal-backdrop" onClick={() => setActiveModal(null)}>
-            <div className="settings-modal-card" onClick={(e) => e.stopPropagation()}>
-              <div className="settings-modal-header">
-                <div className="settings-badge settings-badge-blue">
-                  <MessageSquare size={20} />
-                </div>
-                <h3 className="settings-modal-title">
-                  {activeModal === "contact-support" && "Contact Support"}
-                  {activeModal === "report-bug" && "Report a Bug"}
-                  {activeModal === "suggest-feature" && "Suggest a Feature"}
-                  {activeModal === "share-feedback" && "Share Feedback"}
-                  {activeModal === "rate-app" && "Rate IntelliFarm AI"}
-                </h3>
-                <button type="button" className="settings-modal-close-icon" onClick={() => setActiveModal(null)}><X size={18} /></button>
-              </div>
-
-              <div className="settings-modal-body">
-                <p style={{ fontSize: "13.5px", margin: "0 0 12px" }}>
-                  {activeModal === "contact-support" && "Send a message to our support team and we will respond via email."}
-                  {activeModal === "report-bug" && "Describe the issue or error you encountered on IntelliFarm AI."}
-                  {activeModal === "suggest-feature" && "What new feature would help your daily farm management?"}
-                  {activeModal === "share-feedback" && "Share your experience with Spryzen AI and crop advisory."}
-                  {activeModal === "rate-app" && "Rate your experience (1 to 5 stars) and add optional comments."}
-                </p>
-
-                <textarea
-                  rows={4}
-                  value={modalText}
-                  onChange={(e) => setModalText(e.target.value)}
-                  placeholder="Enter your message..."
-                  className="settings-modal-textarea"
-                />
-
-                <div className="settings-modal-footer" style={{ marginTop: "16px" }}>
-                  <button
-                    type="button"
-                    className="settings-btn-modal-close"
-                    onClick={() => handleGenericSubmit(activeModal.replace("-", " "))}
-                  >
-                    <Send size={16} /> Submit Response
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
       </div>
 
-      {/* ── Glassmorphism Card Styling matching Disease Detection Page ── */}
+      {/* ── Glassmorphism Styling matching Disease Detection Page ── */}
       <style>{`
         .settings-container {
           display: flex;
@@ -1192,10 +1268,49 @@ const Settings: React.FC = () => {
           margin: 0 0 16px;
         }
 
-        .settings-delete-form {
+        .settings-delete-form, .settings-support-form {
           display: flex;
           flex-direction: column;
-          gap: 12px;
+          gap: 14px;
+        }
+
+        .settings-form-group {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+        }
+
+        .settings-form-label {
+          font-size: 12px;
+          font-weight: 700;
+          text-transform: uppercase;
+          color: var(--text-main, #6b7c72);
+        }
+
+        .settings-form-input, .settings-form-textarea {
+          width: 100%;
+          padding: 12px 14px;
+          border-radius: 14px;
+          border: 1.5px solid var(--settings-card-border, rgba(46, 125, 50, 0.2));
+          background: rgba(255, 255, 255, 0.85);
+          color: var(--body-color, #183d24);
+          font-size: 14px;
+          font-family: inherit;
+          outline: none;
+          box-sizing: border-box;
+          transition: border-color 0.2s ease;
+        }
+
+        [data-theme="dark"] .settings-form-input,
+        [data-theme="dark"] .settings-form-textarea {
+          background: rgba(20, 32, 24, 0.85);
+          color: #f0fdf4;
+          border-color: rgba(74, 222, 128, 0.2);
+        }
+
+        .settings-form-input:focus, .settings-form-textarea:focus {
+          border-color: #2e7d32;
+          box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.12);
         }
 
         .settings-input-label {
@@ -1269,22 +1384,36 @@ const Settings: React.FC = () => {
           box-shadow: none;
         }
 
-        .settings-modal-textarea {
+        .settings-btn-modal-submit {
           width: 100%;
-          padding: 12px;
+          padding: 13px;
           border-radius: 14px;
-          border: 1px solid var(--settings-card-border, rgba(46, 125, 50, 0.2));
-          background: rgba(0, 0, 0, 0.02);
-          color: var(--body-color, #183d24);
-          font-family: inherit;
-          font-size: 13.5px;
-          outline: none;
-          box-sizing: border-box;
+          background: linear-gradient(135deg, #2e7d32, #1b5e20);
+          color: #ffffff;
+          border: none;
+          font-size: 14px;
+          font-weight: 700;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          box-shadow: 0 4px 14px rgba(46, 125, 50, 0.25);
+          transition: all 0.2s ease;
         }
 
-        [data-theme="dark"] .settings-modal-textarea {
-          background: rgba(255, 255, 255, 0.04);
-          color: #f0fdf4;
+        .settings-btn-modal-submit:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+
+        .settings-spinner {
+          animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
         }
 
         .settings-btn-modal-close {

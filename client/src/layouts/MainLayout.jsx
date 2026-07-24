@@ -4,7 +4,7 @@ import Footer from "../components/Footer";
 import Navbar from "../components/Navbar";
 import Sidebar from "../components/Sidebar";
 
-const MainLayout = ({ children, eyebrow = "", title = "", subtitle = "", actions = null, isDashboard = false }) => {
+const MainLayout = ({ children, eyebrow = "", title = "", subtitle = "", actions = null, isDashboard = false, showBreadcrumb = true }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
 
@@ -34,7 +34,7 @@ const MainLayout = ({ children, eyebrow = "", title = "", subtitle = "", actions
           style={{ flex: 1, display: "flex", flexDirection: "column", background: "transparent", minHeight: "auto" }}
         >
           <section className="ag-content app-main-content ag-responsive-content">
-            {title && (
+            {title && showBreadcrumb && (
               <div className="ag-breadcrumb" style={{ color: "var(--text-main, #5b6b62)" }}>
                 IntelliFarm AI / {title}
               </div>
