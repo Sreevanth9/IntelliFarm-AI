@@ -7,6 +7,7 @@ import {
   getSavedRecommendations,
   saveRecommendation,
   updateProfile,
+  deleteAccount,
 } from "../controllers/profileController.js";
 import { requireAuth } from "../middleware/auth.js";
 import { verifyOwnership } from "../middleware/verifyOwnership.js";
@@ -47,5 +48,6 @@ router.post(
   saveRecommendation
 );
 router.delete("/recommendations/:id", requireAuth, verifyOwnership("saved_recommendations"), deleteSavedRecommendation);
+router.delete("/account", requireAuth, deleteAccount);
 
 export default router;

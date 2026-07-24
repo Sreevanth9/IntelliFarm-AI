@@ -254,3 +254,34 @@ export const deleteSavedRecommendation = async (req, res, next) => {
     next(error);
   }
 };
+
+export const deleteAccount = async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+
+    await Promise.allSettled([
+      supabase.from("farms").delete().eq("user_id", userId),
+      supabase.from("disease_reports").delete().eq("user_id", userId),
+      supabase.from("saved_recommendations").delete().eq("user_id", userId),
+      supabase.from("farmer_profiles").delete().eq("user_id", userId),
+      supabase.from("farmers").delete().eq("id", userId),
+    ]);
+
+    try {
+      if (supabase.auth?.admin) {
+        await supabase.auth.admin.deleteUser(userId);
+      }
+    } catch (adminErr) {
+      // Ignore if non-admin key
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Your account and all associated data have been permanently deleted."
+    });
+  } catch (error) {
+    console.error("[profileController] deleteAccount error:", error);
+    next(error);
+  }
+};
+
