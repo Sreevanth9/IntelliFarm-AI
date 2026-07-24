@@ -31,6 +31,7 @@ export const AuthProvider = ({ children }) => {
 
   const applySession = useCallback(
     (user) => {
+      localStorage.setItem("isLogin", "true");
       setFarmer({
         ...user,
         cropsInterested: Array.isArray(user?.cropsInterested) ? user.cropsInterested : [],
@@ -199,6 +200,11 @@ export const AuthProvider = ({ children }) => {
   }, [clearSession]);
 
   useEffect(() => {
+    const wasLoggedIn = localStorage.getItem("isLogin") === "true";
+    if (!wasLoggedIn) {
+      clearSession();
+      return;
+    }
     ensureCsrfToken()
       .then(() => fetchCurrentUser())
       .then(({ data }) => applySession(data.user))

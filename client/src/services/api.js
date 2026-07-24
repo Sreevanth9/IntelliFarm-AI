@@ -47,7 +47,7 @@ api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const request = error.config;
-    const authEndpoint = /\/api\/auth\/(login|register|oauth-login|refresh)/.test(request?.url || "");
+    const authEndpoint = /\/api\/auth\/(login|register|oauth-login|refresh|csrf)/.test(request?.url || "");
     if (error.response?.status === 401 && !request?._retried && !authEndpoint) {
       request._retried = true;
       try {
@@ -57,7 +57,8 @@ api.interceptors.response.use(
         }
         await refreshRequest;
         return api(request);
-      } catch {
+      } catch (refreshErr) {
+        localStorage.removeItem("isLogin");
         window.dispatchEvent(new Event("intellifarm:session-expired"));
       }
     }
