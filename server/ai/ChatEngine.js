@@ -13,6 +13,7 @@ import domainClassifier from "./DomainClassifier.js";
 import attachmentValidator from "./AttachmentValidator.js";
 import { sanitizePiiAndSecrets } from "../utils/piiSanitizer.js";
 import { detectCropDisease } from "../services/aiService.js";
+import diseaseReportFormatter from "./DiseaseReportFormatter.js";
 
 class ChatEngine {
   async handleChatStream(req, res, next) {
@@ -217,6 +218,7 @@ class ChatEngine {
       streamService.sendChunk(res, { conversationId: activeConversationId });
 
       let assistantResponse = "";
+      let diagnosisCard = null;
 
       // 8a. If image attachments are present, use verified Qwen2.5-VL vision pipeline first
       if (attachments && attachments.length > 0) {
@@ -231,31 +233,9 @@ class ChatEngine {
             weatherData: toolOutputs.weather
           });
 
-          if (diseaseResult?.status === "invalid") {
-            assistantResponse = `⚠️ **Non-Crop Leaf Image Detected**\n\n${diseaseResult.suggestion || diseaseResult.reason || "The uploaded image does not appear to be a plant leaf. Please upload a clear photo of your crop leaf for diagnosis."}`;
-          } else if (diseaseResult?.status === "success" || diseaseResult?.crop) {
-            // Extract correct fields from detectCropDisease() return shape
-            const cropName = typeof diseaseResult.crop === "object" ? diseaseResult.crop?.name : diseaseResult.crop;
-            const diseaseName = diseaseResult.diagnosis?.disease || "Unknown";
-            const diseaseConfidence = diseaseResult.diagnosis?.confidence || diseaseResult.confidence || 90;
-            const isHealthy = diseaseName === "Healthy";
-            const severity = diseaseResult.severity || "Moderate";
-
-            assistantResponse = `### 🌿 Spryzen AI Crop Health Diagnostic Report
-
-**Crop Identified**: **${cropName || "Crop Leaf"}**  
-**Health Status**: **${isHealthy ? "Healthy ✅" : `Diseased (${diseaseName})`}**  
-**Severity**: **${severity}** (${diseaseConfidence}% confidence)
-
-#### 📝 Diagnosis & Observations
-${diseaseResult.summary || "Analysis complete."}
-
-${diseaseResult.weatherRisk ? `#### 🌦 Weather Risk\n${diseaseResult.weatherRisk}\n` : ""}
-${diseaseResult.treatmentOrganic?.length ? `#### 🟢 Organic Treatment Recommendations\n${diseaseResult.treatmentOrganic.map(t => `- ${t}`).join("\n")}\n` : ""}
-${diseaseResult.treatmentChemical?.length ? `#### 🧪 Chemical Treatment Recommendations\n${diseaseResult.treatmentChemical.map(t => `- ${t}`).join("\n")}\n` : ""}
-${diseaseResult.prevention?.length ? `#### 🛡 Preventative Management\n${diseaseResult.prevention.map(p => `- ${p}`).join("\n")}\n` : ""}
-${diseaseResult.expectedRecovery ? `#### ⏱ Expected Recovery\n${diseaseResult.expectedRecovery}` : ""}`;
-          }
+          const formatted = diseaseReportFormatter.format(diseaseResult);
+          assistantResponse = formatted.markdown;
+          diagnosisCard = formatted.card;
 
           if (assistantResponse) {
             console.log("[ChatEngine] Qwen vision analysis generated successfully. Streaming content chunk...");
@@ -301,6 +281,10 @@ ${diseaseResult.expectedRecovery ? `#### ⏱ Expected Recovery\n${diseaseResult.
       // 9. Format response and extract rich cards
       console.log("[ChatEngine] STEP 13: Formatting response text layout...");
       const formattedData = responseFormatter.format(assistantResponse, toolOutputs);
+      // Inject structured diagnosis card from the vision pipeline
+      if (diagnosisCard) {
+        formattedData.uiCards.push(diagnosisCard);
+      }
       const assistantTokens = tokenCounter.count(formattedData.formattedText);
 
       // Save assistant message to database (including structured UI cards metadata in attachments)

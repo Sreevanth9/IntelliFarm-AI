@@ -6,7 +6,8 @@ import {
   WeatherCard,
   DiseaseCard,
   MarketCard,
-  RecommendationCard
+  RecommendationCard,
+  DiagnosisCard
 } from "./CopilotCards";
 import {
   Copy,
@@ -134,6 +135,9 @@ export const MessageItem: React.FC<MessageItemProps> = ({
               }
               if (card.type === "recommendation" && card.data) {
                 return <RecommendationCard key={idx} data={card.data} />;
+              }
+              if (card.type === "diagnosis" && card.data) {
+                return <DiagnosisCard key={idx} data={card.data} />;
               }
               return null;
             })}

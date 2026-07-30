@@ -647,6 +647,63 @@
   color: var(--copilot-text-muted);
 }
 
+/* Diagnosis Card Elements */
+.diagnosis-card {
+  overflow: hidden;
+}
+
+.diagnosis-status-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.diagnosis-severity-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 20px;
+  white-space: nowrap;
+}
+
+.diagnosis-confidence {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 100px;
+}
+
+.diagnosis-confidence-bar {
+  flex: 1;
+  height: 6px;
+  background-color: var(--copilot-border);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.diagnosis-confidence-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.6s ease-out;
+}
+
+.diagnosis-treatment-list {
+  margin: 0;
+  padding: 0 0 0 16px;
+  list-style: disc;
+  font-size: 13px;
+  color: var(--copilot-text);
+  line-height: 1.6;
+}
+
+.diagnosis-treatment-list li {
+  margin-bottom: 2px;
+}
+
 /* Alert Callouts inside Chat */
 .copilot-alert {
   padding: 12px;
