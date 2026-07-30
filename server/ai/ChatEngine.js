@@ -12,6 +12,7 @@ import conversationSummarizer from "./ConversationSummarizer.js";
 import domainClassifier from "./DomainClassifier.js";
 import attachmentValidator from "./AttachmentValidator.js";
 import { sanitizePiiAndSecrets } from "../utils/piiSanitizer.js";
+import { detectCropDisease } from "../services/aiService.js";
 
 class ChatEngine {
   async handleChatStream(req, res, next) {
@@ -215,29 +216,72 @@ class ChatEngine {
       // Send conversation ID first so the client can map it immediately
       streamService.sendChunk(res, { conversationId: activeConversationId });
 
-      console.log("[ChatEngine] STEP 11: Invoking Groq Chat stream completions...");
-      const stream = await grokService.getChatStream(promptMessages);
-      console.log("[ChatEngine] Groq stream established. Streaming tokens to client...");
       let assistantResponse = "";
 
-      for await (const chunk of stream) {
-        if (isAborted || req.aborted || res.writableEnded) {
-          console.log("[ChatEngine] Client aborted connection during streaming. Halting Groq execution.");
-          break;
-        }
+      // 8a. If image attachments are present, use verified Qwen2.5-VL vision pipeline first
+      if (attachments && attachments.length > 0) {
+        console.log("[ChatEngine] STEP 11a: Image attachment detected. Invoking Qwen2.5-VL vision service (detectCropDisease)...");
+        try {
+          const rawBase64 = attachments[0].data.includes("base64,")
+            ? attachments[0].data.split("base64,")[1]
+            : attachments[0].data;
 
-        const text = chunk.choices[0]?.delta?.content || "";
-        assistantResponse += text;
-        console.log("TOKEN", text);
-        
-        // Redact secrets on the fly if any leakage occurs
-        const safeText = grokService.redact(text);
-        if (safeText && !isAborted && !res.writableEnded) {
-          console.log("Sending chunk", safeText);
-          streamService.sendChunk(res, { content: safeText });
+          const diseaseResult = await detectCropDisease({
+            base64Image: rawBase64,
+            weatherData: toolOutputs.weather
+          });
+
+          if (diseaseResult?.status === "invalid") {
+            assistantResponse = `⚠️ **Non-Crop Leaf Image Detected**\n\n${diseaseResult.reasoning || "The uploaded image does not appear to be a plant leaf. Please upload a clear photo of your crop leaf for diagnosis."}`;
+          } else if (diseaseResult?.isLeaf || diseaseResult?.crop) {
+            assistantResponse = `### 🌿 Spryzen AI Crop Health Diagnostic Report
+
+**Crop Identified**: **${diseaseResult.crop || "Crop Leaf"}**  
+**Health Status**: **${diseaseResult.healthy ? "Healthy ✅" : `Diseased (${diseaseResult.disease || "Issue Detected"})`}**  
+**Severity**: **${diseaseResult.severity || "Moderate"}** (${diseaseResult.confidence || 90}% confidence)
+
+#### 📝 Diagnosis & Observations
+${diseaseResult.reasoning || "Analysis complete."}
+
+${diseaseResult.organicTreatment?.length ? `#### 🟢 Organic Treatment Recommendations\n${diseaseResult.organicTreatment.map(t => `- ${t}`).join("\n")}\n` : ""}
+${diseaseResult.chemicalTreatment?.length ? `#### 🧪 Chemical Treatment Recommendations\n${diseaseResult.chemicalTreatment.map(t => `- ${t}`).join("\n")}\n` : ""}
+${diseaseResult.preventativeMeasures?.length ? `#### 🛡 Preventative Management\n${diseaseResult.preventativeMeasures.map(p => `- ${p}`).join("\n")}\n` : ""}`;
+          }
+
+          if (assistantResponse) {
+            console.log("[ChatEngine] Qwen vision analysis generated successfully. Streaming content chunk...");
+            streamService.sendChunk(res, { content: assistantResponse });
+          }
+        } catch (visionErr) {
+          console.warn("[ChatEngine] Primary Qwen vision pipeline error, falling back to Groq stream:", visionErr.message);
         }
       }
-      console.log("[ChatEngine] STEP 12: Groq streaming finalized. Content size:", assistantResponse.length);
+
+      // 8b. Fallback or general text chat via Groq
+      if (!assistantResponse) {
+        console.log("[ChatEngine] STEP 11b: Invoking Groq Chat stream completions...");
+        const stream = await grokService.getChatStream(promptMessages);
+        console.log("[ChatEngine] Groq stream established. Streaming tokens to client...");
+
+        for await (const chunk of stream) {
+          if (isAborted || req.aborted || res.writableEnded) {
+            console.log("[ChatEngine] Client aborted connection during streaming. Halting Groq execution.");
+            break;
+          }
+
+          const text = chunk.choices[0]?.delta?.content || "";
+          assistantResponse += text;
+          console.log("TOKEN", text);
+          
+          // Redact secrets on the fly if any leakage occurs
+          const safeText = grokService.redact(text);
+          if (safeText && !isAborted && !res.writableEnded) {
+            console.log("Sending chunk", safeText);
+            streamService.sendChunk(res, { content: safeText });
+          }
+        }
+      }
+      console.log("[ChatEngine] STEP 12: Streaming finalized. Content size:", assistantResponse.length);
 
       if (!assistantResponse || !assistantResponse.trim()) {
         console.warn("[ChatEngine] Assistant response empty. Injecting fallback message to prevent empty bubble UI.");
