@@ -96,6 +96,26 @@ class GrokService {
         console.error("Fallback Error Message:", fallbackErr?.message);
         console.error("Fallback Error Status:", fallbackErr?.status);
         console.error("===============================================");
+
+        if (isVision) {
+          console.log("[GrokService] Vision models unavailable. Gracefully falling back to text model llama-3.3-70b-versatile...");
+          const textOnlyMessages = messages.map(msg => {
+            if (Array.isArray(msg.content)) {
+              const textPart = msg.content.find(item => item.type === "text")?.text || "";
+              return { role: msg.role, content: textPart };
+            }
+            return msg;
+          });
+
+          return await this.groq.chat.completions.create({
+            model: this.defaultModel,
+            messages: textOnlyMessages,
+            stream: true,
+            temperature: 0.7,
+            max_tokens: 2048,
+          });
+        }
+
         throw fallbackErr;
       }
     }
