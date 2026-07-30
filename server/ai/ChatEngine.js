@@ -91,7 +91,7 @@ class ChatEngine {
 
       if (!activeConversationId) {
         console.log("[ChatEngine] No conversationId provided. Creating new conversation...");
-        const newConv = await conversationManager.createConversation(userId, message.slice(0, 40));
+        const newConv = await conversationManager.createConversation(userId, (effectiveMessage || "Image Analysis").slice(0, 40));
         if (!newConv) {
           throw new Error("Failed to create conversation in database. Please verify that your Supabase tables are set up using 'server/supabase_copilot_v2_schema.sql' in your Supabase SQL editor.");
         }
@@ -232,20 +232,29 @@ class ChatEngine {
           });
 
           if (diseaseResult?.status === "invalid") {
-            assistantResponse = `⚠️ **Non-Crop Leaf Image Detected**\n\n${diseaseResult.reasoning || "The uploaded image does not appear to be a plant leaf. Please upload a clear photo of your crop leaf for diagnosis."}`;
-          } else if (diseaseResult?.isLeaf || diseaseResult?.crop) {
+            assistantResponse = `⚠️ **Non-Crop Leaf Image Detected**\n\n${diseaseResult.suggestion || diseaseResult.reason || "The uploaded image does not appear to be a plant leaf. Please upload a clear photo of your crop leaf for diagnosis."}`;
+          } else if (diseaseResult?.status === "success" || diseaseResult?.crop) {
+            // Extract correct fields from detectCropDisease() return shape
+            const cropName = typeof diseaseResult.crop === "object" ? diseaseResult.crop?.name : diseaseResult.crop;
+            const diseaseName = diseaseResult.diagnosis?.disease || "Unknown";
+            const diseaseConfidence = diseaseResult.diagnosis?.confidence || diseaseResult.confidence || 90;
+            const isHealthy = diseaseName === "Healthy";
+            const severity = diseaseResult.severity || "Moderate";
+
             assistantResponse = `### 🌿 Spryzen AI Crop Health Diagnostic Report
 
-**Crop Identified**: **${diseaseResult.crop || "Crop Leaf"}**  
-**Health Status**: **${diseaseResult.healthy ? "Healthy ✅" : `Diseased (${diseaseResult.disease || "Issue Detected"})`}**  
-**Severity**: **${diseaseResult.severity || "Moderate"}** (${diseaseResult.confidence || 90}% confidence)
+**Crop Identified**: **${cropName || "Crop Leaf"}**  
+**Health Status**: **${isHealthy ? "Healthy ✅" : `Diseased (${diseaseName})`}**  
+**Severity**: **${severity}** (${diseaseConfidence}% confidence)
 
 #### 📝 Diagnosis & Observations
-${diseaseResult.reasoning || "Analysis complete."}
+${diseaseResult.summary || "Analysis complete."}
 
-${diseaseResult.organicTreatment?.length ? `#### 🟢 Organic Treatment Recommendations\n${diseaseResult.organicTreatment.map(t => `- ${t}`).join("\n")}\n` : ""}
-${diseaseResult.chemicalTreatment?.length ? `#### 🧪 Chemical Treatment Recommendations\n${diseaseResult.chemicalTreatment.map(t => `- ${t}`).join("\n")}\n` : ""}
-${diseaseResult.preventativeMeasures?.length ? `#### 🛡 Preventative Management\n${diseaseResult.preventativeMeasures.map(p => `- ${p}`).join("\n")}\n` : ""}`;
+${diseaseResult.weatherRisk ? `#### 🌦 Weather Risk\n${diseaseResult.weatherRisk}\n` : ""}
+${diseaseResult.treatmentOrganic?.length ? `#### 🟢 Organic Treatment Recommendations\n${diseaseResult.treatmentOrganic.map(t => `- ${t}`).join("\n")}\n` : ""}
+${diseaseResult.treatmentChemical?.length ? `#### 🧪 Chemical Treatment Recommendations\n${diseaseResult.treatmentChemical.map(t => `- ${t}`).join("\n")}\n` : ""}
+${diseaseResult.prevention?.length ? `#### 🛡 Preventative Management\n${diseaseResult.prevention.map(p => `- ${p}`).join("\n")}\n` : ""}
+${diseaseResult.expectedRecovery ? `#### ⏱ Expected Recovery\n${diseaseResult.expectedRecovery}` : ""}`;
           }
 
           if (assistantResponse) {
@@ -309,7 +318,7 @@ ${diseaseResult.preventativeMeasures?.length ? `#### 🛡 Preventative Managemen
         // Update conversation metadata
         console.log("[ChatEngine] Updating conversation last message details...");
         await conversationManager.updateConversation(userId, activeConversationId, {
-          last_message: message.slice(0, 100),
+          last_message: (effectiveMessage || "Image analysis").slice(0, 100),
         });
         console.log("[ChatEngine] Conversation details updated");
       } catch (dbErr) {
