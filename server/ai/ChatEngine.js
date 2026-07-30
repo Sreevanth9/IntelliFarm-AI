@@ -239,6 +239,12 @@ class ChatEngine {
       }
       console.log("[ChatEngine] STEP 12: Groq streaming finalized. Content size:", assistantResponse.length);
 
+      if (!assistantResponse || !assistantResponse.trim()) {
+        console.warn("[ChatEngine] Assistant response empty. Injecting fallback message to prevent empty bubble UI.");
+        assistantResponse = "I couldn't analyze the uploaded image or complete generation. Please ensure your crop leaf photo is clear and try again.";
+        streamService.sendChunk(res, { content: assistantResponse });
+      }
+
       // 9. Format response and extract rich cards
       console.log("[ChatEngine] STEP 13: Formatting response text layout...");
       const formattedData = responseFormatter.format(assistantResponse, toolOutputs);
