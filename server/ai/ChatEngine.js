@@ -69,7 +69,7 @@ class ChatEngine {
 
       // 2. Agricultural Domain Gate Audit (Server-Enforced Domain Boundary)
       console.log("[ChatEngine] STEP 2b: Running agricultural domain gate audit...");
-      const domainCheck = await domainClassifier.check(message);
+      const domainCheck = await domainClassifier.check(effectiveMessage, attachments);
       if (!domainCheck.isAgricultural) {
         console.warn("[ChatEngine] Domain Gate: Non-agricultural input rejected:", message);
         const refusalMessage = domainCheck.refusalMessage || "I’m Spryzen AI, designed for farming questions. I can help with crops, soil, weather, irrigation, pests, disease, fertilizer, and farm planning.";
@@ -111,8 +111,8 @@ class ChatEngine {
       // Save user message to database
       console.log("[ChatEngine] STEP 4: Saving user message to database...");
       try {
-        const userTokens = tokenCounter.count(message);
-        await conversationManager.saveMessage(activeConversationId, "user", message, userTokens, attachments);
+        const userTokens = tokenCounter.count(effectiveMessage);
+        await conversationManager.saveMessage(activeConversationId, "user", effectiveMessage, userTokens, attachments);
         console.log("[ChatEngine] User message saved successfully");
       } catch (dbErr) {
         console.warn("[ChatEngine] Database WARNING: Failed to save user message:", dbErr.message);

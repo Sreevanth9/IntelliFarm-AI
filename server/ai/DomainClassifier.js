@@ -36,7 +36,11 @@ const AGRICULTURAL_PATTERNS = [
 ];
 
 class DomainClassifier {
-  async check(message) {
+  async check(message, attachments = []) {
+    if (Array.isArray(attachments) && attachments.length > 0) {
+      return { isAgricultural: true };
+    }
+
     if (!message || typeof message !== "string") {
       return { isAgricultural: false, refusalMessage: DEFAULT_REFUSAL };
     }
