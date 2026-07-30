@@ -13,8 +13,7 @@ import {
   Sprout,
   Clock,
   CloudRain,
-  CheckCircle2,
-  AlertTriangle
+  CheckCircle2
 } from "lucide-react";
 
 // 1. Weather Card
