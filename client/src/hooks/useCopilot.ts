@@ -173,10 +173,13 @@ export const useCopilot = () => {
         // Keep the last partial line in the buffer
         buffer = lines.pop() || "";
 
-        for (const line of lines) {
-          if (!line.trim()) continue;
-          if (line.startsWith("data: ")) {
-            const dataStr = line.replace(/^data:\s*/, "").trim();
+        for (const block of lines) {
+          const rawBlock = block.trim();
+          if (!rawBlock) continue;
+
+          const dataLines = rawBlock.split("\n").filter(l => l.trim().startsWith("data:"));
+          for (const dLine of dataLines) {
+            const dataStr = dLine.trim().replace(/^data:\s*/, "");
             
             try {
               const data = JSON.parse(dataStr);
@@ -220,7 +223,7 @@ export const useCopilot = () => {
                 break;
               }
             } catch (err) {
-              // Ignore partial chunk parse issues
+              console.warn("Copilot Stream parse warning:", err);
             }
           }
         }
