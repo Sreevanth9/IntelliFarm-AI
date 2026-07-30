@@ -24,6 +24,7 @@ export interface Message {
   tokens: number;
   attachments: Attachment[];
   createdAt: string;
+  status?: "streaming" | "complete" | "stopped" | "error";
 }
 
 export interface Memory {

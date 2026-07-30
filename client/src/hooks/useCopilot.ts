@@ -18,6 +18,7 @@ export const useCopilot = () => {
     loadConversations,
     setSelectedConversation,
     setConversations,
+    selectedLanguage
   } = useCopilotContext();
 
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -31,12 +32,22 @@ export const useCopilot = () => {
   };
 
   const sendMessage = async (textToSend?: string) => {
-    const text = textToSend !== undefined ? textToSend : draft;
-    if (!text || text.trim().length < 2 || isStreaming) return;
+    let text = textToSend !== undefined ? textToSend : draft;
+    const currentAttachments = [...attachments];
+
+    if ((!text || text.trim().length < 2) && currentAttachments.length > 0) {
+      text = "Please analyze this attached crop photo/document for farming guidance.";
+    }
+
+    if (!text || text.trim().length < 2) return;
+
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
 
     setError(null);
     setDraft("");
-    const currentAttachments = [...attachments];
     setAttachments([]);
 
     // 1. Create temporary User Message
@@ -59,6 +70,7 @@ export const useCopilot = () => {
       tokens: 0,
       attachments: [],
       createdAt: new Date().toISOString(),
+      status: "streaming"
     };
 
     // Append to messages list
@@ -76,7 +88,7 @@ export const useCopilot = () => {
 
     try {
       await ensureCsrfToken();
-      const response = await fetch(`${copilotService.API_BASE_URL}/api/copilot/chat`, {
+      let response = await fetch(`${copilotService.API_BASE_URL}/api/copilot/chat`, {
         method: "POST",
         credentials: "include",
         headers: {
@@ -85,15 +97,61 @@ export const useCopilot = () => {
         },
         body: JSON.stringify({
           message: text,
-          conversationId,
-          attachments: currentAttachments
+          conversationId: conversationId || undefined,
+          attachments: currentAttachments,
+          language: selectedLanguage
         }),
         signal: controller.signal
       });
 
+      // Secure one-time retry for 401 Unauthorized session expiration
+      if (response.status === 401) {
+        try {
+          await ensureCsrfToken();
+          const refreshRes = await fetch(`${copilotService.API_BASE_URL}/api/auth/refresh`, {
+            method: "POST",
+            credentials: "include",
+            headers: {
+              "Content-Type": "application/json",
+              "X-CSRF-Token": getCsrfToken() || ""
+            }
+          });
+
+          if (refreshRes.ok) {
+            await ensureCsrfToken();
+            response = await fetch(`${copilotService.API_BASE_URL}/api/copilot/chat`, {
+              method: "POST",
+              credentials: "include",
+              headers: {
+                "Content-Type": "application/json",
+                "X-CSRF-Token": getCsrfToken() || ""
+              },
+              body: JSON.stringify({
+                message: text,
+                conversationId: conversationId || undefined,
+                attachments: currentAttachments,
+                language: selectedLanguage
+              }),
+              signal: controller.signal
+            });
+          }
+        } catch (refreshErr) {
+          // If refresh fails, fall through to 401 error handler below
+        }
+      }
+
       if (!response.ok) {
+        if (response.status === 401) {
+          localStorage.removeItem("isLogin");
+          window.dispatchEvent(new Event("intellifarm:session-expired"));
+          setTimeout(() => {
+            window.location.href = "/login";
+          }, 1500);
+          throw new Error("Your session expired—please sign in again.");
+        }
+
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+        throw new Error(errorData.error || errorData.message || `HTTP error! status: ${response.status}`);
       }
 
       if (!response.body) {
@@ -172,7 +230,7 @@ export const useCopilot = () => {
       setMessages((prev) =>
         prev.map((msg) =>
           msg.id === assistantMessageId
-            ? { ...msg, content: assistantText, attachments: uiCards }
+            ? { ...msg, content: assistantText, attachments: uiCards, status: "complete" }
             : msg
         )
       );
@@ -199,14 +257,39 @@ export const useCopilot = () => {
 
     } catch (err: any) {
       if (err.name === "AbortError") {
-        console.log("Stream reading aborted.");
+        console.log("Stream reading aborted by user.");
+        if (!assistantText.trim()) {
+          // If no token has arrived yet, remove the temporary assistant message entirely
+          setMessages((prev) => prev.filter((msg) => msg.id !== assistantMessageId));
+        } else {
+          // If partial text has arrived, retain that text and set status: "stopped"
+          setMessages((prev) =>
+            prev.map((msg) =>
+              msg.id === assistantMessageId
+                ? {
+                    ...msg,
+                    content: assistantText,
+                    attachments: uiCards,
+                    status: "stopped"
+                  }
+                : msg
+            )
+          );
+        }
+        if (finalConversationId) {
+          loadConversations();
+        }
       } else {
         setError(err.message || "Failed to process chat response");
         // Replace temp assistant message with error state
         setMessages((prev) =>
           prev.map((msg) =>
             msg.id === assistantMessageId
-              ? { ...msg, content: `Error: ${err.message || "Something went wrong. Please try again."}` }
+              ? {
+                  ...msg,
+                  content: `Error: ${err.message || "Something went wrong. Please try again."}`,
+                  status: "error"
+                }
               : msg
           )
         );
@@ -218,32 +301,44 @@ export const useCopilot = () => {
   };
 
   const regenerateResponse = async (messageIndex: number) => {
-    if (isStreaming || messageIndex < 1) return;
+    if (isStreaming) {
+      stopGeneration();
+    }
     
-    // Find the user query message right before the assistant response
-    const userMsg = messages[messageIndex - 1];
+    let userMsg = messages[messageIndex];
+    let truncateIndex = messageIndex;
+
+    if (userMsg?.role === "assistant") {
+      userMsg = messages[messageIndex - 1];
+      truncateIndex = messageIndex - 1;
+    }
+
     if (!userMsg || userMsg.role !== "user") return;
 
-    // Truncate message history from this point
-    const truncatedHistory = messages.slice(0, messageIndex - 1);
+    // Truncate message history from this user query onwards
+    const truncatedHistory = messages.slice(0, truncateIndex);
     setMessages(truncatedHistory);
 
-    // Call sendMessage again
+    // Re-send user query
     await sendMessage(userMsg.content);
   };
 
   const editMessage = async (messageIndex: number, newContent: string) => {
-    if (isStreaming) return;
+    if (!newContent || !newContent.trim()) return;
+
+    if (isStreaming) {
+      stopGeneration();
+    }
     
     const targetMsg = messages[messageIndex];
     if (!targetMsg || targetMsg.role !== "user") return;
 
-    // Truncate message history from this user message onwards
+    // Truncate message history from this user message index onwards
     const truncatedHistory = messages.slice(0, messageIndex);
     setMessages(truncatedHistory);
 
     // Resend edited query
-    await sendMessage(newContent);
+    await sendMessage(newContent.trim());
   };
 
   return {

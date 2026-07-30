@@ -9,13 +9,21 @@ import tokenCounter from "./TokenCounter.js";
 import toolExecutor from "./ToolExecutor.js";
 import titleGenerator from "./TitleGenerator.js";
 import conversationSummarizer from "./ConversationSummarizer.js";
+import domainClassifier from "./DomainClassifier.js";
+import attachmentValidator from "./AttachmentValidator.js";
+import { sanitizePiiAndSecrets } from "../utils/piiSanitizer.js";
 
 class ChatEngine {
   async handleChatStream(req, res, next) {
     let streamInitialized = false;
+    let isAborted = false;
     try {
-      const { message, conversationId, attachments = [] } = req.body;
+      const { message, conversationId, attachments = [], language } = req.body;
       const userId = req.user?.id;
+
+      req.on("close", () => {
+        isAborted = true;
+      });
 
       console.log("[ChatEngine] STEP 1: Incoming request received. Message length:", message?.length);
 
@@ -24,15 +32,22 @@ class ChatEngine {
         return res.status(400).json({ success: false, error: "Message is required" });
       }
 
+      // Attachment Security & Validation Audit
+      const attachmentCheck = attachmentValidator.validate(attachments);
+      if (!attachmentCheck.isValid) {
+        console.warn("[ChatEngine] Attachment security validation failed:", attachmentCheck.error);
+        return res.status(400).json({ success: false, error: attachmentCheck.error });
+      }
+
       // 1. Prompt Injection Security Check
       console.log("[ChatEngine] STEP 2: Running prompt injection security audit...");
       if (grokService.securityCheck(message)) {
         console.warn("[ChatEngine] Prompt injection signature matched! Blocking input.");
-        // Log safety block
+        // Log safety block with PII sanitization
         try {
           await supabase.from("ai_audit_logs").insert({
             user_id: userId,
-            prompt: message,
+            prompt: sanitizePiiAndSecrets(message),
             response: "[REJECTED: Jailbreak attempt detected]",
             is_flagged: true,
             flagged_reason: "Jailbreak attempt signature matched"
@@ -46,7 +61,23 @@ class ChatEngine {
         });
       }
 
-      // 2. Fetch or Create Conversation
+      // 2. Agricultural Domain Gate Audit (Server-Enforced Domain Boundary)
+      console.log("[ChatEngine] STEP 2b: Running agricultural domain gate audit...");
+      const domainCheck = await domainClassifier.check(message);
+      if (!domainCheck.isAgricultural) {
+        console.warn("[ChatEngine] Domain Gate: Non-agricultural input rejected:", message);
+        const refusalMessage = domainCheck.refusalMessage || "I’m Spryzen AI, designed for farming questions. I can help with crops, soil, weather, irrigation, pests, disease, fertilizer, and farm planning.";
+
+        streamService.initStream(res);
+        if (conversationId) {
+          streamService.sendChunk(res, { conversationId });
+        }
+        streamService.sendChunk(res, { content: refusalMessage });
+        streamService.endStream(res, { uiCards: [] });
+        return;
+      }
+
+      // 3. Fetch or Create Conversation
       console.log("[ChatEngine] STEP 3: Resolving conversation session...");
       let activeConversationId = conversationId;
       let isNewConversation = false;
@@ -166,7 +197,8 @@ class ChatEngine {
         diseaseContext: toolOutputs.disease,
         memories,
         history: historyForPrompt,
-        currentMessage: message
+        currentMessage: message,
+        language
       });
 
       // 8. Stream Response via SSE
@@ -182,12 +214,17 @@ class ChatEngine {
       let assistantResponse = "";
 
       for await (const chunk of stream) {
+        if (isAborted || req.aborted || res.writableEnded) {
+          console.log("[ChatEngine] Client aborted connection during streaming. Halting Groq execution.");
+          break;
+        }
+
         const text = chunk.choices[0]?.delta?.content || "";
         assistantResponse += text;
         
         // Redact secrets on the fly if any leakage occurs
         const safeText = grokService.redact(text);
-        if (safeText) {
+        if (safeText && !isAborted && !res.writableEnded) {
           streamService.sendChunk(res, { content: safeText });
         }
       }
@@ -270,9 +307,13 @@ class ChatEngine {
       }
 
       // End SSE Stream
-      console.log("[ChatEngine] STEP 17: Finalizing and closing SSE connection...");
-      streamService.endStream(res, { uiCards: formattedData.uiCards });
-      console.log("[ChatEngine] Stream completed successfully");
+      if (!isAborted && !res.writableEnded) {
+        console.log("[ChatEngine] STEP 17: Finalizing and closing SSE connection...");
+        streamService.endStream(res, { uiCards: formattedData.uiCards });
+        console.log("[ChatEngine] Stream completed successfully");
+      } else {
+        console.log("[ChatEngine] Stream completed (client aborted session early).");
+      }
 
     } catch (error) {
       console.error("[ChatEngine] ChatEngine stream execution failed:", error);

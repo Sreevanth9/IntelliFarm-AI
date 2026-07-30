@@ -4,12 +4,9 @@ import {
   MessageSquare,
   Pin,
   Trash2,
-  Edit2,
-  Check,
   X,
   Search,
-  Plus,
-  Star
+  Plus
 } from "lucide-react";
 
 export const HistorySidebar: React.FC = () => {
@@ -18,17 +15,13 @@ export const HistorySidebar: React.FC = () => {
     selectedConversation,
     isLoadingConversations,
     selectConversation,
-    renameConversation,
     togglePinConversation,
-    toggleFavoriteConversation,
     deleteConversation,
     historyOpen,
     setHistoryOpen
   } = useCopilotContext();
 
   const [searchQuery, setSearchQuery] = useState("");
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editTitle, setEditTitle] = useState("");
 
   // Helper to group conversations by date
   const groupConversationsByDate = (convs: typeof conversations) => {
@@ -91,25 +84,6 @@ export const HistorySidebar: React.FC = () => {
   const pinnedConversations = filteredConversations.filter((c) => c.pinned);
   const unpinnedConversations = filteredConversations.filter((c) => !c.pinned);
 
-  const startEditing = (id: string, currentTitle: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    setEditingId(id);
-    setEditTitle(currentTitle);
-  };
-
-  const cancelEditing = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setEditingId(null);
-  };
-
-  const saveTitle = async (id: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (editTitle.trim().length >= 2) {
-      await renameConversation(id, editTitle.trim());
-    }
-    setEditingId(null);
-  };
-
   const handleNewChat = () => {
     selectConversation(null);
   };
@@ -160,7 +134,7 @@ export const HistorySidebar: React.FC = () => {
             {/* Pinned Section */}
             {pinnedConversations.length > 0 && (
               <div className="copilot-sidebar-section">
-                <div className="copilot-sidebar-section-title">Pinned</div>
+                <div className="copilot-sidebar-section-title">Pinned ({pinnedConversations.length}/5)</div>
                 {pinnedConversations.map((c) => (
                   <div
                     key={c.id}
@@ -169,69 +143,31 @@ export const HistorySidebar: React.FC = () => {
                   >
                     <div className="copilot-history-title-wrap">
                       <MessageSquare size={16} style={{ color: "var(--copilot-primary)", flexShrink: 0 }} />
-                      {editingId === c.id ? (
-                        <input
-                          type="text"
-                          className="copilot-history-title-input"
-                          value={editTitle}
-                          onChange={(e) => setEditTitle(e.target.value)}
-                          onClick={(e) => e.stopPropagation()}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") saveTitle(c.id, e as any);
-                            if (e.key === "Escape") cancelEditing(e as any);
-                          }}
-                        />
-                      ) : (
-                        <span className="copilot-history-title">{getTitleWithEmoji(c.title)}</span>
-                      )}
+                      <span className="copilot-history-title">{getTitleWithEmoji(c.title)}</span>
                     </div>
                     
-                    {editingId === c.id ? (
-                      <div className="copilot-history-actions" style={{ opacity: 1 }}>
-                        <button className="copilot-history-btn" onClick={(e) => saveTitle(c.id, e)}>
-                          <Check size={14} />
-                        </button>
-                        <button className="copilot-history-btn" onClick={cancelEditing}>
-                          <X size={14} />
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="copilot-history-actions">
-                        <button
-                          className="copilot-history-btn"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            togglePinConversation(c.id);
-                          }}
-                          title="Unpin"
-                        >
-                          <Pin size={14} style={{ fill: "var(--copilot-primary)" }} />
-                        </button>
-                        <button
-                          className="copilot-history-btn"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            toggleFavoriteConversation(c.id);
-                          }}
-                          title="Favorite"
-                        >
-                          <Star size={14} style={{ fill: c.favorite ? "orange" : "none", color: c.favorite ? "orange" : "inherit" }} />
-                        </button>
-                        <button className="copilot-history-btn" onClick={(e) => startEditing(c.id, c.title, e)} title="Rename">
-                          <Edit2 size={14} />
-                        </button>
-                        <button
-                          className="copilot-history-btn delete"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            deleteConversation(c.id);
-                          }}
-                          title="Delete"
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
-                    )}
+                    <div className="copilot-history-actions">
+                      <button
+                        className="copilot-history-btn"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          togglePinConversation(c.id);
+                        }}
+                        title="Unpin"
+                      >
+                        <Pin size={14} style={{ fill: "var(--copilot-primary)" }} />
+                      </button>
+                      <button
+                        className="copilot-history-btn delete"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          deleteConversation(c.id);
+                        }}
+                        title="Delete"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -254,69 +190,31 @@ export const HistorySidebar: React.FC = () => {
                       >
                         <div className="copilot-history-title-wrap">
                           <MessageSquare size={16} style={{ flexShrink: 0 }} />
-                          {editingId === c.id ? (
-                            <input
-                              type="text"
-                              className="copilot-history-title-input"
-                              value={editTitle}
-                              onChange={(e) => setEditTitle(e.target.value)}
-                              onClick={(e) => e.stopPropagation()}
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter") saveTitle(c.id, e as any);
-                                if (e.key === "Escape") cancelEditing(e as any);
-                              }}
-                            />
-                          ) : (
-                            <span className="copilot-history-title">{getTitleWithEmoji(c.title)}</span>
-                          )}
+                          <span className="copilot-history-title">{getTitleWithEmoji(c.title)}</span>
                         </div>
 
-                        {editingId === c.id ? (
-                          <div className="copilot-history-actions" style={{ opacity: 1 }}>
-                            <button className="copilot-history-btn" onClick={(e) => saveTitle(c.id, e)}>
-                              <Check size={14} />
-                            </button>
-                            <button className="copilot-history-btn" onClick={cancelEditing}>
-                              <X size={14} />
-                            </button>
-                          </div>
-                        ) : (
-                          <div className="copilot-history-actions">
-                            <button
-                              className="copilot-history-btn"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                togglePinConversation(c.id);
-                              }}
-                              title="Pin"
-                            >
-                              <Pin size={14} />
-                            </button>
-                            <button
-                              className="copilot-history-btn"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                toggleFavoriteConversation(c.id);
-                              }}
-                              title="Favorite"
-                            >
-                              <Star size={14} style={{ fill: c.favorite ? "orange" : "none", color: c.favorite ? "orange" : "inherit" }} />
-                            </button>
-                            <button className="copilot-history-btn" onClick={(e) => startEditing(c.id, c.title, e)} title="Rename">
-                              <Edit2 size={14} />
-                            </button>
-                            <button
-                              className="copilot-history-btn delete"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                deleteConversation(c.id);
-                              }}
-                              title="Delete"
-                            >
-                              <Trash2 size={14} />
-                            </button>
-                          </div>
-                        )}
+                        <div className="copilot-history-actions">
+                          <button
+                            className="copilot-history-btn"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              togglePinConversation(c.id);
+                            }}
+                            title="Pin"
+                          >
+                            <Pin size={14} />
+                          </button>
+                          <button
+                            className="copilot-history-btn delete"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              deleteConversation(c.id);
+                            }}
+                            title="Delete"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
                       </div>
                     ))}
                   </div>

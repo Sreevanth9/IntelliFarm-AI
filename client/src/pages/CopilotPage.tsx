@@ -16,7 +16,7 @@ const CopilotPage: React.FC = () => {
 
   return (
     <CopilotProvider>
-      <MainLayout>
+      <MainLayout fullWidth={true}>
         <div className="copilot-layout">
           <HistorySidebar />
           <ChatWindow />

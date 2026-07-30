@@ -15,8 +15,9 @@ export const ROUTES = {
   diseaseInfo: "/disease-info",
   diseaseDetection: "/disease-detection",
   profile: "/profile",
-  assistant: "/copilot",
-  copilot: "/copilot",
+  assistant: "/spryzen-ai",
+  copilot: "/spryzen-ai",
+  spryzenAi: "/spryzen-ai",
   settings: "/settings",
 };
 

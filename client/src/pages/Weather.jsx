@@ -376,7 +376,7 @@ const Weather = () => {
                     <h3>Hourly Forecast (Next 24h)</h3>
                   </div>
                   <div className="weather-hourly-scroll">
-                    {forecast.list.slice(0, 8).map((slot: any, idx: number) => {
+                    {forecast.list.slice(0, 8).map((slot, idx) => {
                       const timeStr = new Date(slot.dt * 1000).toLocaleTimeString("en-US", {
                         hour: "numeric",
                         hour12: true

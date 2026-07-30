@@ -20,7 +20,6 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onSend, onStop }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [voiceState, setVoiceState] = useState<'idle' | 'listening' | 'processing'>('idle');
-  const [voiceLang, setVoiceLang] = useState<string>('en-IN');
   const [micError, setMicError] = useState<string | null>(null);
 
   // Auto-grow textarea height
@@ -42,7 +41,21 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onSend, onStop }) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
+    const MAX_SIZE = 5 * 1024 * 1024; // 5MB
+    const MAX_FILES = 5;
+
+    if (attachments.length + files.length > MAX_FILES) {
+      alert(`You can attach up to ${MAX_FILES} files per message.`);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      return;
+    }
+
     Array.from(files).forEach((file) => {
+      if (file.size > MAX_SIZE) {
+        alert(`File "${file.name}" exceeds the 5MB size limit.`);
+        return;
+      }
+
       const reader = new FileReader();
       reader.onload = () => {
         setAttachments((prev) => [
@@ -68,9 +81,11 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onSend, onStop }) => {
   };
 
   const startListening = () => {
+    setMicError(null);
+
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SpeechRecognition) {
-      setMicError("Speech recognition is not supported in this browser. Please use Chrome or Safari.");
+      setMicError("Speech recognition is not supported in this browser. Please use Chrome, Edge, or Safari.");
       return;
     }
 
@@ -78,17 +93,25 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onSend, onStop }) => {
       const recognition = new SpeechRecognition();
       recognition.continuous = false;
       recognition.interimResults = false;
-      recognition.lang = voiceLang;
+      recognition.lang = "en-IN"; // Universal compatibility locale for Chrome/Safari/Edge engines
 
       recognition.onstart = () => {
         setVoiceState('listening');
         setMicError(null);
       };
 
-      recognition.onerror = (event: any) => {
-        console.error("Speech recognition error:", event.error);
-        if (event.error === 'not-allowed') {
-          setMicError("Microphone access denied. Please enable microphone permissions in your browser settings.");
+      recognition.onerror = async (event: any) => {
+        console.log("[SpeechRecognition Error]", event.error);
+        if (event.error === 'service-not-allowed') {
+          setMicError("Browser speech recognition service is disabled or blocked. Please try Chrome or Safari.");
+        } else if (event.error === 'not-allowed') {
+          setMicError("Microphone access denied. Please click the lock icon in your browser address bar and set Microphone permission to 'Allow'.");
+        } else if (event.error === 'no-speech') {
+          setMicError("No speech detected. Please speak clearly into your microphone.");
+        } else if (event.error === 'audio-capture') {
+          setMicError("No microphone hardware found. Please check your audio input settings.");
+        } else if (event.error === 'network') {
+          setMicError("Network issue with speech recognition service. Please try again.");
         } else {
           setMicError(`Voice error: ${event.error}`);
         }
@@ -124,7 +147,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onSend, onStop }) => {
             {voiceState === 'listening' ? (
               <>
                 <span className="animate-pulse" style={{ display: "inline-block", width: "8px", height: "8px", borderRadius: "50%", backgroundColor: "#ff3b30" }}></span>
-                <span>Listening... Speak now in your selected language.</span>
+                <span>Listening... Speak now (Telugu / English).</span>
               </>
             ) : (
               <>
@@ -190,30 +213,6 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onSend, onStop }) => {
           </div>
 
           <div className="copilot-action-group" style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-            {/* Language Selector */}
-            <select
-              value={voiceLang}
-              onChange={(e) => setVoiceLang(e.target.value)}
-              disabled={isStreaming || voiceState !== 'idle'}
-              style={{
-                fontSize: "12px",
-                padding: "4px 8px",
-                borderRadius: "8px",
-                background: "var(--copilot-sidebar-bg)",
-                border: "1px solid var(--copilot-border)",
-                color: "var(--copilot-text-muted)",
-                cursor: "pointer",
-                outline: "none"
-              }}
-              title="Language for speech recognition"
-            >
-              <option value="en-IN">English (India)</option>
-              <option value="te-IN">Telugu (తెలుగు)</option>
-              <option value="hi-IN">Hindi (हिन्दी)</option>
-              <option value="ta-IN">Tamil (தமிழ்)</option>
-              <option value="kn-IN">Kannada (ಕನ್ನಡ)</option>
-            </select>
-
             {/* Mic Button */}
             <button
               className={`copilot-icon-btn ${voiceState === 'listening' ? 'active-pulse' : ''}`}
@@ -233,16 +232,16 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onSend, onStop }) => {
             {isStreaming ? (
               <button className="copilot-stop-btn" onClick={onStop}>
                 <Square size={14} style={{ fill: "currentColor" }} />
-                Stop
+                <span className="copilot-btn-text">Stop</span>
               </button>
             ) : (
               <button
                 className="copilot-send-btn"
                 onClick={onSend}
-                disabled={draft.trim().length < 2 || voiceState !== 'idle'}
+                disabled={(draft.trim().length === 0 && attachments.length === 0) || voiceState !== 'idle'}
               >
                 <Send size={14} />
-                Send
+                <span className="copilot-btn-text">Send</span>
               </button>
             )}
           </div>

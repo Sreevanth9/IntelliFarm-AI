@@ -20,11 +20,15 @@ export const MessageList: React.FC = () => {
   return (
     <div className="copilot-messages-container">
       {messages.map((msg, index) => {
-        const isEmptyAssistant = msg.role === "assistant" && msg.content === "";
+        const isTyping =
+          msg.role === "assistant" &&
+          msg.content === "" &&
+          (msg.status === "streaming" || msg.status === undefined) &&
+          isStreaming;
 
         return (
           <div key={msg.id} style={{ display: "flex", flexDirection: "column", width: "100%" }}>
-            {isEmptyAssistant ? (
+            {isTyping ? (
               <div className="copilot-message assistant" style={{ alignSelf: "flex-start" }}>
                 <TypingIndicator />
               </div>

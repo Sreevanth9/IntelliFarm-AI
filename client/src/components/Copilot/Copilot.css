@@ -836,9 +836,11 @@
 }
 
 /* ── Responsive Styles for Spryzen AI ── */
+/* ── Stable Viewport Sizing & Responsive Styles ── */
 .copilot-layout {
   display: flex;
-  height: clamp(500px, calc(100vh - 160px), 850px);
+  height: calc(100dvh - var(--app-chrome-height, 120px));
+  min-height: 480px;
   width: 100%;
   background-color: var(--copilot-bg);
   color: var(--copilot-text);
@@ -849,6 +851,11 @@
   border: 1px solid var(--copilot-border);
   box-shadow: var(--copilot-shadow);
   box-sizing: border-box;
+}
+
+.copilot-message-wrapper,
+.copilot-input-wrapper {
+  max-width: min(960px, 100%);
 }
 
 /* Mobile history toggle button inside header */
@@ -907,13 +914,14 @@
   border-collapse: collapse;
 }
 
-@media (max-width: 900px) {
+/* 1024px and below: Hide Copilot history sidebar into drawer */
+@media (max-width: 1024px) {
   .copilot-mobile-history-btn {
     display: flex;
   }
   
   .copilot-layout {
-    height: clamp(400px, calc(100dvh - 120px), 750px);
+    height: calc(100dvh - 100px);
     border-radius: 16px;
   }
 
@@ -923,7 +931,7 @@
     left: 0;
     bottom: 0;
     width: 85vw;
-    max-width: 300px;
+    max-width: 320px;
     z-index: 250;
     transform: translateX(-100%);
     transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
@@ -964,6 +972,20 @@
   }
 }
 
+/* 768px and below: Wrap action buttons safely */
+@media (max-width: 768px) {
+  .copilot-input-actions {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .copilot-action-group {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+}
+
+/* 480px and below: Ultra compact phone styling */
 @media (max-width: 480px) {
   .copilot-chat-header {
     padding: 0 12px;
@@ -976,5 +998,24 @@
 
   .copilot-input-area {
     padding: 6px 8px 10px;
+  }
+
+  .copilot-btn-text {
+    display: none;
+  }
+
+  .copilot-lang-select {
+    max-width: 110px;
+    text-overflow: ellipsis;
+  }
+
+  .copilot-attachments-preview {
+    flex-wrap: wrap;
+  }
+
+  .copilot-send-btn,
+  .copilot-stop-btn {
+    padding: 8px 10px;
+    min-height: 36px;
   }
 }

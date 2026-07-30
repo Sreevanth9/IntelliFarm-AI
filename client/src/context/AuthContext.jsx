@@ -199,16 +199,20 @@ export const AuthProvider = ({ children }) => {
     };
   }, [clearSession]);
 
+  const [initializing, setInitializing] = useState(() => localStorage.getItem("isLogin") === "true");
+
   useEffect(() => {
     const wasLoggedIn = localStorage.getItem("isLogin") === "true";
     if (!wasLoggedIn) {
       clearSession();
+      setInitializing(false);
       return;
     }
     ensureCsrfToken()
       .then(() => fetchCurrentUser())
       .then(({ data }) => applySession(data.user))
-      .catch(() => clearSession());
+      .catch(() => clearSession())
+      .finally(() => setInitializing(false));
   }, [applySession, clearSession]);
 
   useEffect(() => {
@@ -222,6 +226,7 @@ export const AuthProvider = ({ children }) => {
       farmer,
       isAuthenticated,
       loading,
+      initializing,
       applySession,
       login,
       logout,
@@ -230,7 +235,7 @@ export const AuthProvider = ({ children }) => {
       loginWithGithub,
       completeOAuthRedirect,
     }),
-    [farmer, isAuthenticated, loading, applySession, login, logout, register, loginWithGoogle, loginWithGithub, completeOAuthRedirect]
+    [farmer, isAuthenticated, loading, initializing, applySession, login, logout, register, loginWithGoogle, loginWithGithub, completeOAuthRedirect]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

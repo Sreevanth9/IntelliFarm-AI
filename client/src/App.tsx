@@ -106,10 +106,12 @@ const App: React.FC = () => {
         />
         <Route path="/login" element={<Login />} />
         <Route path="/auth/callback" element={<AuthCallback />} />
-        <Route path="/assistant" element={<Navigate to="/copilot" replace />} />
-        <Route path="/assistant/*" element={<Navigate to="/copilot" replace />} />
-        <Route path="/app" element={<Navigate to="/copilot" replace />} />
-        <Route path="/app/:historyId" element={<Navigate to="/copilot" replace />} />
+        <Route path="/assistant" element={<Navigate to="/spryzen-ai" replace />} />
+        <Route path="/assistant/*" element={<Navigate to="/spryzen-ai" replace />} />
+        <Route path="/copilot" element={<Navigate to="/spryzen-ai" replace />} />
+        <Route path="/copilot/*" element={<Navigate to="/spryzen-ai" replace />} />
+        <Route path="/app" element={<Navigate to="/spryzen-ai" replace />} />
+        <Route path="/app/:historyId" element={<Navigate to="/spryzen-ai" replace />} />
         <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
         <Route path="/weather" element={<Weather />} />
         <Route path="/fertilizer" element={<Fertilizer />} />
@@ -120,10 +122,11 @@ const App: React.FC = () => {
         <Route path="/farms" element={<ProtectedRoute><Farms /></ProtectedRoute>} />
         <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
         <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
-        <Route path="/copilot/*" element={<ProtectedRoute><CopilotPage /></ProtectedRoute>} />
+        <Route path="/spryzen-ai/*" element={<ProtectedRoute><CopilotPage /></ProtectedRoute>} />
+        <Route path="/spryzen-ai" element={<ProtectedRoute><CopilotPage /></ProtectedRoute>} />
         <Route path="*" element={<NotFound />} />
       </Routes>
-      {isLogin && !location.pathname.startsWith("/copilot")}
+      {isLogin && !location.pathname.startsWith("/spryzen-ai") && !location.pathname.startsWith("/copilot")}
       {settingsShow && (
         <div onClick={settingHandler} className="bg-focus-dark"></div>
       )}

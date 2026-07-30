@@ -14,6 +14,8 @@ export interface CopilotContextType {
   attachments: any[];
   draft: string;
   suggestions: string[];
+  selectedLanguage: string;
+  setSelectedLanguage: (lang: string) => void;
   
   historyOpen: boolean;
   setHistoryOpen: React.Dispatch<React.SetStateAction<boolean>>;
@@ -54,6 +56,7 @@ export const CopilotProvider: React.FC<{ children: ReactNode }> = ({ children })
   const [error, setError] = useState<string | null>(null);
   const [attachments, setAttachments] = useState<any[]>([]);
   const [draft, setDraft] = useState("");
+  const [selectedLanguage, setSelectedLanguage] = useState("en-IN");
   
   const defaultSuggestions = [
     "Recommend suitable crops for clay soil",
@@ -141,6 +144,15 @@ export const CopilotProvider: React.FC<{ children: ReactNode }> = ({ children })
   const togglePinConversation = async (id: string) => {
     const active = conversations.find(c => c.id === id);
     if (!active) return;
+
+    if (!active.pinned) {
+      const currentPinnedCount = conversations.filter(c => c.pinned).length;
+      if (currentPinnedCount >= 5) {
+        alert("You can pin up to 5 chats maximum.");
+        return;
+      }
+    }
+
     try {
       const updated = await copilotService.updateConversation(id, { pinned: !active.pinned });
       setConversations(prev => {
@@ -215,6 +227,8 @@ export const CopilotProvider: React.FC<{ children: ReactNode }> = ({ children })
       attachments,
       draft,
       suggestions,
+      selectedLanguage,
+      setSelectedLanguage,
       historyOpen,
       setHistoryOpen,
       toggleHistory,

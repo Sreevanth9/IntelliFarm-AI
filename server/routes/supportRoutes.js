@@ -14,8 +14,8 @@ router.post(
   requireAuth,
   [
     body("message").isString().trim().isLength({ min: 3, max: 10000 }).withMessage("Message must be 3-10000 characters"),
-    body("type").optional().isString().trim().isLength({ max: 100 }),
-    body("subject").optional().isString().trim().isLength({ max: 200 }),
+    body("type").optional({ checkFalsy: true, nullable: true }).isString().trim().isLength({ max: 100 }),
+    body("subject").optional({ checkFalsy: true, nullable: true }).isString().trim().isLength({ max: 200 }),
   ],
   validateRequest,
   sendSupportMessage

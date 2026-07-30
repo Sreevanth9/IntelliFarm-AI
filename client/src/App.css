@@ -1375,6 +1375,12 @@
   padding: 28px;
 }
 
+.ag-content--copilot {
+  width: 100%;
+  max-width: 1600px;
+  margin: 0 auto;
+}
+
 .ag-page-head {
   display: flex;
   justify-content: space-between;

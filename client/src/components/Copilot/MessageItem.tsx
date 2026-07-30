@@ -53,8 +53,18 @@ export const MessageItem: React.FC<MessageItemProps> = ({
   };
 
   const handleEditSubmit = () => {
-    if (editText.trim().length >= 2 && editText.trim() !== message.content) {
+    if (editText.trim().length >= 2) {
       onEdit(index, editText.trim());
+      setIsEditing(false);
+    }
+  };
+
+  const handleEditKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleEditSubmit();
+    } else if (e.key === "Escape") {
+      setEditText(message.content);
       setIsEditing(false);
     }
   };
@@ -69,29 +79,31 @@ export const MessageItem: React.FC<MessageItemProps> = ({
                 width: "100%",
                 background: "var(--copilot-bg)",
                 color: "var(--copilot-text)",
-                border: "1px solid var(--copilot-primary)",
-                borderRadius: "6px",
-                padding: "8px",
+                border: "1.5px solid var(--copilot-primary)",
+                borderRadius: "8px",
+                padding: "10px",
                 fontFamily: "inherit",
                 fontSize: "14px",
                 outline: "none",
                 resize: "vertical",
-                minHeight: "60px"
+                minHeight: "64px"
               }}
               value={editText}
               onChange={(e) => setEditText(e.target.value)}
+              onKeyDown={handleEditKeyDown}
+              autoFocus
             />
             <div style={{ display: "flex", justifyContent: "flex-end", gap: "6px" }}>
               <button
                 className="copilot-send-btn"
-                style={{ padding: "4px 10px", fontSize: "12px" }}
+                style={{ padding: "6px 12px", fontSize: "12px" }}
                 onClick={handleEditSubmit}
               >
-                <Check size={12} /> Save
+                <Check size={12} /> Save & Submit
               </button>
               <button
                 className="copilot-stop-btn"
-                style={{ padding: "4px 10px", fontSize: "12px" }}
+                style={{ padding: "6px 12px", fontSize: "12px", backgroundColor: "var(--copilot-border)", color: "var(--copilot-text)" }}
                 onClick={() => {
                   setEditText(message.content);
                   setIsEditing(false);
@@ -147,15 +159,22 @@ export const MessageItem: React.FC<MessageItemProps> = ({
       {/* Message Metadata & Toolbar */}
       <div className={`copilot-message-meta ${isUser ? "user" : "assistant"}`}>
         <span>{new Date(message.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
+        {!isUser && message.status === "stopped" && (
+          <span style={{ fontSize: "11px", color: "var(--copilot-text-muted)", fontStyle: "italic", marginLeft: "4px" }}>
+            (Generation stopped)
+          </span>
+        )}
         {!isEditing && (
           <div className="copilot-message-toolbar">
-            <button className="copilot-toolbar-btn" onClick={handleCopy} title="Copy content">
-              <Copy size={12} />
-              {copied ? "Copied" : "Copy"}
-            </button>
+            {message.content && (
+              <button className="copilot-toolbar-btn" onClick={handleCopy} title="Copy content">
+                <Copy size={12} />
+                {copied ? "Copied" : "Copy"}
+              </button>
+            )}
 
             {isUser ? (
-              <button className="copilot-toolbar-btn" onClick={() => setIsEditing(true)} title="Edit message">
+              <button className="copilot-toolbar-btn" onClick={() => setIsEditing(true)} title="Edit question">
                 <Edit2 size={12} />
                 Edit
               </button>

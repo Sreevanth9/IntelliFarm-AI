@@ -233,7 +233,7 @@ const DiseaseDetection = () => {
       ? `[Disease Detected: ${report.diseaseName} in ${report.crop || "crop"} — ${report.confidence}% confidence, Severity: ${report.severity}]\n\n${followUp || `How do I stop ${report.diseaseName} from spreading?`}`
       : followUp;
     localStorage.setItem("spryzen_prefill", ctx);
-    navigate("/copilot");
+    navigate("/spryzen-ai");
   };
 
   const showResult = (report || validationErr) && !loading;
