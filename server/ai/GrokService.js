@@ -56,7 +56,8 @@ class GrokService {
     const isVision = this.hasVisionContent(messages);
     const selectedModel = isVision ? "llama-3.2-11b-vision-preview" : this.defaultModel;
 
-    console.log(`[GrokService] Initiating completion stream with model: ${selectedModel} (Multimodal Vision: ${isVision})`);
+    console.log(`[GrokService] MODEL: ${selectedModel} (Multimodal Vision: ${isVision})`);
+    console.log("[GrokService] Messages Payload Structure:", JSON.stringify(messages, null, 2));
 
     try {
       const response = await this.groq.chat.completions.create({
@@ -66,17 +67,37 @@ class GrokService {
         temperature: 0.7,
         max_tokens: 2048,
       });
+      console.log("[GrokService] STREAM CREATED successfully for model:", selectedModel);
       return response;
     } catch (error) {
-      console.error(`Grok primary model (${selectedModel}) stream error, trying fallback model:`, error.message);
+      console.error("========== GROQ PRIMARY MODEL ERROR ==========");
+      console.error("Model:", selectedModel);
+      console.error("Error Message:", error?.message);
+      console.error("Error Status:", error?.status);
+      console.error("Error Response Data:", error?.response?.data || error?.error || error);
+      console.error("===============================================");
+
       const fallback = isVision ? "llama-3.2-90b-vision-preview" : this.fallbackModel;
-      return await this.groq.chat.completions.create({
-        model: fallback,
-        messages,
-        stream: true,
-        temperature: 0.7,
-        max_tokens: 2048,
-      });
+      console.log(`[GrokService] Attempting fallback model: ${fallback}...`);
+
+      try {
+        const fallbackResponse = await this.groq.chat.completions.create({
+          model: fallback,
+          messages,
+          stream: true,
+          temperature: 0.7,
+          max_tokens: 2048,
+        });
+        console.log("[GrokService] FALLBACK STREAM CREATED successfully for model:", fallback);
+        return fallbackResponse;
+      } catch (fallbackErr) {
+        console.error("========== GROQ FALLBACK MODEL ERROR ==========");
+        console.error("Model:", fallback);
+        console.error("Fallback Error Message:", fallbackErr?.message);
+        console.error("Fallback Error Status:", fallbackErr?.status);
+        console.error("===============================================");
+        throw fallbackErr;
+      }
     }
   }
 

@@ -228,10 +228,12 @@ class ChatEngine {
 
         const text = chunk.choices[0]?.delta?.content || "";
         assistantResponse += text;
+        console.log("TOKEN", text);
         
         // Redact secrets on the fly if any leakage occurs
         const safeText = grokService.redact(text);
         if (safeText && !isAborted && !res.writableEnded) {
+          console.log("Sending chunk", safeText);
           streamService.sendChunk(res, { content: safeText });
         }
       }
