@@ -116,14 +116,24 @@ class ConversationManager {
         .order("created_at", { ascending: true });
 
       if (error) throw error;
-      return data.map(m => ({
-        id: m.id,
-        role: m.role,
-        content: m.content,
-        tokens: m.tokens,
-        attachments: m.attachments,
-        createdAt: m.created_at
-      }));
+      return data.map(m => {
+        let parsedAttachments = [];
+        if (m.attachments) {
+          try {
+            parsedAttachments = typeof m.attachments === "string" ? JSON.parse(m.attachments) : m.attachments;
+          } catch (e) {
+            parsedAttachments = [];
+          }
+        }
+        return {
+          id: m.id,
+          role: m.role,
+          content: m.content || "",
+          tokens: m.tokens,
+          attachments: parsedAttachments,
+          createdAt: m.created_at
+        };
+      });
     } catch (error) {
       console.error("ConversationManager.getMessages failed:", error.message);
       return [];

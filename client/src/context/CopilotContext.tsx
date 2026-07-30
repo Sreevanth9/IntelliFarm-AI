@@ -103,7 +103,18 @@ export const CopilotProvider: React.FC<{ children: ReactNode }> = ({ children })
     setIsLoadingMessages(true);
     try {
       const active = conversations.find(c => c.id === conversationId);
-      if (active) setSelectedConversation(active);
+      if (active) {
+        setSelectedConversation(active);
+      } else {
+        setSelectedConversation({
+          id: conversationId,
+          title: "Farming Conversation",
+          pinned: false,
+          favorite: false,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        });
+      }
       
       const list = await copilotService.getConversationMessages(conversationId);
       setMessages(list);
