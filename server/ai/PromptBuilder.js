@@ -50,6 +50,7 @@ Always adhere to the following formatting and structural rules:
       memories = [],
       history = [],
       currentMessage = "",
+      attachments = [],
       language = null
     } = params;
 
@@ -123,19 +124,38 @@ Always adhere to the following formatting and structural rules:
     }
 
     // 3. Add History
-    // Expected format: { role: 'user' | 'assistant', content: string }
     for (const msg of history) {
-      messages.push({
-        role: msg.role === "assistant" || msg.role === "model" ? "assistant" : "user",
-        content: msg.content
-      });
+      if (Array.isArray(msg.attachments) && msg.attachments.length > 0 && msg.role === "user") {
+        const parts = [{ type: "text", text: msg.content || "" }];
+        msg.attachments.forEach(att => {
+          if (att.data && (att.type === "image" || att.data.startsWith("data:image/"))) {
+            parts.push({ type: "image_url", image_url: { url: att.data } });
+          }
+        });
+        messages.push({ role: "user", content: parts });
+      } else {
+        messages.push({
+          role: msg.role === "assistant" || msg.role === "model" ? "assistant" : "user",
+          content: msg.content
+        });
+      }
     }
 
-    // 4. Add Current Message
-    messages.push({
-      role: "user",
-      content: currentMessage
-    });
+    // 4. Add Current Message (multimodal if attachments present)
+    if (attachments && attachments.length > 0) {
+      const parts = [{ type: "text", text: currentMessage }];
+      attachments.forEach(att => {
+        if (att.data && (att.type === "image" || att.data.startsWith("data:image/"))) {
+          parts.push({ type: "image_url", image_url: { url: att.data } });
+        }
+      });
+      messages.push({ role: "user", content: parts });
+    } else {
+      messages.push({
+        role: "user",
+        content: currentMessage
+      });
+    }
 
     return messages;
   }

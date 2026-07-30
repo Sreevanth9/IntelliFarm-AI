@@ -40,11 +40,27 @@ class GrokService {
     this.fallbackModel = "llama-3.1-8b-instant";
   }
 
+  // Check if messages payload contains image_url multimodal inputs
+  hasVisionContent(messages) {
+    if (!Array.isArray(messages)) return false;
+    return messages.some(msg => {
+      if (Array.isArray(msg.content)) {
+        return msg.content.some(item => item.type === "image_url");
+      }
+      return false;
+    });
+  }
+
   // SSE Stream Generator
   async getChatStream(messages) {
+    const isVision = this.hasVisionContent(messages);
+    const selectedModel = isVision ? "llama-3.2-11b-vision-preview" : this.defaultModel;
+
+    console.log(`[GrokService] Initiating completion stream with model: ${selectedModel} (Multimodal Vision: ${isVision})`);
+
     try {
       const response = await this.groq.chat.completions.create({
-        model: this.defaultModel,
+        model: selectedModel,
         messages,
         stream: true,
         temperature: 0.7,
@@ -52,10 +68,10 @@ class GrokService {
       });
       return response;
     } catch (error) {
-      console.error("Grok primary model stream error, trying fallback model:", error.message);
-      // Fallback
+      console.error(`Grok primary model (${selectedModel}) stream error, trying fallback model:`, error.message);
+      const fallback = isVision ? "llama-3.2-90b-vision-preview" : this.fallbackModel;
       return await this.groq.chat.completions.create({
-        model: this.fallbackModel,
+        model: fallback,
         messages,
         stream: true,
         temperature: 0.7,

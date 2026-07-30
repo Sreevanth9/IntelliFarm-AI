@@ -27,9 +27,15 @@ class ChatEngine {
 
       console.log("[ChatEngine] STEP 1: Incoming request received. Message length:", message?.length);
 
-      if (!message || message.trim().length < 2) {
-        console.warn("[ChatEngine] Validation failed: message too short");
-        return res.status(400).json({ success: false, error: "Message is required" });
+      const effectiveMessage = (message && message.trim().length >= 2) 
+        ? message 
+        : (attachments && attachments.length > 0) 
+          ? "Please analyze this attached crop photo/document for farming guidance."
+          : "";
+
+      if (!effectiveMessage) {
+        console.warn("[ChatEngine] Validation failed: message or attachment is required");
+        return res.status(400).json({ success: false, error: "Message or attachment is required" });
       }
 
       // Attachment Security & Validation Audit
@@ -197,7 +203,8 @@ class ChatEngine {
         diseaseContext: toolOutputs.disease,
         memories,
         history: historyForPrompt,
-        currentMessage: message,
+        currentMessage: effectiveMessage,
+        attachments,
         language
       });
 
