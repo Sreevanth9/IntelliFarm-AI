@@ -488,19 +488,6 @@
   background-color: var(--copilot-primary-light);
 }
 
-.active-pulse {
-  animation: micPulse 1.5s infinite alternate;
-}
-
-@keyframes micPulse {
-  from {
-    box-shadow: 0 0 0 0 rgba(255, 59, 48, 0.4);
-  }
-  to {
-    box-shadow: 0 0 0 8px rgba(255, 59, 48, 0);
-  }
-}
-
 .copilot-send-btn {
   background-color: var(--copilot-primary);
   color: white;

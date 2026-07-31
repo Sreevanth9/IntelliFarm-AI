@@ -20,6 +20,15 @@ import {
 } from "lucide-react";
 import toast from "react-hot-toast";
 
+// Card component registry — add new card types here
+const CARD_COMPONENTS: Record<string, React.FC<{ data: any }>> = {
+  weather: WeatherCard,
+  disease: DiseaseCard,
+  market: MarketCard,
+  recommendation: RecommendationCard,
+  diagnosis: DiagnosisCard,
+};
+
 interface MessageItemProps {
   message: copilotService.Message;
   index: number;
@@ -124,22 +133,10 @@ export const MessageItem: React.FC<MessageItemProps> = ({
         {!isUser && message.attachments && Array.isArray(message.attachments) && (
           <div className="copilot-cards-grid">
             {message.attachments.map((card: any, idx: number) => {
-              if (card.type === "weather" && card.data) {
-                return <WeatherCard key={idx} data={card.data} />;
-              }
-              if (card.type === "disease" && card.data) {
-                return <DiseaseCard key={idx} data={card.data} />;
-              }
-              if (card.type === "market" && card.data) {
-                return <MarketCard key={idx} data={card.data} />;
-              }
-              if (card.type === "recommendation" && card.data) {
-                return <RecommendationCard key={idx} data={card.data} />;
-              }
-              if (card.type === "diagnosis" && card.data) {
-                return <DiagnosisCard key={idx} data={card.data} />;
-              }
-              return null;
+              const CardComponent = CARD_COMPONENTS[card.type];
+              return CardComponent && card.data
+                ? <CardComponent key={idx} data={card.data} />
+                : null;
             })}
           </div>
         )}

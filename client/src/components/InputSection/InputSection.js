@@ -7,8 +7,6 @@ import {
   SendHorizontal,
   X,
   Plus,
-  Mic,
-  MicOff,
   Camera,
   Image,
   FileText,
@@ -29,7 +27,7 @@ const InputSection = () => {
   // Redesign states
   const [showUploadMenu, setShowUploadMenu] = useState(false);
   const [uploadedFile, setUploadedFile] = useState(null);
-  const [isListening, setIsListening] = useState(false);
+
 
   const fileInputRef = useRef(null);
   const uploadMenuRef = useRef(null);
@@ -97,54 +95,7 @@ const InputSection = () => {
     }
   };
 
-  // Voice Speech Recognition
-  const startSpeechHandler = () => {
-    const SpeechRecognition =
-      window.SpeechRecognition || window.webkitSpeechRecognition;
 
-    if (!SpeechRecognition) {
-      // Fallback simulation
-      setIsListening(true);
-      toast.loading("Simulating voice recognition...", { id: "voice" });
-      setTimeout(() => {
-        setIsListening(false);
-        setUserInput("How to prepare organic pesticide for paddy fields?");
-        toast.dismiss("voice");
-        toast.success("Simulated voice search input added!");
-      }, 2000);
-      return;
-    }
-
-    const rec = new SpeechRecognition();
-    rec.lang = "en-US";
-    rec.interimResults = false;
-    rec.maxAlternatives = 1;
-
-    rec.onstart = () => {
-      setIsListening(true);
-      toast.loading("Listening to your voice...", { id: "voice" });
-    };
-
-    rec.onerror = (e) => {
-      console.error(e);
-      setIsListening(false);
-      toast.dismiss("voice");
-      toast.error("Voice input error. Please try again.");
-    };
-
-    rec.onend = () => {
-      setIsListening(false);
-      toast.dismiss("voice");
-    };
-
-    rec.onresult = (e) => {
-      const transcript = e.results[0][0].transcript;
-      setUserInput(transcript);
-      toast.success("Voice capture successful!");
-    };
-
-    rec.start();
-  };
 
   const sendPrompt = (promptText) => {
     const trimmedInput = promptText.trim();
@@ -297,14 +248,6 @@ const InputSection = () => {
             </button>
           )}
 
-          <button
-            type="button"
-            className={`${styles["action-btn"]} ${isListening ? styles["pulse-mic"] : ""}`}
-            onClick={startSpeechHandler}
-            title="Voice input"
-          >
-            {isListening ? <MicOff size={16} /> : <Mic size={16} />}
-          </button>
 
           <button type="submit" className={styles["submit-btn"]}>
             <SendHorizontal size={18} />

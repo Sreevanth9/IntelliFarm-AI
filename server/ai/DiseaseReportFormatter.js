@@ -2,8 +2,8 @@
  * DiseaseReportFormatter
  * 
  * Converts the raw detectCropDisease() return object into:
- *   1. markdown  – streamed as SSE content for inline display
- *   2. card      – structured uiCard { type: "diagnosis", data: {...} }
+ *   1. markdown  – concise summary streamed as SSE content (the card carries all detail)
+ *   2. card      – structured uiCard { type: "diagnosis", version: 1, data: {...} }
  *
  * If the AI service ever changes its return schema, only this file
  * needs updating — ChatEngine stays untouched.
@@ -49,12 +49,12 @@ class DiseaseReportFormatter {
       expectedRecovery: result.expectedRecovery || null
     };
 
-    // Build concise markdown (the card will carry the detail)
-    const markdown = this._buildMarkdown(cardData);
+    // Concise markdown — the card carries all the structured detail
+    const markdown = this._buildSummary(cardData);
 
     return {
       markdown,
-      card: { type: "diagnosis", data: cardData }
+      card: { type: "diagnosis", version: 1, data: cardData }
     };
   }
 
@@ -67,38 +67,12 @@ class DiseaseReportFormatter {
     return "Crop Leaf";
   }
 
-  _buildMarkdown(d) {
+  _buildSummary(d) {
     const statusLine = d.isHealthy
-      ? "Healthy ✅"
-      : `Diseased — ${d.disease}`;
+      ? "**Healthy ✅**"
+      : `**${d.disease}** detected (${d.severity}, ${d.confidence}% confidence)`;
 
-    let md = `### 🌿 Spryzen AI Crop Health Diagnostic Report\n\n`;
-    md += `**Crop**: ${d.crop}  \n`;
-    md += `**Status**: ${statusLine}  \n`;
-    md += `**Severity**: ${d.severity} (${d.confidence}% confidence)\n\n`;
-    md += `#### 📝 Observations\n${d.summary}\n`;
-
-    if (d.weatherRisk) {
-      md += `\n#### 🌦 Weather Risk\n${d.weatherRisk}\n`;
-    }
-
-    if (d.treatmentOrganic.length > 0) {
-      md += `\n#### 🌱 Organic Treatment\n${d.treatmentOrganic.map(t => `- ${t}`).join("\n")}\n`;
-    }
-
-    if (d.treatmentChemical.length > 0) {
-      md += `\n#### 🧪 Chemical Treatment\n${d.treatmentChemical.map(t => `- ${t}`).join("\n")}\n`;
-    }
-
-    if (d.prevention.length > 0) {
-      md += `\n#### 🛡 Prevention\n${d.prevention.map(p => `- ${p}`).join("\n")}\n`;
-    }
-
-    if (d.expectedRecovery) {
-      md += `\n#### ⏱ Expected Recovery\n${d.expectedRecovery}\n`;
-    }
-
-    return md;
+    return `I've analyzed your **${d.crop}** leaf image.\n\n${statusLine} — ${d.summary}\n\nSee the detailed diagnosis below.`;
   }
 }
 
