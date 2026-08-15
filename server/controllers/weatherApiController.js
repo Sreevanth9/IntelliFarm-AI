@@ -70,7 +70,7 @@ Rules:
           content: prompt
         }
       ],
-      model: "llama-3.3-70b-versatile"
+      model: "openai/gpt-oss-120b"
     });
 
     const advisory = response.choices[0].message.content.trim();

@@ -135,7 +135,7 @@ Style:
 
   const completion = await groq.chat.completions.create({
     messages,
-    model: "llama-3.3-70b-versatile",
+    model: "openai/gpt-oss-120b",
   });
 
   const rawAnswer = completion.choices[0].message.content;
@@ -310,7 +310,7 @@ Return the response in a clean, raw JSON format with EXACTLY these keys:
 }
 Do not write any introductory or concluding text, and do not wrap the response in markdown code blocks. Just return the raw JSON string.`;
 
-  console.log("[GROQ RECS PHASE 2]: Calling llama-3.3-70b-versatile...");
+  console.log("[GROQ RECS PHASE 2]: Calling openai/gpt-oss-120b...");
   let spryzenResponse;
   try {
     spryzenResponse = await groq.chat.completions.create({
@@ -324,7 +324,7 @@ Do not write any introductory or concluding text, and do not wrap the response i
           content: spryzenPrompt,
         },
       ],
-      model: "llama-3.3-70b-versatile",
+      model: "openai/gpt-oss-120b",
     });
   } catch (err) {
     console.error("[GROQ RECS PHASE 2 FAILED]: API invocation crashed:", err.message, err.stack);

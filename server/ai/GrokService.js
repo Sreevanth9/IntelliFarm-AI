@@ -36,7 +36,7 @@ class GrokService {
       console.warn("WARNING: GROQ_API_KEY is missing from environment variables.");
     }
     this.groq = new Groq({ apiKey: apiKey || "placeholder" });
-    this.defaultModel = "llama-3.3-70b-versatile";
+    this.defaultModel = "openai/gpt-oss-120b";
     this.fallbackModel = "llama-3.1-8b-instant";
   }
 
@@ -98,7 +98,7 @@ class GrokService {
         console.error("===============================================");
 
         if (isVision) {
-          console.log("[GrokService] Vision models unavailable. Gracefully falling back to text model llama-3.3-70b-versatile...");
+          console.log("[GrokService] Vision models unavailable. Gracefully falling back to text model openai/gpt-oss-120b...");
           const textOnlyMessages = messages.map(msg => {
             if (Array.isArray(msg.content)) {
               const textPart = msg.content.find(item => item.type === "text")?.text || "";
