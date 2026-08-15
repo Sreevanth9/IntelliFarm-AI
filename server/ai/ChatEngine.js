@@ -248,10 +248,11 @@ class ChatEngine {
 
       // 8b. Fallback or general text chat via Groq
       if (!assistantResponse) {
-        console.log("[ChatEngine] STEP 11b: Invoking Groq Chat stream completions...");
+        console.log(`[ChatEngine] STEP 11b: Invoking Groq Chat stream completions at ${new Date().toISOString()}...`);
         const stream = await grokService.getChatStream(promptMessages);
-        console.log("[ChatEngine] Groq stream established. Streaming tokens to client...");
+        console.log(`[ChatEngine] Groq stream established at ${new Date().toISOString()}. Streaming tokens to client...`);
 
+        let chunkCount = 0;
         for await (const chunk of stream) {
           if (isAborted || req.aborted || res.writableEnded) {
             console.log("[ChatEngine] Client aborted connection during streaming. Halting Groq execution.");
@@ -259,14 +260,21 @@ class ChatEngine {
           }
 
           const text = chunk.choices[0]?.delta?.content || "";
-          assistantResponse += text;
-          console.log("TOKEN", text);
-          
-          // Redact secrets on the fly if any leakage occurs
-          const safeText = grokService.redact(text);
-          if (safeText && !isAborted && !res.writableEnded) {
-            console.log("Sending chunk", safeText);
-            streamService.sendChunk(res, { content: safeText });
+          if (text) {
+            chunkCount++;
+            if (process.env.NODE_ENV !== "production") {
+              const now = new Date().toISOString();
+              console.log(`[GROQ TOKEN] ${now} (#${chunkCount})`);
+              console.log(`[CHATENGINE TOKEN] ${now} (#${chunkCount})`);
+            }
+
+            assistantResponse += text;
+            
+            // Redact secrets on the fly if any leakage occurs
+            const safeText = grokService.redact(text);
+            if (safeText && !isAborted && !res.writableEnded) {
+              streamService.sendChunk(res, { content: safeText });
+            }
           }
         }
       }

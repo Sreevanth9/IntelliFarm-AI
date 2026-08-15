@@ -72,7 +72,7 @@ class GrokService {
       }
 
       const response = await this.groq.chat.completions.create(completionParams);
-      console.log("[GrokService] STREAM CREATED successfully for model:", selectedModel);
+      console.log(`[GROQ] stream created: ${new Date().toISOString()} (model: ${selectedModel})`);
       return response;
     } catch (error) {
       console.error("========== GROQ PRIMARY MODEL ERROR ==========");
