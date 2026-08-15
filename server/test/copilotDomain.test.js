@@ -67,4 +67,46 @@ describe("Spryzen AI Agricultural Domain Enforcement & Boundaries", () => {
     assert.ok(systemPromptText.includes("UNSUPPORTED LANGUAGE PROTOCOL"), "System prompt must specify unsupported language protocol");
   });
 
+  test("Case 9: Multilingual Language Priority & Switching - Telugu query overrides English preference", () => {
+    const query = "టమాటా ఆకులు పసుపుగా మారుతున్నాయి. ఏం చేయాలి?";
+    const promptMessages = promptBuilder.build({
+      currentMessage: query,
+      language: "en-IN",
+      history: [
+        { role: "user", content: "I am growing tomatoes in black soil." },
+        { role: "assistant", content: "Tomatoes in black soil thrive with proper drainage." }
+      ]
+    });
+    const systemPromptText = promptMessages.find(m => m.role === "system")?.content || "";
+    assert.ok(systemPromptText.includes("CURRENT RESPONSE LANGUAGE: Telugu (తెలుగు)"), "Must set response language to Telugu despite English history and preference");
+    assert.ok(systemPromptText.includes("Respond in the same language as the user's current message"), "Must instruct model to respond in user's current language");
+  });
+
+  test("Case 10: Multilingual Language Priority & Switching - English query resets response language", () => {
+    const query = "What fertilizer should I use for tomatoes?";
+    const promptMessages = promptBuilder.build({
+      currentMessage: query,
+      language: "te-IN",
+      history: [
+        { role: "user", content: "టమాటా ఆకులు పసుపుగా మారుతున్నాయి." },
+        { role: "assistant", content: "టమాటా ఆకుల పసుపు రంగు నివారణకు..." }
+      ]
+    });
+    const systemPromptText = promptMessages.find(m => m.role === "system")?.content || "";
+    assert.ok(systemPromptText.includes("CURRENT RESPONSE LANGUAGE: English"), "Must set response language to English when current query is English");
+  });
+
+  test("Case 11: Mixed-language query detection (Indian English / Hinglish / Tenglish)", () => {
+    const teluguMixed = "Tomato మొక్కలకు fertilizer ఏది మంచిది?";
+    const teluguPrompt = promptBuilder.build({ currentMessage: teluguMixed, language: "en-IN" });
+    const teluguText = teluguPrompt.find(m => m.role === "system")?.content || "";
+    assert.ok(teluguText.includes("CURRENT RESPONSE LANGUAGE: Telugu (తెలుగు)"), "Mixed Telugu query should detect Telugu");
+
+    const hindiMixed = "Wheat फसल में कौन सा खाद डालना चाहिए?";
+    const hindiPrompt = promptBuilder.build({ currentMessage: hindiMixed, language: "en-IN" });
+    const hindiText = hindiPrompt.find(m => m.role === "system")?.content || "";
+    assert.ok(hindiText.includes("CURRENT RESPONSE LANGUAGE: Hindi (हिन्दी)"), "Mixed Hindi query should detect Hindi");
+  });
+
 });
+

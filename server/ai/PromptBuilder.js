@@ -1,10 +1,4 @@
-const LANG_NAME_MAP = {
-  "en-IN": "English",
-  "te-IN": "Telugu (తెలుగు)",
-  "hi-IN": "Hindi (हिन्दी)",
-  "ta-IN": "Tamil (தமிழ்)",
-  "kn-IN": "Kannada (కನ್ನಡ)"
-};
+import { resolveLanguage, SUPPORTED_LANGUAGES } from "./LanguageDetector.js";
 
 class PromptBuilder {
   constructor() {
@@ -54,18 +48,19 @@ Always adhere to the following formatting and structural rules:
       language = null
     } = params;
 
-    const targetLang = LANG_NAME_MAP[language] || language || "Auto-detect";
+    const { detected, responseLang, responseLangLabel, responseLangName } = resolveLanguage(currentMessage, language);
 
     const languageInstruction = `
 
 6. AUTOMATIC MULTILINGUAL DETECTION & SUPPORTED LANGUAGES (CRITICAL):
-   - Supported Languages: English, Telugu (తెలుగు), Hindi (हिन्दी), Tamil (தமிழ்), and Kannada (కನ್ನಡ).
-   - AUTOMATIC LANGUAGE DETECTION: You MUST automatically detect the language of the user's message (including Telugu, Hindi, Tamil, Kannada, or English, whether written in native script or Latin transliterated script).
-   - EXACT SAME LANGUAGE RESPONSE: You MUST reply fluently, naturally, and completely in the EXACT SAME language as the user's query. For example:
-     - If the user asks in Telugu (e.g. "టమాటా ఆకుల వ్యాధి" or "nela eruvu enti"), your ENTIRE response (including headings, recommendations, and follow-up suggestions) MUST be written 100% in Telugu (తెలుగు) using vocabulary appropriate for local farmers.
-     - If the user asks in Hindi, Tamil, Kannada, or English, reply in that exact same language.
-   - UNSUPPORTED LANGUAGE PROTOCOL: If the user inputs a query in a language outside the 5 supported languages (e.g. French, Spanish, German, Japanese, etc.), respond politely and professionally:
-     "Spryzen AI currently supports English, Telugu (తెలుగు), Hindi (हिन्दी), Tamil (தமிழ்), and Kannada (కನ್ನಡ). Please ask your agricultural question in one of these supported languages."
+   - Supported Languages: English, Telugu (తెలుగు), Hindi (हिन्दी), Tamil (தமிழ்), Kannada (ಕನ್ನಡ), Malayalam (മലയാളം), and Bengali (বাংলা).
+   - CURRENT RESPONSE LANGUAGE: ${responseLangLabel}
+   - AUTOMATIC LANGUAGE DETECTION: You MUST automatically detect the language of the user's message (including Telugu, Hindi, Tamil, Kannada, Malayalam, Bengali, or English, whether written in native script, Latin transliteration, or mixed phrasing).
+   - EXACT SAME LANGUAGE RESPONSE: Respond in the same language as the user's current message. The conversation history may contain messages in other languages. Preserve all previous conversation context regardless of language.
+   - Do not translate the conversation history unnecessarily. If the user switches language, immediately switch your response language to ${responseLangLabel}.
+   - Your ENTIRE response (including headings, recommendations, and follow-up suggestions) MUST be written in ${responseLangLabel} using vocabulary appropriate for local farmers.
+   - UNSUPPORTED LANGUAGE PROTOCOL: If the user inputs a query in a language outside the supported languages (e.g. French, Spanish, German, Japanese, etc.), respond politely and professionally:
+     "Spryzen AI currently supports English, Telugu (తెలుగు), Hindi (हिन्दी), Tamil (தமிழ்), Kannada (ಕನ್ನಡ), Malayalam (മലയാളം), and Bengali (বাংলা). Please ask your agricultural question in one of these supported languages."
 
 7. STRICT AGRICULTURAL BOUNDARY & ACCURACY RULES:
    - Scope Restriction: Answer ONLY agricultural and farming questions within IntelliFarm's supported scope (crops, soil, irrigation, fertilizer, pests, plant disease, weather, farm planning, equipment, livestock, and mandi/market prices).

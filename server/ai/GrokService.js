@@ -60,13 +60,18 @@ class GrokService {
     console.log("[GrokService] Messages Payload Structure:", JSON.stringify(messages, null, 2));
 
     try {
-      const response = await this.groq.chat.completions.create({
+      const completionParams = {
         model: selectedModel,
         messages,
         stream: true,
         temperature: 0.7,
         max_tokens: 2048,
-      });
+      };
+      if (selectedModel.includes("gpt-oss")) {
+        completionParams.reasoning_effort = "low";
+      }
+
+      const response = await this.groq.chat.completions.create(completionParams);
       console.log("[GrokService] STREAM CREATED successfully for model:", selectedModel);
       return response;
     } catch (error) {
@@ -113,6 +118,7 @@ class GrokService {
             stream: true,
             temperature: 0.7,
             max_tokens: 2048,
+            reasoning_effort: "low",
           });
         }
 
@@ -124,12 +130,16 @@ class GrokService {
   // Non-streaming chat completion
   async getChatCompletion(messages) {
     try {
-      const response = await this.groq.chat.completions.create({
+      const completionParams = {
         model: this.defaultModel,
         messages,
         temperature: 0.7,
         max_tokens: 1024,
-      });
+      };
+      if (this.defaultModel.includes("gpt-oss")) {
+        completionParams.reasoning_effort = "low";
+      }
+      const response = await this.groq.chat.completions.create(completionParams);
       return redactSecrets(response.choices[0].message.content);
     } catch (error) {
       console.error("Grok primary model completion error, trying fallback model:", error.message);

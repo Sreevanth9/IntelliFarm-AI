@@ -32,7 +32,15 @@ const AGRICULTURAL_PATTERNS = [
 
   // Kannada (Native & Transliteration)
   /(ಬೆಳೆ|ಮಣ್ಣು|ಮಳೆ|ನೀರಾವರಿ|ನೀರು|ಗೊಬ್ಬರ|ಕ್ರಿಮಿ|ಕೀಟ|ರೋಗ|ಬೀಜ|ಬಿತ್ತನೆ|ಕೊಯಿಲು|ಕೃಷಿ|ರೈತ|ಮಾರುಕಟ್ಟೆ|ಅಕ್ಕಿ|ಗೋಧಿ|ಟೊಮೆಟೊ|ಆಲೂಗಡ್ಡೆ)/i,
-  /\b(bele|mannu|male|neeravari|neeru|gobbara|krimi|keeta|roga|beeja|bittane|koyilu|krishi|raitha|marukatte|akki|godhi|tomato)\b/i
+  /\b(bele|mannu|male|neeravari|neeru|gobbara|krimi|keeta|roga|beeja|bittane|koyilu|krishi|raitha|marukatte|akki|godhi|tomato)\b/i,
+
+  // Malayalam (Native & Transliteration)
+  /(വിള|മണ്ണ്|മഴ|നനയ്ക്കൽ|വെള്ളം|വളം|കീടം|രോഗം|വിത്ത്|വിത്ത് നടൽ|വിളവെടുപ്പ്|കൃഷി|കർഷകൻ|ചന്ത|നെല്ല്|ഗോതമ്പ്|തക്കാളി|ഉരുളക്കിഴങ്ങ്)/i,
+  /\b(vila|mannu|mazha|nana|vellam|valam|keedam|rogam|vithu|vith|krishi|karshakan|nellu|thakkali)\b/i,
+
+  // Bengali (Native & Transliteration)
+  /(ফসল|মাটি|বৃষ্টি|সেচ|পানি|জল|সার|কীটপতঙ্গ|রোগ|বীজ|বপন|ফসল কাটা|ফলন|খামার|কৃষি|কৃষক|বাজার|ধান|গম|টমেটো|আলু|পেঁয়াজ|মরিচ)/i,
+  /\b(foshol|mati|brishti|sech|pani|jol|shar|beej|krishi|krishok|bazar|dhan|gom|tomato|aalu)\b/i
 ];
 
 class DomainClassifier {
