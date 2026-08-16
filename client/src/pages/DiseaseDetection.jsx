@@ -15,7 +15,8 @@ import {
   Sparkles,
   Info,
   AlertTriangle,
-  AlertCircle
+  AlertCircle,
+  Cloud
 } from "lucide-react";
 
 import EmptyState from "../components/EmptyState/EmptyState";
@@ -482,6 +483,27 @@ const DiseaseDetection = () => {
                         </span>
                       </div>
                     </div>
+
+                    {/* AWS Cloud S3 Storage Badge */}
+                    {report.s3Url && (
+                      <div style={{
+                        marginTop: "12px",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "6px",
+                        fontSize: "0.78125rem",
+                        fontWeight: 600,
+                        color: "#d97706",
+                        background: "rgba(255, 153, 0, 0.09)",
+                        border: "1px solid rgba(255, 153, 0, 0.25)",
+                        padding: "4px 10px",
+                        borderRadius: "8px",
+                        width: "fit-content"
+                      }}>
+                        <Cloud size={14} />
+                        <span>Archived in Amazon S3 ({report.awsStorage?.bucket || "intellifarm-storage"})</span>
+                      </div>
+                    )}
                   </div>
 
                   {/* Summary */}

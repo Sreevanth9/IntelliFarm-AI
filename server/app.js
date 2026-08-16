@@ -12,6 +12,7 @@ import profileRoutes from "./routes/profile.js";
 import weatherRoutes from "./routes/weatherRoutes.js";
 import copilotRoutes from "./routes/copilot.js";
 import supportRoutes from "./routes/supportRoutes.js";
+import awsRoutes from "./routes/awsRoutes.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 import { sanitizeBody } from "./middleware/sanitizeInput.js";
 import { allowedOrigins } from "./config/security.js";
@@ -21,7 +22,7 @@ const app = express();
 app.disable("x-powered-by");
 app.set("trust proxy", process.env.TRUST_PROXY === "true" ? 1 : false);
 
-// Hardened Helmet configuration to enforce HSTS and define CSP directives allowing Supabase and postal connections
+// Hardened Helmet configuration to enforce HSTS and define CSP directives allowing Supabase, AWS, and postal connections
 app.use(
   helmet({
     contentSecurityPolicy: {
@@ -31,6 +32,8 @@ app.use(
           "'self'",
           "https://pkfdbgwavkblnzabdpmd.supabase.co",
           "https://api.postalpincode.in",
+          "https://*.amazonaws.com",
+          "https://*.s3.amazonaws.com",
         ],
         imgSrc: [
           "'self'",
@@ -38,6 +41,8 @@ app.use(
           "https://api.dicebear.com",
           "https://pkfdbgwavkblnzabdpmd.supabase.co",
           "https://*.supabase.co",
+          "https://*.amazonaws.com",
+          "https://*.s3.amazonaws.com",
         ],
         scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
         styleSrc: ["'self'", "'unsafe-inline'", "https:"],
@@ -85,6 +90,7 @@ app.use("/api/crops", cropRoutes);
 app.use("/api/farms", farmRoutes);
 app.use("/api/copilot", copilotRoutes);
 app.use("/api/support", supportRoutes);
+app.use("/api/aws", awsRoutes);
 
 app.use(errorHandler);
 

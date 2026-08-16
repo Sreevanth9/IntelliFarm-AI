@@ -1,4 +1,5 @@
 import { supabase } from "../config/supabase.js";
+import { uploadToS3 } from "../services/s3Service.js";
 
 export const getProfile = async (req, res, next) => {
   try {
@@ -71,8 +72,25 @@ export const updateProfile = async (req, res, next) => {
       // A crop list is only considered chosen after the user explicitly saves it.
       baseUpdate.crops_confirmed = true;
     }
-    if (profileImg) baseUpdate.profile_img = profileImg;
-    if (profile_img) baseUpdate.profile_img = profile_img;
+
+    const rawImg = profileImg || profile_img;
+    if (rawImg) {
+      if (rawImg.startsWith("data:image/")) {
+        try {
+          const s3Upload = await uploadToS3({
+            base64: rawImg,
+            filename: `avatar_${req.user.id}`,
+            folder: `avatars/${req.user.id}`,
+          });
+          baseUpdate.profile_img = s3Upload.url;
+        } catch (s3Err) {
+          console.warn("[AWS S3 PROFILE AVATAR]: S3 upload fallback:", s3Err.message);
+          baseUpdate.profile_img = rawImg;
+        }
+      } else {
+        baseUpdate.profile_img = rawImg;
+      }
+    }
 
     let updatedUser = null;
 

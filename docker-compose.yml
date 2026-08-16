@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  intellifarm-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: intellifarm-ai
+    ports:
+      - "5001:5001"
+    environment:
+      - NODE_ENV=production
+      - PORT=5001
+      - AWS_REGION=ap-south-1
+      - AWS_S3_BUCKET_NAME=intellifarm-storage
+      # Provide your credentials for live S3 upload or run in mock mode
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-}
+      - SUPABASE_URL=${SUPABASE_URL:-}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY:-}
+      - GROQ_API_KEY=${GROQ_API_KEY:-}
+      - OPENWEATHER_API_KEY=${OPENWEATHER_API_KEY:-}
+    restart: unless-stopped

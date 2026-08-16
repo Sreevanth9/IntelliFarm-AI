@@ -1,5 +1,6 @@
 import { supabase } from "../config/supabase.js";
 import { askAI, detectCropDisease } from "../services/aiService.js";
+import { uploadToS3 } from "../services/s3Service.js";
 
 const buildPrompt = (task, details = {}) => {
   const boundedDetails = JSON.stringify(details, null, 2).slice(0, 4000);
@@ -73,6 +74,19 @@ export const detectDisease = async (req, res, next) => {
       const error = new Error("Invalid file type. Only PNG, JPG/JPEG, and WebP images are allowed.");
       error.statusCode = 400;
       throw error;
+    }
+
+    // Upload leaf scan to Amazon S3
+    let s3UploadResult = null;
+    try {
+      s3UploadResult = await uploadToS3({
+        base64: base64Content,
+        filename: `leaf_scan_${Date.now()}`,
+        folder: `disease-scans/${req.user?.id || "guest"}`,
+      });
+      console.log(`[AWS S3 LEAF UPLOAD]: ${s3UploadResult.url}`);
+    } catch (s3Err) {
+      console.warn("[AWS S3 WARNING]: S3 scan upload failed, continuing with diagnosis:", s3Err.message);
     }
 
     let weatherData = null;
@@ -152,6 +166,8 @@ export const detectDisease = async (req, res, next) => {
         expectedRecovery: report.expected_recovery,
         createdAt: report.created_at,
         box: diagnosis.box,
+        s3Url: s3UploadResult?.url || null,
+        awsStorage: s3UploadResult ? { bucket: s3UploadResult.bucket, region: s3UploadResult.region, key: s3UploadResult.key } : null,
       },
     });
   } catch (error) {
