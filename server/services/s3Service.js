@@ -245,3 +245,16 @@ export const checkS3Status = async () => {
 
   return result;
 };
+
+/**
+ * Alias helper function for uploading crop scan buffers
+ */
+export const uploadCropScan = async (buffer, key, contentType = "image/jpeg") => {
+  return await uploadToS3({
+    buffer,
+    filename: key,
+    mimeType: contentType,
+    folder: "crop-scans/2026",
+  });
+};
+

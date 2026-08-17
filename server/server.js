@@ -1,4 +1,5 @@
-import "dotenv/config";
+import "./config/loadEnv.js";
+
 
 const requiredEnvVars = [
   "ACCESS_TOKEN_JWT_SECRET",
