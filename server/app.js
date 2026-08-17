@@ -79,6 +79,15 @@ app.use(
   })
 );
 
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const clientBuildPath = path.resolve(__dirname, "../client/build");
+
+// Serve static React build files
+app.use(express.static(clientBuildPath));
+
 app.get("/api/health", (req, res) => {
   res.status(200).json({ success: true, message: "IntelliFarm API is running" });
 });
@@ -92,6 +101,13 @@ app.use("/api/copilot", copilotRoutes);
 app.use("/api/support", supportRoutes);
 app.use("/api/aws", awsRoutes);
 
+// SPA fallback: any non-API route serves the React app
+app.get("*", (req, res, next) => {
+  if (req.path.startsWith("/api")) return next();
+  res.sendFile(path.join(clientBuildPath, "index.html"));
+});
+
 app.use(errorHandler);
 
 export default app;
+
