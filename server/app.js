@@ -22,42 +22,14 @@ const app = express();
 app.disable("x-powered-by");
 app.set("trust proxy", process.env.TRUST_PROXY === "true" ? 1 : false);
 
-// Hardened Helmet configuration to enforce HSTS and define CSP directives allowing Supabase, AWS, and postal connections
+// Helmet security configuration (configured safely for HTTP direct IP access)
 app.use(
   helmet({
-    contentSecurityPolicy: {
-      directives: {
-        defaultSrc: ["'self'"],
-        connectSrc: [
-          "'self'",
-          "https://pkfdbgwavkblnzabdpmd.supabase.co",
-          "https://api.postalpincode.in",
-          "https://*.amazonaws.com",
-          "https://*.s3.amazonaws.com",
-        ],
-        imgSrc: [
-          "'self'",
-          "data:",
-          "https://api.dicebear.com",
-          "https://pkfdbgwavkblnzabdpmd.supabase.co",
-          "https://*.supabase.co",
-          "https://*.amazonaws.com",
-          "https://*.s3.amazonaws.com",
-        ],
-        scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
-        styleSrc: ["'self'", "'unsafe-inline'", "https:"],
-        fontSrc: ["'self'", "https:", "data:"],
-        objectSrc: ["'none'"],
-        upgradeInsecureRequests: [],
-      },
-    },
-    hsts: {
-      maxAge: 31536000, // 1 year in seconds
-      includeSubDomains: true,
-      preload: true,
-    },
+    contentSecurityPolicy: false,
+    hsts: false,
   })
 );
+
 app.use(generalApiLimiter);
 app.use(express.json({ limit: "7mb" }));
 app.use(sanitizeBody);
