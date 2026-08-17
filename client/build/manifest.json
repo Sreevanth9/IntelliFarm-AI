@@ -1,0 +1,27 @@
+{
+  "short_name": "IntelliFarm AI",
+  "name": "IntelliFarm AI - Smart Farming Platform",
+  "description": "Empowering farmers with smart agricultural diagnostics, weather forecasting, disease detection, and real-time AI farming support.",
+  "icons": [
+    {
+      "src": "favicon.png",
+      "sizes": "64x64 32x32 24x24 16x16",
+      "type": "image/png"
+    },
+    {
+      "src": "logo192.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "intellifarm-icon.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "theme_color": "#2e7d32",
+  "background_color": "#0d1b12"
+}
