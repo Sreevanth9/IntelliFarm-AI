@@ -1,13 +1,13 @@
 import assistantIcon from "./intellifarm-icon.png";
-import advancedAssistantIcon from "./crop-image.png";
+import advancedAssistantIcon from "./intellifarm-icon.png";
 import avatarIcon from "./intellifarm-icon.png";
-import chatAssistantIcon from "./chatbot-logo.png";
-import assistantLoader from "./chatbot-logo.png";
+import chatAssistantIcon from "./intellifarm-icon.png";
+import assistantLoader from "./intellifarm-icon.png";
 import googleLogo from "./intellifarm-icon.png";
-import ytIcon from "./weather-icon.png";
-import flightIcon from "./weather-icon.png";
+import ytIcon from "./intellifarm-icon.png";
+import flightIcon from "./intellifarm-icon.png";
 import mapIcon from "./intellifarm-icon.png";
-import hotelIcon from "./crop-image.png";
+import hotelIcon from "./intellifarm-icon.png";
 import googleBigIcon from "./intellifarm-icon.png";
 
 import { darkIcon } from "./darkIcon/darkIcon";

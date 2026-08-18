@@ -1,5 +1,5 @@
-import cropImage from "../assets/crop-image.png";
-import weatherIcon from "../assets/weather-icon.png";
+import cropImage from "../assets/intellifarm-icon.png";
+import weatherIcon from "../assets/intellifarm-icon.png";
 
 export const ROUTES = {
   home: "/",

@@ -1,18 +1,14 @@
 {
   "files": {
-    "main.css": "/static/css/main.ee29e2d9.css",
-    "main.js": "/static/js/main.95906cbd.js",
-    "static/media/dashboard.png": "/static/media/dashboard.cbfe2865c3966540e589.png",
-    "static/media/login-farm.png": "/static/media/login-farm.be9fd16ebbe99c7d22f5.png",
+    "main.css": "/static/css/main.4251093b.css",
+    "main.js": "/static/js/main.5c8ce5fa.js",
     "static/media/intellifarm-icon.png": "/static/media/intellifarm-icon.4e1c27cfd066e371dc7f.png",
-    "static/media/weather-icon.png": "/static/media/weather-icon.252b88816c7f2f251390.png",
-    "static/media/crop-image.png": "/static/media/crop-image.544d1f02538fe1c4a0f9.png",
     "index.html": "/index.html",
-    "main.ee29e2d9.css.map": "/static/css/main.ee29e2d9.css.map",
-    "main.95906cbd.js.map": "/static/js/main.95906cbd.js.map"
+    "main.4251093b.css.map": "/static/css/main.4251093b.css.map",
+    "main.5c8ce5fa.js.map": "/static/js/main.5c8ce5fa.js.map"
   },
   "entrypoints": [
-    "static/css/main.ee29e2d9.css",
-    "static/js/main.95906cbd.js"
+    "static/css/main.4251093b.css",
+    "static/js/main.5c8ce5fa.js"
   ]
 }

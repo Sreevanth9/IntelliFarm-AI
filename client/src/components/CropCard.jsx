@@ -1,4 +1,4 @@
-import cropImage from "../assets/crop-image.png";
+import cropImage from "../assets/intellifarm-icon.png";
 
 const CropCard = ({ title, description }) => {
   return (

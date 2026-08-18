@@ -218,7 +218,7 @@ html {
   --hero-title-color: #FFFFFF;
   --hero-greeting-color: #A3E635;
   --hero-desc-color: rgba(255, 255, 255, 0.92);
-  --dashboard-bg: linear-gradient(90deg, rgba(13, 39, 28, 0.46) 0%, rgba(13, 39, 28, 0.28) 45%, rgba(255, 255, 255, 0.12) 100%), url('./assets/dashboard.png') no-repeat center center;
+  --dashboard-bg: linear-gradient(90deg, rgba(13, 39, 28, 0.46) 0%, rgba(13, 39, 28, 0.28) 45%, rgba(255, 255, 255, 0.12) 100%), url('./assets/intellifarm-icon.png') no-repeat center center;
 }
 
 [data-theme="dark"] {
@@ -238,7 +238,7 @@ html {
   --hero-title-color: #FFFFFF;
   --hero-greeting-color: #A3E635;
   --hero-desc-color: rgba(255, 255, 255, 0.85);
-  --dashboard-bg: linear-gradient(135deg, rgba(8, 28, 21, 0.4) 0%, rgba(5, 19, 15, 0.3) 50%, rgba(20, 60, 30, 0.4) 100%), url('./assets/dashboard.png') no-repeat center center;
+  --dashboard-bg: linear-gradient(135deg, rgba(8, 28, 21, 0.4) 0%, rgba(5, 19, 15, 0.3) 50%, rgba(20, 60, 30, 0.4) 100%), url('./assets/intellifarm-icon.png') no-repeat center center;
 }
 
 body {
