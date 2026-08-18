@@ -18,19 +18,27 @@ const readCookie = (name) => {
   return document.cookie.split(";").map((value) => value.trim()).find((value) => value.startsWith(prefix))?.slice(prefix.length);
 };
 
+let inMemoryCsrfToken = "";
 let csrfRequest;
 let refreshRequest;
 
-export const getCsrfToken = () => readCookie("csrf_token");
+export const getCsrfToken = () => readCookie("csrf_token") || inMemoryCsrfToken;
 
-export const ensureCsrfToken = async () => {
-  if (getCsrfToken()) return getCsrfToken();
+export const ensureCsrfToken = async (force = false) => {
+  const existing = getCsrfToken();
+  if (existing && !force) return existing;
   if (!csrfRequest) {
     csrfRequest = axios.get(`${API_BASE_URL}/api/auth/csrf`, { withCredentials: true })
+      .then((res) => {
+        if (res.data?.token) {
+          inMemoryCsrfToken = res.data.token;
+        }
+        return inMemoryCsrfToken || getCsrfToken();
+      })
       .finally(() => { csrfRequest = undefined; });
   }
-  await csrfRequest;
-  return getCsrfToken();
+  const token = await csrfRequest;
+  return token || getCsrfToken();
 };
 
 api.interceptors.request.use(async (config) => {

@@ -164,6 +164,7 @@ export const AuthProvider = ({ children }) => {
         throw new Error("Google sign-in did not return a Supabase session.");
       }
 
+      await ensureCsrfToken();
       const { data } = await oauthLoginUser(sessionData.session.access_token);
       applySession(data.user);
       return data.user;
