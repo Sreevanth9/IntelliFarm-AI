@@ -1,4 +1,4 @@
-import weatherIcon from "../assets/intellifarm-icon.png";
+import weatherIcon from "../assets/weather-icon.png";
 
 const WeatherCard = ({ title, value, helper }) => {
   return (
