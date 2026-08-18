@@ -36,8 +36,9 @@ const baseCookieOptions = {
   sameSite: cookieSameSite,
 };
 
-if (process.env.COOKIE_DOMAIN) {
-  baseCookieOptions.domain = process.env.COOKIE_DOMAIN;
+const cookieDomain = process.env.COOKIE_DOMAIN?.trim();
+if (cookieDomain && cookieDomain !== "localhost" && !cookieDomain.endsWith("vercel.app")) {
+  baseCookieOptions.domain = cookieDomain;
 }
 
 export const accessCookieOptions = (maxAge) => ({
