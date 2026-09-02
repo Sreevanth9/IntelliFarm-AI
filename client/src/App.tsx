@@ -1,8 +1,7 @@
 import React, { useEffect } from "react";
 import "./App.css";
 import { Navigate, Route, Routes, useNavigate, useLocation } from "react-router-dom";
-import { useSelector, useDispatch } from "react-redux";
-import { uiAction } from "./store/ui";
+import { useSelector } from "react-redux";
 import { Toaster } from "react-hot-toast";
 import Dashboard from "./pages/Dashboard";
 import DiseaseInfo from "./pages/DiseaseInfo";
@@ -22,12 +21,9 @@ import CopilotPage from "./pages/CopilotPage";
 // Legacy assistant routes redirect to Copilot
 
 const App: React.FC = () => {
-  const dispatch = useDispatch();
   const navigate = useNavigate();
   const location = useLocation();
-  const settingsShow = useSelector((state: any) => state.ui.isSettingsShow);
   const isDark = useSelector((state: any) => state.ui.isDark);
-  const isUserDetails = useSelector((state: any) => state.ui.isUserDetailsShow);
   const isLogin = useSelector((state: any) => state.auth.isLogin);
 
   useEffect(() => {
@@ -35,15 +31,6 @@ const App: React.FC = () => {
       navigate("/dashboard", { replace: true });
     }
   }, [isLogin, location.pathname, navigate]);
-
-  const settingHandler = () => {
-    if (settingsShow === true) {
-      dispatch(uiAction.toggleSettings());
-    }
-    if (isUserDetails === true) {
-      dispatch(uiAction.toggleUserDetailsShow());
-    }
-  };
 
   useEffect(() => {
     const getLocalTheme = localStorage.getItem("theme");
@@ -126,13 +113,6 @@ const App: React.FC = () => {
         <Route path="/spryzen-ai" element={<ProtectedRoute><CopilotPage /></ProtectedRoute>} />
         <Route path="*" element={<NotFound />} />
       </Routes>
-      {isLogin && !location.pathname.startsWith("/spryzen-ai") && !location.pathname.startsWith("/copilot")}
-      {settingsShow && (
-        <div onClick={settingHandler} className="bg-focus-dark"></div>
-      )}
-      {isUserDetails && isLogin && (
-        <div onClick={settingHandler} className="bg-focus-dark"></div>
-      )}
     </div>
   );
 };

@@ -21,14 +21,6 @@ export const ROUTES = {
   settings: "/settings",
 };
 
-export const SIDEBAR_ITEMS = [
-  ["Dashboard", ROUTES.dashboard, "📊"],
-  ["My Farms", ROUTES.farms, "🚜"],
-  ["Disease Detection", ROUTES.diseaseDetection, "🍃"],
-  ["Profile", ROUTES.profile, "👤"],
-  ["Settings", ROUTES.settings, "⚙️"],
-];
-
 export const SERVICE_CARDS = [
   {
     title: "Weather Intelligence",
@@ -67,10 +59,3 @@ export const SERVICE_CARDS = [
     icon: cropImage,
   },
 ];
-
-export const BRAND_COLORS = {
-  primary: "#2e7d32",
-  deepGreen: "#183d24",
-  leaf: "#4caf50",
-  surface: "#f5f7ee",
-};
