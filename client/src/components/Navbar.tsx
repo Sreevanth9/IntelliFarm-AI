@@ -5,7 +5,6 @@ import { useSelector, useDispatch } from "react-redux";
 import { useAuth } from "../context/AuthContext";
 import { ROUTES } from "../utils/constants";
 import { uiAction } from "../store/ui";
-import { AwsCloudBadge } from "./AwsCloudBadge/AwsCloudBadge";
 import {
   Search as SearchIcon,
   Sun,
@@ -143,9 +142,6 @@ const Navbar: React.FC<{ onMenuClick?: () => void; sidebarOpen?: boolean }> = ({
 
         {/* Right Section: Actions */}
         <div className="navbar-actions-right">
-          
-          {/* AWS Cloud Architecture & Status Badge */}
-          <AwsCloudBadge />
 
           {/* Theme Toggle Button */}
           <button 

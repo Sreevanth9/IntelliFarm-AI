@@ -1,4 +1,4 @@
-import api, { API_BASE_URL, ensureCsrfToken, getCsrfToken } from "./api.js";
+import api, { API_BASE_URL } from "./api.js";
 export { API_BASE_URL };
 
 export interface Conversation {
@@ -66,22 +66,4 @@ export const getMemories = async (): Promise<Memory[]> => {
 export const deleteMemory = async (id: string): Promise<boolean> => {
   const response = await api.delete(`/api/copilot/memories/${id}`);
   return response.data.success;
-};
-
-export const fetchChatStream = async (
-  message: string,
-  conversationId: string | null,
-  attachments: any[] = []
-): Promise<Response> => {
-  await ensureCsrfToken();
-  const response = await fetch(`${API_BASE_URL}/api/copilot/chat`, {
-    method: "POST",
-    credentials: "include",
-    headers: {
-      "Content-Type": "application/json",
-      "X-CSRF-Token": getCsrfToken() || "",
-    },
-    body: JSON.stringify({ message, conversationId, attachments })
-  });
-  return response;
 };

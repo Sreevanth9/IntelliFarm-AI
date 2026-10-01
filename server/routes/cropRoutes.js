@@ -25,6 +25,7 @@ router.post("/farming-tips", aiLimiter, farmingTips);
 
 router.post("/disease-detect", imageUploadLimiter, [
   body("image").isString().isLength({ min: 20, max: 7 * 1024 * 1024 }).withMessage("A valid crop image is required"),
+  body("farmId").optional({ checkFalsy: true }).isUUID().withMessage("Farm ID must be valid"),
 ], validateRequest, detectDisease);
 router.get("/disease-reports", getDiseaseReports);
 

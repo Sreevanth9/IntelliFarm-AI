@@ -1,6 +1,5 @@
 import { supabase } from "../config/supabase.js";
 import { askAI, detectCropDisease } from "../services/aiService.js";
-import { uploadToS3 } from "../services/s3Service.js";
 
 const buildPrompt = (task, details = {}) => {
   const boundedDetails = JSON.stringify(details, null, 2).slice(0, 4000);
@@ -44,7 +43,7 @@ export const farmingTips = (req, res, next) => {
 export const detectDisease = async (req, res, next) => {
   console.log("=== START DISEASE DETECTION PIPELINE ===");
   try {
-    const { image, lat, lon } = req.body;
+    const { image, lat, lon, farmId } = req.body;
     if (!image) {
       console.warn("[VALIDATION FAILED]: Image missing in body");
       const error = new Error("Crop image is required");
@@ -76,21 +75,26 @@ export const detectDisease = async (req, res, next) => {
       throw error;
     }
 
-    // Upload leaf scan to Amazon S3
-    let s3UploadResult = null;
-    try {
-      s3UploadResult = await uploadToS3({
-        base64: base64Content,
-        filename: `leaf_scan_${Date.now()}`,
-        folder: `disease-scans/${req.user?.id || "guest"}`,
-      });
-      console.log(`[AWS S3 LEAF UPLOAD]: ${s3UploadResult.url}`);
-    } catch (s3Err) {
-      console.warn("[AWS S3 WARNING]: S3 scan upload failed, continuing with diagnosis:", s3Err.message);
+    let linkedFarmId = null;
+    if (farmId) {
+      const { data: farm, error: farmError } = await supabase
+        .from("farms")
+        .select("id")
+        .eq("id", farmId)
+        .eq("user_id", req.user.id)
+        .maybeSingle();
+
+      if (farmError) throw farmError;
+      if (!farm) {
+        const error = new Error("The selected farm could not be found for this account.");
+        error.statusCode = 404;
+        throw error;
+      }
+      linkedFarmId = farm.id;
     }
 
     let weatherData = null;
-    if (lat && lon) {
+    if (lat != null && lon != null) {
       try {
         console.log(`[WEATHER SERVICE]: Fetching current weather for lat: ${lat}, lon: ${lon}`);
         const { fetchWeatherData } = await import("../services/weatherService.js");
@@ -137,6 +141,7 @@ export const detectDisease = async (req, res, next) => {
         prevention: preventionCombined,
         weather_risk: diagnosis.weatherRisk,
         expected_recovery: diagnosis.expectedRecovery,
+        farm_id: linkedFarmId,
       })
       .select()
       .single();
@@ -164,10 +169,9 @@ export const detectDisease = async (req, res, next) => {
         prevention: report.prevention,
         weatherRisk: report.weather_risk,
         expectedRecovery: report.expected_recovery,
+        farmId: report.farm_id,
         createdAt: report.created_at,
         box: diagnosis.box,
-        s3Url: s3UploadResult?.url || null,
-        awsStorage: s3UploadResult ? { bucket: s3UploadResult.bucket, region: s3UploadResult.region, key: s3UploadResult.key } : null,
       },
     });
   } catch (error) {

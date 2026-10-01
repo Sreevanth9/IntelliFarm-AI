@@ -19,8 +19,6 @@ export const addFarm = (farmData: FarmPayload) => api.post("/api/farms", farmDat
 
 export const fetchFarms = () => api.get("/api/farms");
 
-export const fetchFarm = (id: string) => api.get(`/api/farms/${id}`);
-
 export const updateFarm = (id: string, farmData: Partial<FarmPayload>) =>
   api.put(`/api/farms/${id}`, farmData);
 

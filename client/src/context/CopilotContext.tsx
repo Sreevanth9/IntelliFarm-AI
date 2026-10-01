@@ -26,7 +26,6 @@ export interface CopilotContextType {
   loadConversations: () => Promise<void>;
   selectConversation: (conversationId: string | null) => Promise<void>;
   loadMemories: () => Promise<void>;
-  createConversation: (firstMsg: string) => Promise<string | null>;
   renameConversation: (id: string, title: string) => Promise<void>;
   togglePinConversation: (id: string) => Promise<void>;
   toggleFavoriteConversation: (id: string) => Promise<void>;
@@ -122,21 +121,6 @@ export const CopilotProvider: React.FC<{ children: ReactNode }> = ({ children })
       setError(err.message || "Failed to load messages");
     } finally {
       setIsLoadingMessages(false);
-    }
-  };
-
-  const createConversation = async (firstMsg: string): Promise<string | null> => {
-    try {
-      const newConv = await copilotService.updateConversation("", { title: firstMsg.slice(0, 40) });
-      if (newConv) {
-        setConversations(prev => [newConv, ...prev]);
-        setSelectedConversation(newConv);
-        return newConv.id;
-      }
-      return null;
-    } catch (err) {
-      console.error("Failed to create conversation", err);
-      return null;
     }
   };
 
@@ -248,7 +232,6 @@ export const CopilotProvider: React.FC<{ children: ReactNode }> = ({ children })
       loadConversations,
       selectConversation,
       loadMemories,
-      createConversation,
       renameConversation,
       togglePinConversation,
       toggleFavoriteConversation,

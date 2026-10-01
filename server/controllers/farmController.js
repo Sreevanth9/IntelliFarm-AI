@@ -91,40 +91,6 @@ export const getFarms = async (req, res, next) => {
   }
 };
 
-export const getFarm = async (req, res, next) => {
-  try {
-    const { id } = req.params;
-    const { data: farm, error } = await supabase
-      .from("farms")
-      .select("*")
-      .eq("id", id)
-      .eq("user_id", req.user.id)
-      .maybeSingle();
-
-    if (error) throw error;
-    if (!farm) {
-      const err = new Error("Farm not found");
-      err.statusCode = 404;
-      throw err;
-    }
-
-    // Fetch linked disease reports
-    const { data: diseaseReports } = await supabase
-      .from("disease_reports")
-      .select("id, disease_name, crop, confidence, created_at")
-      .eq("farm_id", id)
-      .order("created_at", { ascending: false })
-      .limit(5);
-
-    res.status(200).json({
-      success: true,
-      farm: { ...formatFarm(farm), diseaseHistory: diseaseReports || [] },
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-
 export const updateFarm = async (req, res, next) => {
   try {
     const { id } = req.params;

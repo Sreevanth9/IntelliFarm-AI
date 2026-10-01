@@ -1,0 +1,8 @@
+.git
+.vercel
+**/.env
+**/.env.*
+!client/.env
+!server/.env.example
+**/node_modules
+client/build

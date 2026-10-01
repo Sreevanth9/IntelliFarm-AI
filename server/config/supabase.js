@@ -1,38 +1,49 @@
 import "./loadEnv.js";
 import { createClient } from "@supabase/supabase-js";
 
-const supabaseUrl = process.env.SUPABASE_URL || "https://pkfdbgwavkblnzabdpmd.supabase.co";
-const supabaseKey =
-  process.env.SUPABASE_SERVICE_ROLE_KEY && !process.env.SUPABASE_SERVICE_ROLE_KEY.includes("placeholder")
-    ? process.env.SUPABASE_SERVICE_ROLE_KEY
-    : process.env.SUPABASE_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.e30.t-o7N7_UpXZ08wWqZN5ooV5VG3n_8Kf7i_hA6Gpmw6w";
+const supabaseUrl = process.env.SUPABASE_URL?.trim();
+const supabaseSecretKey =
+  process.env.SUPABASE_SECRET_KEY?.trim() ||
+  process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
 
-let client;
-try {
-  client = createClient(supabaseUrl, supabaseKey, {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false,
-      detectSessionInUrl: false,
-    },
-    realtime: {
-      enabled: false,
-    },
-  });
-} catch (err) {
-  console.warn("[SUPABASE WARNING]: Initialized with fallback mock client.");
-  client = {
-    from: () => ({
-      select: () => Promise.resolve({ data: [], error: null }),
-      insert: () => Promise.resolve({ data: null, error: null }),
-      update: () => Promise.resolve({ data: null, error: null }),
-      delete: () => Promise.resolve({ data: null, error: null }),
-    }),
-    auth: {
-      getUser: () => Promise.resolve({ data: { user: null }, error: null }),
-    },
-  };
+const isLegacyServiceRoleKey = (key) => {
+  const parts = key.split(".");
+  if (parts.length !== 3) return false;
+
+  try {
+    const payload = JSON.parse(Buffer.from(parts[1], "base64url").toString("utf8"));
+    return payload.role === "service_role";
+  } catch {
+    return false;
+  }
+};
+
+if (!supabaseUrl || /placeholder|your[_-]?supabase/i.test(supabaseUrl)) {
+  throw new Error("Supabase configuration error: set SUPABASE_URL in server/.env.");
 }
 
-export const supabase = client;
+try {
+  const parsedUrl = new URL(supabaseUrl);
+  if (!new Set(["http:", "https:"]).has(parsedUrl.protocol)) throw new Error();
+} catch {
+  throw new Error("Supabase configuration error: SUPABASE_URL must be a valid HTTP or HTTPS URL.");
+}
 
+const hasSecretKey =
+  supabaseSecretKey &&
+  !/placeholder|your[_-]?supabase/i.test(supabaseSecretKey) &&
+  (supabaseSecretKey.startsWith("sb_secret_") || isLegacyServiceRoleKey(supabaseSecretKey));
+
+if (!hasSecretKey) {
+  throw new Error(
+    "Supabase configuration error: set SUPABASE_SECRET_KEY or a valid SUPABASE_SERVICE_ROLE_KEY in server/.env. A publishable/anon key cannot be used by the backend."
+  );
+}
+
+export const supabase = createClient(supabaseUrl, supabaseSecretKey, {
+  auth: {
+    autoRefreshToken: false,
+    persistSession: false,
+    detectSessionInUrl: false,
+  },
+});

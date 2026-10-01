@@ -12,7 +12,6 @@ import profileRoutes from "./routes/profile.js";
 import weatherRoutes from "./routes/weatherRoutes.js";
 import copilotRoutes from "./routes/copilot.js";
 import supportRoutes from "./routes/supportRoutes.js";
-import awsRoutes from "./routes/awsRoutes.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 import { sanitizeBody } from "./middleware/sanitizeInput.js";
 import { allowedOrigins } from "./config/security.js";
@@ -71,7 +70,6 @@ app.use("/api/crops", cropRoutes);
 app.use("/api/farms", farmRoutes);
 app.use("/api/copilot", copilotRoutes);
 app.use("/api/support", supportRoutes);
-app.use("/api/aws", awsRoutes);
 
 // SPA fallback: any non-API route serves the React app
 app.get("*", (req, res, next) => {

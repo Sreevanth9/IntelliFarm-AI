@@ -1,5 +1,4 @@
 import { supabase } from "../config/supabase.js";
-import { uploadToS3 } from "../services/s3Service.js";
 
 export const getProfile = async (req, res, next) => {
   try {
@@ -75,21 +74,7 @@ export const updateProfile = async (req, res, next) => {
 
     const rawImg = profileImg || profile_img;
     if (rawImg) {
-      if (rawImg.startsWith("data:image/")) {
-        try {
-          const s3Upload = await uploadToS3({
-            base64: rawImg,
-            filename: `avatar_${req.user.id}`,
-            folder: `avatars/${req.user.id}`,
-          });
-          baseUpdate.profile_img = s3Upload.url;
-        } catch (s3Err) {
-          console.warn("[AWS S3 PROFILE AVATAR]: S3 upload fallback:", s3Err.message);
-          baseUpdate.profile_img = rawImg;
-        }
-      } else {
-        baseUpdate.profile_img = rawImg;
-      }
+      baseUpdate.profile_img = rawImg;
     }
 
     let updatedUser = null;
@@ -277,20 +262,23 @@ export const deleteAccount = async (req, res, next) => {
   try {
     const userId = req.user.id;
 
-    await Promise.allSettled([
-      supabase.from("farms").delete().eq("user_id", userId),
-      supabase.from("disease_reports").delete().eq("user_id", userId),
-      supabase.from("saved_recommendations").delete().eq("user_id", userId),
-      supabase.from("farmer_profiles").delete().eq("user_id", userId),
-      supabase.from("farmers").delete().eq("id", userId),
-    ]);
+    if (req.user.auth_user_id) {
+      const { error: authDeleteError } = await supabase.auth.admin.deleteUser(req.user.auth_user_id);
+      if (authDeleteError) throw authDeleteError;
+    }
 
-    try {
-      if (supabase.auth?.admin) {
-        await supabase.auth.admin.deleteUser(userId);
-      }
-    } catch (adminErr) {
-      // Ignore if non-admin key
+    const { data: deletedUser, error: deleteError } = await supabase
+      .from("users")
+      .delete()
+      .eq("id", userId)
+      .select("id")
+      .maybeSingle();
+
+    if (deleteError) throw deleteError;
+    if (!deletedUser) {
+      const error = new Error("Account not found.");
+      error.statusCode = 404;
+      throw error;
     }
 
     res.status(200).json({
@@ -302,4 +290,3 @@ export const deleteAccount = async (req, res, next) => {
     next(error);
   }
 };
-

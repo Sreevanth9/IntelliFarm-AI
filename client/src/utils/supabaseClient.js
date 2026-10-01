@@ -1,19 +1,29 @@
 import { createClient } from "@supabase/supabase-js";
 
-const supabaseUrl =
-  process.env.REACT_APP_SUPABASE_URL || "https://pkfdbgwavkblnzabdpmd.supabase.co";
-const supabaseAnonKey =
-  process.env.REACT_APP_SUPABASE_ANON_KEY || "sb_publishable_m4_rS_o6JccfKkdgqAM2YQ_gR4vomEq";
+const supabaseUrl = process.env.REACT_APP_SUPABASE_URL?.trim();
+const supabasePublishableKey =
+  process.env.REACT_APP_SUPABASE_PUBLISHABLE_KEY?.trim() ||
+  process.env.REACT_APP_SUPABASE_ANON_KEY?.trim();
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+if (!supabaseUrl || !supabasePublishableKey) {
+  throw new Error(
+    "Supabase configuration error: set REACT_APP_SUPABASE_URL and REACT_APP_SUPABASE_PUBLISHABLE_KEY in client/.env."
+  );
+}
+
+if (
+  /placeholder|your[_-]?supabase/i.test(supabaseUrl) ||
+  /placeholder|your[_-]?supabase/i.test(supabasePublishableKey) ||
+  supabasePublishableKey.startsWith("sb_secret_")
+) {
+  throw new Error("Supabase configuration error: the client needs a valid publishable key and project URL.");
+}
+
+export const supabase = createClient(supabaseUrl, supabasePublishableKey, {
   auth: {
     detectSessionInUrl: false,
     persistSession: true,
-    autoRefreshToken: false,
-  },
-  realtime: {
-    enabled: false,
+    autoRefreshToken: true,
   },
 });
-
 

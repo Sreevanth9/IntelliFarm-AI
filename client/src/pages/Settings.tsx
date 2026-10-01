@@ -150,12 +150,9 @@ const Settings: React.FC = () => {
       if (logout) await logout();
       navigate("/login", { replace: true });
     } catch (err: any) {
-      toast.success("Your account session has been terminated.", { duration: 4000 });
-      if (logout) await logout();
-      navigate("/login", { replace: true });
+      toast.error(err.response?.data?.message || "Unable to delete your account. Please try again.");
     } finally {
       setIsDeleting(false);
-      setActiveModal(null);
     }
   };
 

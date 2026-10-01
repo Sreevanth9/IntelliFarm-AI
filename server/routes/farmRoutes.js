@@ -1,7 +1,7 @@
 import express from "express";
 import { body } from "express-validator";
 
-import { addFarm, getFarms, getFarm, updateFarm, deleteFarm } from "../controllers/farmController.js";
+import { addFarm, getFarms, updateFarm, deleteFarm } from "../controllers/farmController.js";
 import { requireAuth } from "../middleware/auth.js";
 import { verifyOwnership } from "../middleware/verifyOwnership.js";
 import { csrfProtection } from "../middleware/csrf.js";
@@ -29,7 +29,6 @@ const farmValidation = [
 
 router.post("/", farmValidation, validateRequest, addFarm);
 router.get("/", getFarms);
-router.get("/:id", verifyOwnership("farms"), getFarm);
 router.put("/:id", verifyOwnership("farms"), farmValidation, validateRequest, updateFarm);
 router.delete("/:id", verifyOwnership("farms"), deleteFarm);
 

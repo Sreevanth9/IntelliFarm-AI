@@ -1,4 +1,4 @@
-# Multi-Stage Dockerfile for IntelliFarm AI on AWS App Runner / ECS / EC2
+# Multi-Stage Dockerfile for IntelliFarm AI
 
 # Stage 1: Build React Frontend
 FROM node:20-alpine AS client-builder
