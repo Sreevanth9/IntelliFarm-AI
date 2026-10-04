@@ -10,6 +10,9 @@
   },
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api/index.js" },
+    { "source": "/sitemap.xml", "destination": "/sitemap.xml" },
+    { "source": "/robots.txt", "destination": "/robots.txt" },
+    { "source": "/googlec5c3abd44d1f41c7.html", "destination": "/googlec5c3abd44d1f41c7.html" },
     { "source": "/(.*)", "destination": "/index.html" }
   ],
   "headers": [
