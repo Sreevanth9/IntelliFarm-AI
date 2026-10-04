@@ -377,7 +377,7 @@ const Login: React.FC = () => {
           transition={{ type: "tween", ease: "easeOut", duration: 0.15 }}
         >
           <div className="brand">
-            <img src={farmLogo} alt="IntelliFarm Logo" className="brand-logo" />
+            <img src={farmLogo} alt="IntelliFarm AI (intellifarmai) Logo" className="brand-logo" />
             <div>
               <h2><span className="brand-white">Intelli</span><span className="brand-green">Farm AI</span></h2>
               <p>Smart Farming. Better Decisions.</p>
@@ -388,7 +388,7 @@ const Login: React.FC = () => {
             <h1>Welcome to <br /><span style={{ color: "#ffffff", WebkitTextFillColor: "#ffffff" }}>Intelli</span><span>Farm AI</span></h1>
             <div className="green-bar"></div>
             <p className="hero-desc">
-              Your intelligent farming companion for better decisions, higher yields, and sustainable agriculture.
+              Your intelligent farming companion (intellifarmai) for better decisions, higher yields, and sustainable agriculture.
             </p>
 
             {/* Aligned Vertical Features Stack */}

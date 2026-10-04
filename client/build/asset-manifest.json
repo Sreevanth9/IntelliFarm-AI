@@ -1,17 +1,17 @@
 {
   "files": {
     "main.css": "/static/css/main.0a65714d.css",
-    "main.js": "/static/js/main.1434a7cc.js",
+    "main.js": "/static/js/main.77df913a.js",
     "static/media/dashboard.png": "/static/media/dashboard.cbfe2865c3966540e589.png",
     "static/media/login-farm.png": "/static/media/login-farm.be9fd16ebbe99c7d22f5.png",
     "static/media/intellifarm-icon.png": "/static/media/intellifarm-icon.4e1c27cfd066e371dc7f.png",
     "static/media/crop-image.png": "/static/media/crop-image.544d1f02538fe1c4a0f9.png",
     "index.html": "/index.html",
     "main.0a65714d.css.map": "/static/css/main.0a65714d.css.map",
-    "main.1434a7cc.js.map": "/static/js/main.1434a7cc.js.map"
+    "main.77df913a.js.map": "/static/js/main.77df913a.js.map"
   },
   "entrypoints": [
     "static/css/main.0a65714d.css",
-    "static/js/main.1434a7cc.js"
+    "static/js/main.77df913a.js"
   ]
 }
